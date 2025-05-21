@@ -43,7 +43,10 @@ apiClient.interceptors.response.use(
     }
     
     // Show error message
-    const errorMessage = error.response?.data?.message || 'Ein Fehler ist aufgetreten';
+    const errorMessage = error.response?.data && typeof error.response.data === 'object' 
+      ? (error.response.data as any).message || 'Ein Fehler ist aufgetreten'
+      : 'Ein Fehler ist aufgetreten';
+    
     toast.error(errorMessage);
     
     return Promise.reject(error);
