@@ -13,6 +13,11 @@ import Dashboard from "./pages/Dashboard";
 import CallPanel from "./pages/CallPanel";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import Calendar from "./pages/Calendar";
+import Contacts from "./pages/Contacts";
+import Statistics from "./pages/Statistics";
+import Logs from "./pages/Logs";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +48,51 @@ const App = () => (
               element={
                 <RequireAuth allowedRoles={["telefonist", "filialleiter"]}>
                   <CallPanel />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/calendar" 
+              element={
+                <RequireAuth>
+                  <Calendar />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/contacts" 
+              element={
+                <RequireAuth allowedRoles={["telefonist", "filialleiter"]}>
+                  <Contacts />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/statistics" 
+              element={
+                <RequireAuth allowedRoles={["admin", "filialleiter"]}>
+                  <Statistics />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/logs" 
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <Logs />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/settings" 
+              element={
+                <RequireAuth allowedRoles={["admin", "filialleiter"]}>
+                  <Settings />
                 </RequireAuth>
               } 
             />
