@@ -1,6 +1,6 @@
 
 import React, { useState, FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 const Login = () => {
+  const location = useLocation();
   const { isAuthenticated, login, isLoading, needsVerification, verify2FA } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+
+  // Get the page user was trying to access before being redirected to login
+  const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,8 +28,9 @@ const Login = () => {
     await verify2FA(code);
   };
 
+  // If user is authenticated, redirect to the page they tried to access
   if (isAuthenticated) {
-    return <Navigate to="/" />;
+    return <Navigate to={from} replace />;
   }
 
   return (
@@ -136,7 +141,6 @@ const Login = () => {
           <p>Admin: admin@keyeff.de / password</p>
           <p>Telefonist: telefonist@keyeff.de / password</p>
           <p>Filialleiter: filialleiter@keyeff.de / password</p>
-          <p>2FA Code: 123456</p>
         </div>
       </div>
     </div>
