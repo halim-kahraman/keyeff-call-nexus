@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from "@/context/AuthContext";
 import { customerService, callService, appointmentService } from "@/services/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import WebRTCClient from "@/components/sip/WebRTCClient";
 
 // Customer type definition
 interface CustomerContract {
@@ -93,7 +94,7 @@ const CallPanel = () => {
       
       if (data.sync_status) {
         toast.success("Termin wurde erfolgreich mit KeyEff CRM synchronisiert.");
-      } else {
+      } else if (data.sync_message) {
         toast.error(`Synchronisierung fehlgeschlagen: ${data.sync_message}`);
       }
       
@@ -204,6 +205,16 @@ const CallPanel = () => {
     }
   };
 
+  // WebRTC handlers
+  const handleWebRTCCallStart = () => {
+    setActiveCall(true);
+  };
+
+  const handleWebRTCCallEnd = (duration: number) => {
+    setActiveCall(false);
+    setCallDuration(duration);
+  };
+
   if (isLoadingCustomers) {
     return (
       <AppLayout 
@@ -277,22 +288,6 @@ const CallPanel = () => {
                     <CardTitle>{selectedCustomer.name}</CardTitle>
                     <CardDescription>{selectedCustomer.company}</CardDescription>
                   </div>
-                  <Button 
-                    onClick={handleCall}
-                    className={activeCall ? "bg-destructive hover:bg-destructive/90" : "bg-keyeff-500 hover:bg-keyeff-600"}
-                  >
-                    {activeCall ? (
-                      <>
-                        <PhoneOff className="mr-2" size={16} />
-                        Anruf beenden ({formatDuration(callDuration)})
-                      </>
-                    ) : (
-                      <>
-                        <Phone className="mr-2" size={16} />
-                        Anrufen
-                      </>
-                    )}
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -318,6 +313,12 @@ const CallPanel = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* WebRTC SIP Client */}
+                <WebRTCClient
+                  onCallStart={handleWebRTCCallStart}
+                  onCallEnd={handleWebRTCCallEnd}
+                />
 
                 <div className="pt-4 border-t">
                   <h3 className="text-lg font-medium mb-3">Gesprächsnotiz</h3>

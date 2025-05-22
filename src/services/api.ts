@@ -1,4 +1,3 @@
-
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { toast } from "sonner";
 
@@ -134,6 +133,14 @@ export const appointmentService = {
   }
 };
 
+// Filiale service
+export const filialeService = {
+  getFilialen: async () => {
+    const response = await apiClient.get('/api/filialen/list.php');
+    return response.data.data;
+  }
+};
+
 // Settings service
 export const settingsService = {
   getSettings: async (category: string, filialeId?: string) => {
@@ -155,6 +162,41 @@ export const settingsService = {
     };
     
     const response = await apiClient.post('/api/settings/save.php', data);
+    return response.data;
+  },
+  
+  testSipConnection: async (settings: {
+    sipServer: string;
+    sipPort: string;
+    sipUser: string;
+    sipPassword: string;
+    outboundProxy?: string;
+    transport?: string;
+    useSrtp?: boolean;
+  }, filialeId?: string) => {
+    const data = {
+      settings,
+      filiale_id: filialeId
+    };
+    
+    const response = await apiClient.post('/api/settings/test-sip.php', data);
+    return response.data;
+  },
+  
+  testVpnConnection: async (settings: {
+    vpnServer: string;
+    vpnPort: string;
+    vpnProtocol: string;
+    vpnUsername?: string;
+    vpnPassword?: string;
+    vpnCertificate?: string;
+  }, filialeId?: string) => {
+    const data = {
+      settings,
+      filiale_id: filialeId
+    };
+    
+    const response = await apiClient.post('/api/settings/test-vpn.php', data);
     return response.data;
   }
 };
