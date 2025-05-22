@@ -1,7 +1,9 @@
 
 # Enable CORS
 <IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "http://localhost:8080"
+    # Allow multiple origins
+    SetEnvIf Origin "http(s)?://(www\.)?(localhost:8080|localhost:5173)$" CORS_ALLOW_ORIGIN=$0
+    Header set Access-Control-Allow-Origin "%{CORS_ALLOW_ORIGIN}e" env=CORS_ALLOW_ORIGIN
     Header set Access-Control-Allow-Methods "POST, GET, OPTIONS, PUT, DELETE"
     Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header set Access-Control-Allow-Credentials "true"

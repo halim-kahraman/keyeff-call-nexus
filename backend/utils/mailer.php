@@ -4,7 +4,12 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Check if we need to include the vendor autoload file
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} else {
+    debugLog('PHPMailer autoload file not found');
+}
 
 /**
  * Send an email using PHPMailer
