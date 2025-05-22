@@ -4,22 +4,22 @@
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
 
-// Define URLs based on environment - now properly handling different environments
+// Define URLs based on environment
 define('API_URL', 'http://localhost/keyeff_callpanel/backend'); // PHP backend URL
-define('APP_URL', 'http://localhost:5173'); // Default frontend URL
+define('APP_URL', 'http://localhost:8080'); // Frontend URL for your setup
 
 // JWT Secret for Token Generation
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
 define('JWT_EXPIRY', 86400); // 24 hours in seconds
 
 // Email settings for password reset and notifications
-define('MAIL_HOST', 'smtp.example.com'); // Change to your SMTP server
-define('MAIL_PORT', 587); // Typical ports: 25, 465, 587
-define('MAIL_USERNAME', 'noreply@keyeff.de'); // Your email
-define('MAIL_PASSWORD', 'your_email_password'); // Your email password
-define('MAIL_FROM', 'noreply@keyeff.de'); // Sender email
-define('MAIL_FROM_NAME', 'KeyEff Call Panel'); // Sender name
-define('MAIL_ENCRYPTION', 'tls'); // Options: '', 'ssl', 'tls'
+define('MAIL_HOST', 'smtp.example.com');
+define('MAIL_PORT', 587);
+define('MAIL_USERNAME', 'noreply@keyeff.de');
+define('MAIL_PASSWORD', 'your_email_password');
+define('MAIL_FROM', 'noreply@keyeff.de');
+define('MAIL_FROM_NAME', 'KeyEff Call Panel');
+define('MAIL_ENCRYPTION', 'tls');
 
 // Time zone
 date_default_timezone_set('Europe/Berlin');
@@ -29,28 +29,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// CORS Headers - Only set them here, not in individual files
+// Simplified CORS Headers - We handle most of this in .htaccess now
 function setCorsHeaders() {
-    // Get the requesting origin - this allows multiple origins
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-    
-    // List of allowed origins - add your development URLs here
-    $allowed_origins = [
-        'http://localhost:5173',
-        'http://localhost:8080',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:8080',
-        'http://192.168.178.66:8080'
-    ];
-    
-    // If the origin is in our allowed list, set it specifically
-    if (in_array($origin, $allowed_origins)) {
-        header("Access-Control-Allow-Origin: $origin");
-    } else {
-        // Fall back to * for development ease
-        header("Access-Control-Allow-Origin: *");
-    }
-    
+    // Allow from any origin in development
+    header("Access-Control-Allow-Origin: *");
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
     header('Access-Control-Max-Age: 1728000');
@@ -59,7 +41,7 @@ function setCorsHeaders() {
 // Set CORS headers for all requests
 setCorsHeaders();
 
-// Handle preflight OPTIONS requests - Important for CORS
+// Handle preflight OPTIONS requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     header("HTTP/1.1 200 OK");
     exit;

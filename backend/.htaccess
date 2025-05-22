@@ -1,8 +1,8 @@
 
-# Enable CORS for all routes - simplified to avoid duplicate headers
+# Enable CORS for all routes
 <IfModule mod_headers.c>
-    # We're letting PHP handle the Access-Control-Allow-Origin header dynamically
-    # Only set the other CORS headers here
+    # Allow requests from all origins in development
+    Header always set Access-Control-Allow-Origin "*"
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header always set Access-Control-Max-Age "1728000"

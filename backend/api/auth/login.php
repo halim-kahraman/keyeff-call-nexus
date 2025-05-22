@@ -4,16 +4,18 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Log.php';
 
-// Debug incoming request
+// Enhanced debugging
 debugLog('Login request received', [
     'method' => $_SERVER['REQUEST_METHOD'],
     'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'Not set',
     'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set',
-    'headers' => getallheaders()
+    'headers' => getallheaders(),
+    'raw_post' => file_get_contents('php://input')
 ]);
 
 // Handle OPTIONS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    debugLog('OPTIONS request received - responding with 200');
     http_response_code(200);
     exit;
 }
@@ -43,6 +45,8 @@ $password = $data['password'];
 $user = new User();
 $found = $user->findByEmail($email);
 
+debugLog('User lookup result', ['email' => $email, 'found' => $found]);
+
 if (!$found) {
     debugLog('User not found', $email);
     jsonResponse(false, 'Invalid credentials', null, 401);
@@ -68,10 +72,6 @@ if (!$otp) {
     debugLog('Failed to generate OTP', $email);
     jsonResponse(false, 'Failed to generate OTP', null, 500);
 }
-
-// In a real application, send OTP via email
-// For demo purposes, we'll just return it (NEVER do this in production)
-// Normally we would use PHPMailer here
 
 // Log login attempt
 $log = new Log();

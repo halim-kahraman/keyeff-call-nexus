@@ -1,4 +1,3 @@
-
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
@@ -15,26 +14,22 @@ console.log('Current environment details:', {
   currentOrigin
 });
 
-// API configuration - dynamically determine the correct URL based on the environment
+// API configuration - handle your specific local setup
 const API_URL = (() => {
-  // In production (or when running on an actual server)
+  // For local development with port 8080
+  if (currentHost === 'localhost' && currentPort === '8080') {
+    console.log('Local development on port 8080 detected');
+    return 'http://localhost/keyeff_callpanel/backend';
+  }
+  
+  // For production (or when running on an actual server)
   if (import.meta.env.PROD) {
     return '/keyeff_callpanel/backend'; // Production path - same domain
   }
   
-  // For local development with various setups
-  // This covers VS Code's Live Server (port 5500), Vite (5173), or other local servers
-  console.log('Development environment detected');
-  
-  // Try to detect wamp/xampp setup automatically
-  const isLocalhost = ['localhost', '127.0.0.1'].includes(currentHost);
-  
-  if (isLocalhost) {
-    return 'http://localhost/keyeff_callpanel/backend';
-  }
-  
-  // If accessing from another device on local network (like 192.168.x.x)
-  return `http://localhost/keyeff_callpanel/backend`;
+  // Fallback - works for most local setups
+  console.log('Using fallback API URL configuration');
+  return 'http://localhost/keyeff_callpanel/backend';
 })();
 
 console.log('Environment:', isDev ? 'Development' : 'Production');
@@ -46,8 +41,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // Must be false when using '*' for Access-Control-Allow-Origin
-  timeout: 15000,
+  withCredentials: false, // Must be false for cross-origin requests with "*" for Access-Control-Allow-Origin
 });
 
 // Add request interceptor to add token to requests
@@ -94,13 +88,13 @@ apiClient.interceptors.response.use(
         duration: 6000
       });
       
-      // Show help message for common setup issues
+      // Show debugging tips specifically for your setup
       console.info(
         'SETUP TIPS: \n' +
         '1. Stellen Sie sicher, dass Ihr PHP-Server (Apache/XAMPP/WAMP) läuft. \n' +
         '2. Stellen Sie sicher, dass die Projektdateien im richtigen Verzeichnis liegen (/keyeff_callpanel/). \n' +
-        '3. Überprüfen Sie, ob das Backend unter http://localhost/keyeff_callpanel/backend/ erreichbar ist. \n' +
-        '4. Überprüfen Sie, ob CORS-Header korrekt in der backend/config/config.php gesetzt sind.'
+        '3. Testen Sie den direkten API-Zugriff mit einem POST-Request auf http://localhost/keyeff_callpanel/backend/api/auth/login.php \n' +
+        '4. Überprüfen Sie das debug.log in backend/ für weitere Fehlermeldungen.'
       );
     }
     // Handle unauthorized errors
