@@ -12,10 +12,11 @@ debugLog('Login request received', [
     'headers' => getallheaders()
 ]);
 
-// Ensure CORS headers are set again specifically for this endpoint
+// Always set CORS headers for all responses
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Content-Type: application/json; charset=UTF-8');
 
 // Handle OPTIONS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

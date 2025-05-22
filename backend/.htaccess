@@ -1,12 +1,13 @@
 
-# Enable CORS - Simplified and more robust
+# Enable CORS for all routes
 <IfModule mod_headers.c>
-    # Allow from any origin
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "POST, GET, OPTIONS, PUT, DELETE"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    # Set Access-Control-Allow-Origin for all requests
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "1728000"
     
-    # Handle OPTIONS pre-flight requests
+    # Handle preflight OPTIONS requests
     RewriteEngine On
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ $1 [R=200,L]

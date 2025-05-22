@@ -21,10 +21,11 @@ define('MAIL_FROM', 'noreply@keyeff.de'); // Sender email
 define('MAIL_FROM_NAME', 'KeyEff Call Panel'); // Sender name
 define('MAIL_ENCRYPTION', 'tls'); // Options: '', 'ssl', 'tls'
 
-// Simplified CORS Settings - Allow any origin
+// CORS Headers - Always set them regardless of request type
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Max-Age: 1728000');
 header('Content-Type: application/json; charset=UTF-8');
 
 // Handle preflight OPTIONS requests - Important for CORS
@@ -49,6 +50,12 @@ if (session_status() === PHP_SESSION_NONE) {
 // Function to generate JSON response
 function jsonResponse($success = true, $message = '', $data = null, $status = 200) {
     http_response_code($status);
+    
+    // Ensure CORS headers are sent with each response
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+    
     echo json_encode([
         'success' => $success,
         'message' => $message,

@@ -13,7 +13,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Wichtig: withCredentials auf false setzen bei CORS mit "*"
+  // CORS configuration
   withCredentials: false
 });
 
@@ -24,6 +24,8 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    // Ensure content type is set for all requests
+    config.headers['Content-Type'] = 'application/json';
     return config;
   },
   (error) => {
