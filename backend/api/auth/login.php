@@ -4,24 +4,28 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Log.php';
 
-// CORS is already handled in config.php, but we'll make sure it's set here too
-// These headers will be applied after the OPTIONS check in config.php
-if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
-    header('Access-Control-Allow-Origin: ' . APP_URL);
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-}
+// Debug incoming request
+debugLog('Login request received', [
+    'method' => $_SERVER['REQUEST_METHOD'],
+    'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'Not set',
+    'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set'
+]);
 
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    debugLog('Invalid request method', $_SERVER['REQUEST_METHOD']);
     jsonResponse(false, 'Invalid request method', null, 405);
 }
 
 // Get request data
-$data = json_decode(file_get_contents('php://input'), true);
+$input = file_get_contents('php://input');
+debugLog('Raw input', $input);
+$data = json_decode($input, true);
+debugLog('Parsed data', $data);
 
 // Validate input
 if (!isset($data['email']) || !isset($data['password'])) {
+    debugLog('Missing credentials', $data);
     jsonResponse(false, 'Email and password are required', null, 400);
 }
 
@@ -33,11 +37,13 @@ $user = new User();
 $found = $user->findByEmail($email);
 
 if (!$found) {
+    debugLog('User not found', $email);
     jsonResponse(false, 'Invalid credentials', null, 401);
 }
 
 // Verify password
 if (!$user->validatePassword($password)) {
+    debugLog('Invalid password for user', $email);
     jsonResponse(false, 'Invalid credentials', null, 401);
 }
 
@@ -45,6 +51,7 @@ if (!$user->validatePassword($password)) {
 $otp = $user->generateOTP();
 
 if (!$otp) {
+    debugLog('Failed to generate OTP', $email);
     jsonResponse(false, 'Failed to generate OTP', null, 500);
 }
 
@@ -61,6 +68,11 @@ $log->create(
     $user->id,
     'Login attempt with 2FA initiated'
 );
+
+debugLog('OTP generated successfully', [
+    'user_id' => $user->id,
+    'otp' => $otp
+]);
 
 // Return pending state with temporary token
 jsonResponse(true, 'OTP generated successfully', [

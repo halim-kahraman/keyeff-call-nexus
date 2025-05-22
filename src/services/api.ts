@@ -1,11 +1,12 @@
-
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { toast } from "sonner";
 
-// API configuration
-const API_URL = 'http://localhost/keyeff_callpanel/backend';
+// API configuration - updated to use the correct URL dynamically
+const API_URL = import.meta.env.PROD 
+  ? '/keyeff_callpanel/backend'  // Production path
+  : 'http://localhost/keyeff_callpanel/backend'; // Development path
 
-// Create axios instance
+// Create axios instance with updated configuration
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
@@ -35,6 +36,8 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
+    console.error('API Error:', error);
+    
     // Handle unauthorized errors
     if (error.response?.status === 401) {
       // Clear token and redirect to login
@@ -58,12 +61,16 @@ apiClient.interceptors.response.use(
 // Auth service
 export const authService = {
   login: async (email: string, password: string) => {
+    console.log('Login attempt for:', email);
     const response = await apiClient.post('/api/auth/login.php', { email, password });
+    console.log('Login response:', response.data);
     return response.data;
   },
   
   verify2FA: async (userId: string, otp: string) => {
+    console.log('2FA verification for user:', userId);
     const response = await apiClient.post('/api/auth/verify.php', { user_id: userId, otp });
+    console.log('2FA response:', response.data);
     if (response.data.success) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
@@ -73,24 +80,30 @@ export const authService = {
   
   logout: async () => {
     try {
+      console.log('Logging out...');
       await apiClient.get('/api/auth/logout.php');
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      console.log('Logout complete');
     }
   },
   
   requestPasswordReset: async (email: string) => {
+    console.log('Password reset request for:', email);
     const response = await apiClient.post('/api/auth/reset-password.php', { email });
+    console.log('Reset request response:', response.data);
     return response.data;
   },
   
   resetPassword: async (email: string, resetCode: string, newPassword: string) => {
+    console.log('Password reset confirmation for:', email);
     const response = await apiClient.post('/api/auth/reset-password.php', { 
       email, 
       reset_code: resetCode, 
       new_password: newPassword 
     });
+    console.log('Reset confirmation response:', response.data);
     return response.data;
   }
 };

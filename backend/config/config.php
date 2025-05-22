@@ -3,7 +3,9 @@
 // General Configuration
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost:8080'); // Updated to React dev server URL
+
+// Define URLs based on environment - now properly handling different environments
+define('APP_URL', isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'http://localhost:8080');
 define('API_URL', 'http://localhost/keyeff_callpanel/backend'); // PHP backend URL
 
 // JWT Secret for Token Generation
@@ -14,6 +16,7 @@ define('JWT_EXPIRY', 86400); // 24 hours in seconds
 header('Access-Control-Allow-Origin: ' . APP_URL);
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json; charset=UTF-8');
 
 // Handle preflight OPTIONS requests - Important for CORS
@@ -69,4 +72,16 @@ function validateToken($token) {
     return $payload;
 }
 
+// Debug function for development
+function debugLog($message, $data = null) {
+    $logFile = __DIR__ . '/../debug.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[{$timestamp}] {$message}";
+    
+    if ($data !== null) {
+        $logEntry .= ': ' . json_encode($data);
+    }
+    
+    file_put_contents($logFile, $logEntry . PHP_EOL, FILE_APPEND);
+}
 ?>

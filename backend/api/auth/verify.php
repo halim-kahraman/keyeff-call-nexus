@@ -4,16 +4,28 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Log.php';
 
+// Debug incoming request
+debugLog('2FA Verification request received', [
+    'method' => $_SERVER['REQUEST_METHOD'],
+    'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'Not set',
+    'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set'
+]);
+
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    debugLog('Invalid request method', $_SERVER['REQUEST_METHOD']);
     jsonResponse(false, 'Invalid request method', null, 405);
 }
 
 // Get request data
-$data = json_decode(file_get_contents('php://input'), true);
+$input = file_get_contents('php://input');
+debugLog('Raw input', $input);
+$data = json_decode($input, true);
+debugLog('Parsed data', $data);
 
 // Validate input
 if (!isset($data['user_id']) || !isset($data['otp'])) {
+    debugLog('Missing user_id or OTP', $data);
     jsonResponse(false, 'User ID and OTP are required', null, 400);
 }
 
@@ -23,6 +35,7 @@ $otp = $data['otp'];
 // Find user by ID
 $user = new User();
 if (!$user->findById($user_id)) {
+    debugLog('User not found', $user_id);
     jsonResponse(false, 'User not found', null, 404);
 }
 
@@ -37,6 +50,11 @@ if (!$user->verifyOTP($otp)) {
         $user_id,
         'Failed 2FA verification attempt'
     );
+    
+    debugLog('Invalid or expired OTP', [
+        'user_id' => $user_id,
+        'otp' => $otp
+    ]);
     
     jsonResponse(false, 'Invalid or expired OTP', null, 401);
 }
@@ -65,6 +83,13 @@ $log->create(
     $user->id,
     'User logged in successfully'
 );
+
+debugLog('Login successful', [
+    'user_id' => $user->id,
+    'name' => $user->name,
+    'email' => $user->email,
+    'role' => $user->role
+]);
 
 // Return user data and token
 jsonResponse(true, 'Login successful', [
