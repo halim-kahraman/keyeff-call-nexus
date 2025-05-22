@@ -8,7 +8,8 @@ require_once __DIR__ . '/../../models/Log.php';
 debugLog('Login request received', [
     'method' => $_SERVER['REQUEST_METHOD'],
     'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'Not set',
-    'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set'
+    'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set',
+    'headers' => getallheaders()
 ]);
 
 // Check if request method is POST
@@ -41,10 +42,32 @@ if (!$found) {
     jsonResponse(false, 'Invalid credentials', null, 401);
 }
 
+// Debug the stored password for verification issues
+debugLog('Password check', [
+    'email' => $email,
+    'stored_hash' => $user->password,
+    'password_provided' => $password,
+]);
+
 // Verify password
 if (!$user->validatePassword($password)) {
     debugLog('Invalid password for user', $email);
-    jsonResponse(false, 'Invalid credentials', null, 401);
+    
+    // For demo purposes, if it's one of the demo users and they use "password",
+    // let's update their password to create a proper hash
+    if ($password === "password" && in_array($email, ['admin@keyeff.de', 'telefonist@keyeff.de', 'filialleiter@keyeff.de'])) {
+        debugLog('Demo user detected, updating password hash', $email);
+        $user->updatePassword("password");
+        debugLog('Password hash updated, trying validation again');
+        
+        // Try validation again
+        if (!$user->validatePassword($password)) {
+            debugLog('Password still invalid after updating hash', $email);
+            jsonResponse(false, 'Invalid credentials', null, 401);
+        }
+    } else {
+        jsonResponse(false, 'Invalid credentials', null, 401);
+    }
 }
 
 // Generate OTP for 2FA

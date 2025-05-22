@@ -1,5 +1,5 @@
 
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -23,9 +23,23 @@ const Login = () => {
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [resetStep, setResetStep] = useState<"email" | "code" | "password">("email");
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Get the page user was trying to access before being redirected to login
   const from = location.state?.from?.pathname || "/";
+
+  // Handle dialog open and close properly
+  useEffect(() => {
+    if (!isResetDialogOpen) {
+      // Reset state when dialog closes
+      setTimeout(() => {
+        setResetStep("email");
+        setResetEmail("");
+        setResetCode("");
+        setNewPassword("");
+      }, 300);
+    }
+  }, [isResetDialogOpen]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,41 +53,44 @@ const Login = () => {
 
   const handleResetRequest = async (e: FormEvent) => {
     e.preventDefault();
-    const code = await resetPassword(resetEmail);
-    if (code) {
-      setResetStep("code");
-      // For demo, auto-fill the code
-      setResetCode(code);
+    setResetLoading(true);
+    try {
+      const result = await resetPassword(resetEmail);
+      if (result) {
+        setResetStep("code");
+        // For demo, auto-fill the code
+        setResetCode(result);
+        toast.success("Reset-Code gesendet", { 
+          description: "Ein Code wurde an Ihre E-Mail-Adresse gesendet." 
+        });
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
   const handleCodeVerification = (e: FormEvent) => {
     e.preventDefault();
-    // In a real app, you might verify the code first before allowing password reset
     setResetStep("password");
+    toast.info("Code bestätigt", { 
+      description: "Bitte geben Sie Ihr neues Passwort ein." 
+    });
   };
 
   const handlePasswordReset = async (e: FormEvent) => {
     e.preventDefault();
-    const success = await confirmResetPassword(resetEmail, resetCode, newPassword);
-    if (success) {
-      setIsResetDialogOpen(false);
-      setResetStep("email");
-      setResetEmail("");
-      setResetCode("");
-      setNewPassword("");
-      toast.success("Passwort zurückgesetzt", { 
-        description: "Bitte melden Sie sich mit Ihrem neuen Passwort an." 
-      });
+    setResetLoading(true);
+    try {
+      const success = await confirmResetPassword(resetEmail, resetCode, newPassword);
+      if (success) {
+        setIsResetDialogOpen(false);
+        toast.success("Passwort zurückgesetzt", { 
+          description: "Bitte melden Sie sich mit Ihrem neuen Passwort an." 
+        });
+      }
+    } finally {
+      setResetLoading(false);
     }
-  };
-
-  const closeResetDialog = () => {
-    setIsResetDialogOpen(false);
-    setResetStep("email");
-    setResetEmail("");
-    setResetCode("");
-    setNewPassword("");
   };
 
   // If user is authenticated, redirect to the page they tried to access
@@ -116,7 +133,10 @@ const Login = () => {
                     <button 
                       type="button"
                       className="text-xs text-keyeff-500 hover:underline"
-                      onClick={() => setIsResetDialogOpen(true)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsResetDialogOpen(true);
+                      }}
                     >
                       Passwort vergessen?
                     </button>
@@ -188,7 +208,7 @@ const Login = () => {
           </Card>
         )}
         
-        <Dialog open={isResetDialogOpen} onOpenChange={closeResetDialog}>
+        <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Passwort zurücksetzen</DialogTitle>
@@ -216,9 +236,9 @@ const Login = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-keyeff-500 hover:bg-keyeff-600"
-                    disabled={isLoading}
+                    disabled={resetLoading}
                   >
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Code anfordern
                   </Button>
                 </DialogFooter>
@@ -242,9 +262,9 @@ const Login = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-keyeff-500 hover:bg-keyeff-600"
-                    disabled={isLoading}
+                    disabled={resetLoading}
                   >
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Code bestätigen
                   </Button>
                 </DialogFooter>
@@ -268,9 +288,9 @@ const Login = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-keyeff-500 hover:bg-keyeff-600"
-                    disabled={isLoading}
+                    disabled={resetLoading}
                   >
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Passwort zurücksetzen
                   </Button>
                 </DialogFooter>

@@ -12,7 +12,16 @@ define('API_URL', 'http://localhost/keyeff_callpanel/backend'); // PHP backend U
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
 define('JWT_EXPIRY', 86400); // 24 hours in seconds
 
-// CORS Settings - Updated to be more permissive for development
+// Email settings for password reset and notifications
+define('MAIL_HOST', 'smtp.example.com'); // Change to your SMTP server
+define('MAIL_PORT', 587); // Typical ports: 25, 465, 587
+define('MAIL_USERNAME', 'noreply@keyeff.de'); // Your email
+define('MAIL_PASSWORD', 'your_email_password'); // Your email password
+define('MAIL_FROM', 'noreply@keyeff.de'); // Sender email
+define('MAIL_FROM_NAME', 'KeyEff Call Panel'); // Sender name
+define('MAIL_ENCRYPTION', 'tls'); // Options: '', 'ssl', 'tls'
+
+// CORS Settings for development
 header('Access-Control-Allow-Origin: ' . APP_URL);
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');

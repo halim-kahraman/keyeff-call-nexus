@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Log.php';
+require_once __DIR__ . '/../../utils/mailer.php';
 
 // Debug incoming request
 debugLog('Reset password request received', [
@@ -55,16 +56,20 @@ if (isset($data['email']) && !isset($data['reset_code'])) {
         'Password reset requested'
     );
     
-    debugLog('Reset code generated', [
+    // Send reset email
+    $emailSent = sendPasswordResetEmail($user->email, $user->name, $otp);
+    
+    debugLog('Reset code generated and email attempt', [
         'email' => $data['email'],
-        'otp' => $otp
+        'otp' => $otp,
+        'email_sent' => $emailSent
     ]);
     
-    // In a real application, send reset code via email
-    // For demo purposes, we'll just return it (NEVER do this in production)
-    jsonResponse(true, 'Reset code generated successfully', [
+    // For demo purposes, include the OTP in the response (REMOVE IN PRODUCTION)
+    jsonResponse(true, 'If your email exists in our system, a reset code has been sent to it.', [
         'reset_code' => $otp, // REMOVE THIS IN PRODUCTION! Just for demo
-        'message' => 'If your email exists in our system, a reset code has been sent to it.'
+        'message' => 'If your email exists in our system, a reset code has been sent to it.',
+        'email_success' => $emailSent
     ]);
 }
 // Handle password reset confirmation
