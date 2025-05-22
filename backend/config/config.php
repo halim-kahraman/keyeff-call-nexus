@@ -21,24 +21,6 @@ define('MAIL_FROM', 'noreply@keyeff.de'); // Sender email
 define('MAIL_FROM_NAME', 'KeyEff Call Panel'); // Sender name
 define('MAIL_ENCRYPTION', 'tls'); // Options: '', 'ssl', 'tls'
 
-// CORS Headers - Always set them regardless of request type
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Max-Age: 1728000');
-header('Content-Type: application/json; charset=UTF-8');
-
-// Handle preflight OPTIONS requests - Important for CORS
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    header("HTTP/1.1 200 OK");
-    exit;
-}
-
-// Error reporting for development
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
@@ -47,14 +29,37 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// CORS Headers - Only set them here, not in individual files
+function setCorsHeaders() {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+    header('Access-Control-Max-Age: 1728000');
+}
+
+// Set CORS headers for all requests
+setCorsHeaders();
+
+// Handle preflight OPTIONS requests - Important for CORS
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    header("HTTP/1.1 200 OK");
+    exit;
+}
+
+// Default content type for API responses
+header('Content-Type: application/json; charset=UTF-8');
+
+// Error reporting for development
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Function to generate JSON response
 function jsonResponse($success = true, $message = '', $data = null, $status = 200) {
     http_response_code($status);
     
-    // Ensure CORS headers are sent with each response
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+    // Ensure JSON content type
+    header('Content-Type: application/json; charset=UTF-8');
     
     echo json_encode([
         'success' => $success,

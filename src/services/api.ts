@@ -2,12 +2,24 @@
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
-// API configuration - updated to use the correct URL dynamically
-const API_URL = import.meta.env.PROD 
-  ? '/keyeff_callpanel/backend'  // Production path
-  : 'http://localhost/keyeff_callpanel/backend'; // Development path
+// Determine the current environment and port
+const isDev = import.meta.env.DEV;
+const currentPort = window.location.port;
 
+// API configuration - dynamically determine the correct URL
+const API_URL = (() => {
+  if (import.meta.env.PROD) {
+    return '/keyeff_callpanel/backend'; // Production path
+  }
+  
+  // For development, handle different development server ports
+  // This will work with npm run dev (Vite default port 5173), VS Code Live Server (5500), etc.
+  return 'http://localhost/keyeff_callpanel/backend';
+})();
+
+console.log('Environment:', isDev ? 'Development' : 'Production');
 console.log('API URL configured as:', API_URL);
+console.log('Current port:', currentPort);
 
 // Create axios instance with updated configuration
 const apiClient = axios.create({
@@ -16,7 +28,9 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   // CORS configuration - ensure withCredentials is false when using '*' for Access-Control-Allow-Origin
-  withCredentials: false
+  withCredentials: false,
+  // Increase timeout for slower connections
+  timeout: 15000,
 });
 
 // Add request interceptor to add token to requests
@@ -49,16 +63,37 @@ apiClient.interceptors.response.use(
     
     // Special handling for CORS errors
     if (error.message && error.message.includes('Network Error')) {
-      console.error('CORS or network error detected');
-      toast.error('Netzwerkfehler - Bitte prüfen Sie Ihre Internetverbindung oder kontaktieren Sie den Support (mögliches CORS-Problem)');
+      console.error('CORS or network error detected', {
+        url: error.config?.url,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
+      });
+      toast.error('Netzwerkfehler - Bitte prüfen Sie Ihre Internetverbindung und PHP Server.');
+      
+      // Show help message for common setup issues
+      console.info(
+        'SETUP TIPS: \n' +
+        '1. Ensure your PHP server (Apache/XAMPP/WAMP) is running. \n' +
+        '2. Make sure project files are in correct directory (/keyeff_callpanel/). \n' +
+        '3. Check that backend path is accessible at http://localhost/keyeff_callpanel/backend/.'
+      );
     }
     // Handle unauthorized errors
     else if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      toast.error('Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
-      window.location.href = '/login';
+      console.warn('Unauthorized access attempt (401)', {
+        url: error.config?.url
+      });
+      
+      // Only redirect to login if not already on login page
+      if (!window.location.pathname.includes('login')) {
+        // Clear token and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        toast.error('Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
+        window.location.href = '/login';
+      } else {
+        toast.error('Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.');
+      }
     }
     else {
       // Show error message from response if available

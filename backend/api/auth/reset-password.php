@@ -13,9 +13,6 @@ debugLog('Reset password request received', [
     'headers' => getallheaders()
 ]);
 
-// IMPORTANT: We don't set CORS headers here anymore - they are now handled 
-// in the config.php file and in jsonResponse function to prevent duplicates
-
 // Handle OPTIONS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

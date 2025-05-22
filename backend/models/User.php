@@ -130,7 +130,12 @@ class User {
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param("si", $hashed_password, $this->id);
         
-        return $stmt->execute();
+        if ($stmt->execute()) {
+            $this->password = $hashed_password;
+            return true;
+        }
+        
+        return false;
     }
     
     // Delete user
@@ -144,7 +149,16 @@ class User {
     
     // Validate password
     public function validatePassword($password) {
-        return password_verify($password, $this->password);
+        // For debugging
+        debugLog("Validating password", [
+            "stored_hash" => $this->password,
+            "provided_password_length" => strlen($password)
+        ]);
+        
+        $result = password_verify($password, $this->password);
+        debugLog("Password verification result", $result);
+        
+        return $result;
     }
     
     // Generate OTP

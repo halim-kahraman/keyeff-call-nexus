@@ -12,9 +12,6 @@ debugLog('Login request received', [
     'headers' => getallheaders()
 ]);
 
-// IMPORTANT: We don't set CORS headers here anymore - they are now handled 
-// in the config.php file and in jsonResponse function to prevent duplicates
-
 // Handle OPTIONS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -54,16 +51,15 @@ if (!$found) {
 // Debug the stored password for verification issues
 debugLog('Password check', [
     'email' => $email,
-    'stored_hash' => $user->password,
-    'password_provided' => $password,
+    'stored_hash_length' => strlen($user->password),
+    'password_provided_length' => strlen($password),
 ]);
 
 // Verify password
 if (!$user->validatePassword($password)) {
     debugLog('Invalid password for user', $email);
     
-    // For demo purposes, if it's one of the demo users and they use "password",
-    // let's update their password to create a proper hash
+    // For demo users with plain "password", let's update their password hash
     if ($password === "password" && in_array($email, ['admin@keyeff.de', 'telefonist@keyeff.de', 'filialleiter@keyeff.de'])) {
         debugLog('Demo user detected, updating password hash', $email);
         $user->updatePassword("password");
