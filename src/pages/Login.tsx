@@ -1,4 +1,3 @@
-
 import React, { useState, FormEvent, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -56,14 +55,21 @@ const Login = () => {
     setResetLoading(true);
     try {
       const result = await resetPassword(resetEmail);
+      console.log("Reset password result:", result);
       if (result) {
         setResetStep("code");
-        // For demo, auto-fill the code
-        setResetCode(result);
+        // For demo, auto-fill the code if returned
+        if (result.data && result.data.reset_code) {
+          setResetCode(result.data.reset_code);
+          console.log("Reset code received:", result.data.reset_code);
+        }
         toast.success("Reset-Code gesendet", { 
           description: "Ein Code wurde an Ihre E-Mail-Adresse gesendet." 
         });
       }
+    } catch (error) {
+      console.error("Error requesting password reset:", error);
+      toast.error("Fehler beim Zurücksetzen des Passworts");
     } finally {
       setResetLoading(false);
     }
@@ -71,6 +77,10 @@ const Login = () => {
 
   const handleCodeVerification = (e: FormEvent) => {
     e.preventDefault();
+    if (!resetCode.trim()) {
+      toast.error("Bitte geben Sie den Reset-Code ein");
+      return;
+    }
     setResetStep("password");
     toast.info("Code bestätigt", { 
       description: "Bitte geben Sie Ihr neues Passwort ein." 
@@ -79,15 +89,24 @@ const Login = () => {
 
   const handlePasswordReset = async (e: FormEvent) => {
     e.preventDefault();
+    if (!newPassword.trim()) {
+      toast.error("Bitte geben Sie ein neues Passwort ein");
+      return;
+    }
+    
     setResetLoading(true);
     try {
-      const success = await confirmResetPassword(resetEmail, resetCode, newPassword);
-      if (success) {
+      const result = await confirmResetPassword(resetEmail, resetCode, newPassword);
+      console.log("Password reset confirmation result:", result);
+      if (result && result.success) {
         setIsResetDialogOpen(false);
         toast.success("Passwort zurückgesetzt", { 
           description: "Bitte melden Sie sich mit Ihrem neuen Passwort an." 
         });
       }
+    } catch (error) {
+      console.error("Error confirming password reset:", error);
+      toast.error("Fehler beim Zurücksetzen des Passworts");
     } finally {
       setResetLoading(false);
     }

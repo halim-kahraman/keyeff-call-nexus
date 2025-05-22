@@ -91,20 +91,30 @@ export const authService = {
   
   requestPasswordReset: async (email: string) => {
     console.log('Password reset request for:', email);
-    const response = await apiClient.post('/api/auth/reset-password.php', { email });
-    console.log('Reset request response:', response.data);
-    return response.data;
+    try {
+      const response = await apiClient.post('/api/auth/reset-password.php', { email });
+      console.log('Reset request response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      throw error;
+    }
   },
   
   resetPassword: async (email: string, resetCode: string, newPassword: string) => {
     console.log('Password reset confirmation for:', email);
-    const response = await apiClient.post('/api/auth/reset-password.php', { 
-      email, 
-      reset_code: resetCode, 
-      new_password: newPassword 
-    });
-    console.log('Reset confirmation response:', response.data);
-    return response.data;
+    try {
+      const response = await apiClient.post('/api/auth/reset-password.php', { 
+        email, 
+        reset_code: resetCode, 
+        new_password: newPassword 
+      });
+      console.log('Reset confirmation response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Password reset confirmation error:', error);
+      throw error;
+    }
   }
 };
 
