@@ -56,13 +56,10 @@ const Login = () => {
     try {
       const result = await resetPassword(resetEmail);
       console.log("Reset password result:", result);
-      if (result) {
+      if (result && result.data && result.data.reset_code) {
         setResetStep("code");
-        // For demo, auto-fill the code if returned
-        if (result.data && result.data.reset_code) {
-          setResetCode(result.data.reset_code);
-          console.log("Reset code received:", result.data.reset_code);
-        }
+        setResetCode(result.data.reset_code);
+        console.log("Reset code received:", result.data.reset_code);
         toast.success("Reset-Code gesendet", { 
           description: "Ein Code wurde an Ihre E-Mail-Adresse gesendet." 
         });

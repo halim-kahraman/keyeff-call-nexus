@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { toast } from "sonner";
@@ -15,6 +14,17 @@ export interface User {
   avatar?: string;
 }
 
+// Define response type for password reset
+interface PasswordResetResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    reset_code?: string;
+    email_success?: boolean;
+    message?: string;
+  };
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -23,8 +33,8 @@ interface AuthContextType {
   logout: () => void;
   verify2FA: (code: string) => Promise<void>;
   needsVerification: boolean;
-  resetPassword: (email: string) => Promise<string | null>;
-  confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<PasswordResetResponse | null>;
+  confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<PasswordResetResponse | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resetPassword = async (email: string): Promise<string | null> => {
+  const resetPassword = async (email: string): Promise<PasswordResetResponse | null> => {
     setIsLoading(true);
     try {
       const response = await authService.requestPasswordReset(email);
@@ -155,12 +165,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         // For demo, return the code
-        console.log('Demo reset code:', response.data.reset_code);
-        toast.info(`Demo Reset-Code: ${response.data.reset_code}`, {
+        console.log('Demo reset code:', response.data?.reset_code);
+        toast.info(`Demo Reset-Code: ${response.data?.reset_code}`, {
           description: "Nur für Demozwecke!"
         });
         
-        return response.data.reset_code;
+        return response;
       }
       return null;
     } catch (error) {
@@ -180,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const confirmResetPassword = async (email: string, code: string, newPassword: string): Promise<boolean> => {
+  const confirmResetPassword = async (email: string, code: string, newPassword: string): Promise<PasswordResetResponse | null> => {
     setIsLoading(true);
     try {
       const response = await authService.resetPassword(email, code, newPassword);
@@ -194,9 +204,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Passwort aktualisiert",
           description: "Ihr Passwort wurde erfolgreich zurückgesetzt."
         });
-        return true;
+        return response;
       }
-      return false;
+      return null;
     } catch (error) {
       console.error('Password reset confirmation error:', error);
       toast.error("Zurücksetzen fehlgeschlagen", {
@@ -208,7 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Der eingegebene Code ist ungültig oder abgelaufen",
         variant: "destructive"
       });
-      return false;
+      return null;
     } finally {
       setIsLoading(false);
     }
