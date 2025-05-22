@@ -1,25 +1,30 @@
-
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
 // Determine the current environment and port
 const isDev = import.meta.env.DEV;
+const currentHost = window.location.hostname;
 const currentPort = window.location.port;
 
-// API configuration - dynamically determine the correct URL
+// API configuration - dynamically determine the correct URL based on the environment
 const API_URL = (() => {
+  // In production (or when running on an actual server)
   if (import.meta.env.PROD) {
-    return '/keyeff_callpanel/backend'; // Production path
+    return '/keyeff_callpanel/backend'; // Production path - same domain
   }
   
-  // For development, handle different development server ports
-  // This will work with npm run dev (Vite default port 5173), VS Code Live Server (5500), etc.
+  // For local development with various setups
+  // This covers VS Code's Live Server (port 5500), Vite (5173), or other local servers
+  console.log('Development environment detected');
+  console.log('Current hostname:', currentHost);
+  console.log('Current port:', currentPort);
+  
+  // Always use localhost for PHP backend in development
   return 'http://localhost/keyeff_callpanel/backend';
 })();
 
 console.log('Environment:', isDev ? 'Development' : 'Production');
 console.log('API URL configured as:', API_URL);
-console.log('Current port:', currentPort);
 
 // Create axios instance with updated configuration
 const apiClient = axios.create({
@@ -27,9 +32,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // CORS configuration - ensure withCredentials is false when using '*' for Access-Control-Allow-Origin
-  withCredentials: false,
-  // Increase timeout for slower connections
+  withCredentials: false, // Must be false when using '*' for Access-Control-Allow-Origin
   timeout: 15000,
 });
 
@@ -68,14 +71,19 @@ apiClient.interceptors.response.use(
         headers: error.config?.headers,
         baseURL: error.config?.baseURL
       });
-      toast.error('Netzwerkfehler - Bitte prüfen Sie Ihre Internetverbindung und PHP Server.');
+      
+      toast.error('Netzwerkfehler - CORS oder PHP Server Problem', {
+        description: 'Bitte prüfen Sie Ihre Internetverbindung und PHP Server.',
+        duration: 6000
+      });
       
       // Show help message for common setup issues
       console.info(
         'SETUP TIPS: \n' +
         '1. Ensure your PHP server (Apache/XAMPP/WAMP) is running. \n' +
         '2. Make sure project files are in correct directory (/keyeff_callpanel/). \n' +
-        '3. Check that backend path is accessible at http://localhost/keyeff_callpanel/backend/.'
+        '3. Check that backend is accessible at http://localhost/keyeff_callpanel/backend/. \n' +
+        '4. Verify CORS headers are correctly set in backend.'
       );
     }
     // Handle unauthorized errors

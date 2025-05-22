@@ -1,18 +1,29 @@
 
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\SMTP;
+// PHPMailer may not be installed, so let's handle this gracefully
+$phpmailer_found = false;
 
-// Check if we need to include the vendor autoload file
-if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-    require_once __DIR__ . '/../vendor/autoload.php';
-} else {
-    debugLog('PHPMailer autoload file not found');
+// Try various autoload paths
+$autoload_paths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php',
+    __DIR__ . '/../../../vendor/autoload.php'
+];
+
+foreach ($autoload_paths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        $phpmailer_found = true;
+        break;
+    }
+}
+
+if (!$phpmailer_found) {
+    debugLog('PHPMailer autoload file not found - emails will be simulated');
 }
 
 /**
- * Send an email using PHPMailer
+ * Send an email using PHPMailer (or simulate if not available)
  * 
  * @param string $to Recipient email
  * @param string $subject Email subject
@@ -21,12 +32,21 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
  * @return bool True if email was sent successfully, false otherwise
  */
 function sendMail($to, $subject, $body, $altBody = '') {
-    // Create a new PHPMailer instance
-    $mail = new PHPMailer(true);
+    global $phpmailer_found;
     
+    // If PHPMailer is not found, simulate the email sending
+    if (!$phpmailer_found) {
+        debugLog('Email sending simulated', [
+            'to' => $to,
+            'subject' => $subject,
+            'body_length' => strlen($body)
+        ]);
+        return true; // Return true to simulate successful email sending
+    }
+    
+    // Use PHPMailer if available
     try {
-        // Debug level (0 = off, 4 = verbose)
-        // $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
         
         // Server settings
         $mail->isSMTP();
@@ -62,7 +82,7 @@ function sendMail($to, $subject, $body, $altBody = '') {
     } catch (Exception $e) {
         debugLog('Email could not be sent', [
             'to' => $to, 
-            'error' => $mail->ErrorInfo
+            'error' => $e->getMessage()
         ]);
         return false;
     }

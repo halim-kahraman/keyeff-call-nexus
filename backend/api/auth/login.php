@@ -58,21 +58,7 @@ debugLog('Password check', [
 // Verify password
 if (!$user->validatePassword($password)) {
     debugLog('Invalid password for user', $email);
-    
-    // For demo users with plain "password", let's update their password hash
-    if ($password === "password" && in_array($email, ['admin@keyeff.de', 'telefonist@keyeff.de', 'filialleiter@keyeff.de'])) {
-        debugLog('Demo user detected, updating password hash', $email);
-        $user->updatePassword("password");
-        debugLog('Password hash updated, trying validation again');
-        
-        // Try validation again
-        if (!$user->validatePassword($password)) {
-            debugLog('Password still invalid after updating hash', $email);
-            jsonResponse(false, 'Invalid credentials', null, 401);
-        }
-    } else {
-        jsonResponse(false, 'Invalid credentials', null, 401);
-    }
+    jsonResponse(false, 'Invalid credentials', null, 401);
 }
 
 // Generate OTP for 2FA

@@ -31,7 +31,25 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // CORS Headers - Only set them here, not in individual files
 function setCorsHeaders() {
-    header('Access-Control-Allow-Origin: *');
+    // Get the requesting origin - this allows multiple origins
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+    
+    // List of allowed origins - add your development URLs here
+    $allowed_origins = [
+        'http://localhost:5173',
+        'http://localhost:8080',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:8080',
+        'http://192.168.178.66:8080'
+    ];
+    
+    // If the origin is in our allowed list, or we're allowing any origin
+    if (in_array($origin, $allowed_origins) || $origin === '*') {
+        header("Access-Control-Allow-Origin: $origin");
+    } else {
+        header("Access-Control-Allow-Origin: *");
+    }
+    
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
     header('Access-Control-Max-Age: 1728000');

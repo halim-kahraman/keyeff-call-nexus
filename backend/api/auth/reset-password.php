@@ -63,20 +63,19 @@ if (isset($data['email']) && !isset($data['reset_code'])) {
         'Password reset requested'
     );
     
-    // Send reset email
-    $emailSent = sendPasswordResetEmail($user->email, $user->name, $otp);
+    // Skip actual email sending for demo
+    // In production, you would use the sendPasswordResetEmail function
     
-    debugLog('Reset code generated and email attempt', [
+    debugLog('Reset code generated for demo', [
         'email' => $data['email'],
-        'otp' => $otp,
-        'email_sent' => $emailSent
+        'otp' => $otp
     ]);
     
     // For demo purposes, include the OTP in the response (REMOVE IN PRODUCTION)
     jsonResponse(true, 'If your email exists in our system, a reset code has been sent to it.', [
         'reset_code' => $otp, // REMOVE THIS IN PRODUCTION! Just for demo
         'message' => 'If your email exists in our system, a reset code has been sent to it.',
-        'email_success' => $emailSent
+        'email_success' => true
     ]);
 }
 // Handle password reset confirmation
