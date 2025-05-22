@@ -6,17 +6,7 @@ define('APP_VERSION', '1.0.0');
 
 // Define URLs based on environment - now properly handling different environments
 define('API_URL', 'http://localhost/keyeff_callpanel/backend'); // PHP backend URL
-
-// Handle multiple origins for development/testing
-$allowed_origins = ['http://localhost:8080', 'http://localhost:5173'];
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-
-// Set the appropriate APP_URL based on the request origin
-if (in_array($origin, $allowed_origins)) {
-    define('APP_URL', $origin);
-} else {
-    define('APP_URL', 'http://localhost:8080'); // Default fallback
-}
+define('APP_URL', 'http://localhost:5173'); // Default frontend URL
 
 // JWT Secret for Token Generation
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
@@ -31,15 +21,10 @@ define('MAIL_FROM', 'noreply@keyeff.de'); // Sender email
 define('MAIL_FROM_NAME', 'KeyEff Call Panel'); // Sender name
 define('MAIL_ENCRYPTION', 'tls'); // Options: '', 'ssl', 'tls'
 
-// CORS Settings for development - now using the origin from allowed_origins
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: http://localhost:8080'); // Default fallback
-}
+// Simplified CORS Settings - Allow any origin
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json; charset=UTF-8');
 
 // Handle preflight OPTIONS requests - Important for CORS

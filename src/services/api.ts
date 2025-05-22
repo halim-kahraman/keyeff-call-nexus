@@ -1,4 +1,5 @@
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+
+import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
 // API configuration - updated to use the correct URL dynamically
@@ -12,7 +13,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Added withCredentials for cookies if used
+  // Wichtig: withCredentials auf false setzen bei CORS mit "*"
   withCredentials: false
 });
 
@@ -62,20 +63,30 @@ apiClient.interceptors.response.use(
 export const authService = {
   login: async (email: string, password: string) => {
     console.log('Login attempt for:', email);
-    const response = await apiClient.post('/api/auth/login.php', { email, password });
-    console.log('Login response:', response.data);
-    return response.data;
+    try {
+      const response = await apiClient.post('/api/auth/login.php', { email, password });
+      console.log('Login response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   },
   
   verify2FA: async (userId: string, otp: string) => {
     console.log('2FA verification for user:', userId);
-    const response = await apiClient.post('/api/auth/verify.php', { user_id: userId, otp });
-    console.log('2FA response:', response.data);
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    try {
+      const response = await apiClient.post('/api/auth/verify.php', { user_id: userId, otp });
+      console.log('2FA response:', response.data);
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      }
+      return response.data;
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      throw error;
     }
-    return response.data;
   },
   
   logout: async () => {
