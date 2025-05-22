@@ -7,28 +7,32 @@ const API_URL = import.meta.env.PROD
   ? '/keyeff_callpanel/backend'  // Production path
   : 'http://localhost/keyeff_callpanel/backend'; // Development path
 
+console.log('API URL configured as:', API_URL);
+
 // Create axios instance with updated configuration
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  // CORS configuration
+  // CORS configuration - ensure withCredentials is false when using '*' for Access-Control-Allow-Origin
   withCredentials: false
 });
 
 // Add request interceptor to add token to requests
 apiClient.interceptors.request.use(
   (config) => {
+    // Log the request for debugging
+    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    // Ensure content type is set for all requests
-    config.headers['Content-Type'] = 'application/json';
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -36,26 +40,34 @@ apiClient.interceptors.request.use(
 // Add response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => {
+    // Log successful responses
+    console.log(`Response from ${response.config.url}:`, response.status);
     return response;
   },
   (error: AxiosError) => {
     console.error('API Error:', error);
     
+    // Special handling for CORS errors
+    if (error.message && error.message.includes('Network Error')) {
+      console.error('CORS or network error detected');
+      toast.error('Netzwerkfehler - Bitte prüfen Sie Ihre Internetverbindung oder kontaktieren Sie den Support (mögliches CORS-Problem)');
+    }
     // Handle unauthorized errors
-    if (error.response?.status === 401) {
+    else if (error.response?.status === 401) {
       // Clear token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       toast.error('Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
       window.location.href = '/login';
     }
-    
-    // Show error message
-    const errorMessage = error.response?.data && typeof error.response.data === 'object' 
-      ? (error.response.data as any).message || 'Ein Fehler ist aufgetreten'
-      : 'Ein Fehler ist aufgetreten';
-    
-    toast.error(errorMessage);
+    else {
+      // Show error message from response if available
+      const errorMessage = error.response?.data && typeof error.response.data === 'object' 
+        ? (error.response.data as any).message || 'Ein Fehler ist aufgetreten'
+        : 'Ein Fehler ist aufgetreten';
+      
+      toast.error(errorMessage);
+    }
     
     return Promise.reject(error);
   }

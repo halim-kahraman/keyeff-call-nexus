@@ -12,11 +12,8 @@ debugLog('Login request received', [
     'headers' => getallheaders()
 ]);
 
-// Always set CORS headers for all responses
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Content-Type: application/json; charset=UTF-8');
+// IMPORTANT: We don't set CORS headers here anymore - they are now handled 
+// in the config.php file and in jsonResponse function to prevent duplicates
 
 // Handle OPTIONS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
