@@ -1,38 +1,26 @@
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
-// Determine the current environment and port
-const isDev = import.meta.env.DEV;
+// Get current URL components for better environment detection
 const currentHost = window.location.hostname;
 const currentPort = window.location.port;
-const currentOrigin = window.location.origin;
 
-console.log('Current environment details:', {
-  isDev,
-  currentHost,
-  currentPort,
-  currentOrigin
-});
-
-// API configuration - handle your specific local setup
+// API configuration - optimized for local development
 const API_URL = (() => {
-  // For local development with port 8080
-  if (currentHost === 'localhost' && currentPort === '8080') {
-    console.log('Local development on port 8080 detected');
-    return 'http://localhost/keyeff_callpanel/backend';
+  console.log('Environment detection:', {
+    hostname: currentHost,
+    port: currentPort
+  });
+  
+  // For local development on any port (both on localhost)
+  if (currentHost === 'localhost') {
+    return '/keyeff_callpanel/backend'; // Use relative path since both frontend and backend are on localhost
   }
   
-  // For production (or when running on an actual server)
-  if (import.meta.env.PROD) {
-    return '/keyeff_callpanel/backend'; // Production path - same domain
-  }
-  
-  // Fallback - works for most local setups
-  console.log('Using fallback API URL configuration');
-  return 'http://localhost/keyeff_callpanel/backend';
+  // For any other environment (production or different hosts)
+  return 'http://' + currentHost + '/keyeff_callpanel/backend';
 })();
 
-console.log('Environment:', isDev ? 'Development' : 'Production');
 console.log('API URL configured as:', API_URL);
 
 // Create axios instance with updated configuration
@@ -77,25 +65,16 @@ apiClient.interceptors.response.use(
     
     // Special handling for CORS errors
     if (error.message && error.message.includes('Network Error')) {
-      console.error('CORS or network error detected', {
+      console.error('Network error detected', {
         url: error.config?.url,
         headers: error.config?.headers,
         baseURL: error.config?.baseURL
       });
       
-      toast.error('Netzwerkfehler - CORS oder PHP Server Problem', {
-        description: 'Bitte prüfen Sie Ihre Internetverbindung und PHP Server.',
+      toast.error('Netzwerkfehler', {
+        description: 'Es gibt ein Problem mit der Verbindung zum Server.',
         duration: 6000
       });
-      
-      // Show debugging tips specifically for your setup
-      console.info(
-        'SETUP TIPS: \n' +
-        '1. Stellen Sie sicher, dass Ihr PHP-Server (Apache/XAMPP/WAMP) läuft. \n' +
-        '2. Stellen Sie sicher, dass die Projektdateien im richtigen Verzeichnis liegen (/keyeff_callpanel/). \n' +
-        '3. Testen Sie den direkten API-Zugriff mit einem POST-Request auf http://localhost/keyeff_callpanel/backend/api/auth/login.php \n' +
-        '4. Überprüfen Sie das debug.log in backend/ für weitere Fehlermeldungen.'
-      );
     }
     // Handle unauthorized errors
     else if (error.response?.status === 401) {

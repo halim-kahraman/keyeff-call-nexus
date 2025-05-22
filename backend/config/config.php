@@ -4,9 +4,9 @@
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
 
-// Define URLs based on environment
-define('API_URL', 'http://localhost/keyeff_callpanel/backend'); // PHP backend URL
-define('APP_URL', 'http://localhost:8080'); // Frontend URL for your setup
+// Define URLs based on environment - use relative paths for local development
+define('API_URL', '/keyeff_callpanel/backend'); // PHP backend URL - relative path
+define('APP_URL', '/keyeff_callpanel'); // Frontend URL - relative path
 
 // JWT Secret for Token Generation
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
@@ -29,9 +29,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Simplified CORS Headers - We handle most of this in .htaccess now
+// Simplified CORS Headers for same-site setup
 function setCorsHeaders() {
-    // Allow from any origin in development
+    // Allow requests from anywhere in development - we'll restrict in production
     header("Access-Control-Allow-Origin: *");
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
