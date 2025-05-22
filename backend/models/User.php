@@ -16,6 +16,25 @@ class User {
     public $created_at;
     public $updated_at;
     
+    // Demo users array
+    private $demoUsers = [
+        'admin@keyeff.de' => [
+            'name' => 'Admin User',
+            'password' => 'password',
+            'role' => 'admin'
+        ],
+        'telefonist@keyeff.de' => [
+            'name' => 'Telefonist User',
+            'password' => 'password',
+            'role' => 'telefonist'
+        ],
+        'filialleiter@keyeff.de' => [
+            'name' => 'Filialleiter User',
+            'password' => 'password',
+            'role' => 'filialleiter'
+        ]
+    ];
+    
     public function __construct() {
         $this->conn = getConnection();
     }
@@ -37,6 +56,46 @@ class User {
     
     // Read single user by email
     public function findByEmail($email) {
+        // Check if it's a demo user first
+        if (isset($this->demoUsers[$email])) {
+            debugLog('Demo user detected', $email);
+            
+            // Check if the demo user exists in database
+            $sql = "SELECT * FROM users WHERE email = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            // If demo user doesn't exist in database, create it
+            if($result->num_rows === 0) {
+                debugLog('Creating demo user in database', $email);
+                $user = $this->demoUsers[$email];
+                $userId = $this->create($user['name'], $email, $user['password'], $user['role']);
+                
+                if ($userId) {
+                    // Now get the newly created user
+                    return $this->findById($userId);
+                }
+            } else {
+                // Demo user exists in database
+                $row = $result->fetch_assoc();
+                
+                $this->id = $row['id'];
+                $this->name = $row['name'];
+                $this->email = $row['email'];
+                $this->password = $row['password'];
+                $this->role = $row['role'];
+                $this->filiale = $row['filiale'];
+                $this->avatar = $row['avatar'];
+                $this->created_at = $row['created_at'];
+                $this->updated_at = $row['updated_at'];
+                
+                return true;
+            }
+        }
+        
+        // Regular user lookup
         $sql = "SELECT * FROM users WHERE email = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param("s", $email);
@@ -60,6 +119,7 @@ class User {
             return true;
         }
         
+        debugLog('User not found', $email);
         return false;
     }
     
@@ -149,14 +209,14 @@ class User {
     
     // Validate password
     public function validatePassword($password) {
-        // For debugging
+        // Log for debugging
         debugLog("Validating password", [
             "stored_hash" => $this->password,
             "provided_password_length" => strlen($password)
         ]);
         
         // Special handling for demo users with plain "password"
-        if ($password === "password" && in_array($this->email, ['admin@keyeff.de', 'telefonist@keyeff.de', 'filialleiter@keyeff.de'])) {
+        if ($password === "password" && isset($this->demoUsers[$this->email])) {
             debugLog("Demo account detected, bypassing password check", $this->email);
             return true;
         }

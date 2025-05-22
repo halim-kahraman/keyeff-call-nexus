@@ -1,3 +1,4 @@
+
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
@@ -5,6 +6,14 @@ import { toast } from "sonner";
 const isDev = import.meta.env.DEV;
 const currentHost = window.location.hostname;
 const currentPort = window.location.port;
+const currentOrigin = window.location.origin;
+
+console.log('Current environment details:', {
+  isDev,
+  currentHost,
+  currentPort,
+  currentOrigin
+});
 
 // API configuration - dynamically determine the correct URL based on the environment
 const API_URL = (() => {
@@ -16,11 +25,16 @@ const API_URL = (() => {
   // For local development with various setups
   // This covers VS Code's Live Server (port 5500), Vite (5173), or other local servers
   console.log('Development environment detected');
-  console.log('Current hostname:', currentHost);
-  console.log('Current port:', currentPort);
   
-  // Always use localhost for PHP backend in development
-  return 'http://localhost/keyeff_callpanel/backend';
+  // Try to detect wamp/xampp setup automatically
+  const isLocalhost = ['localhost', '127.0.0.1'].includes(currentHost);
+  
+  if (isLocalhost) {
+    return 'http://localhost/keyeff_callpanel/backend';
+  }
+  
+  // If accessing from another device on local network (like 192.168.x.x)
+  return `http://localhost/keyeff_callpanel/backend`;
 })();
 
 console.log('Environment:', isDev ? 'Development' : 'Production');
@@ -41,6 +55,8 @@ apiClient.interceptors.request.use(
   (config) => {
     // Log the request for debugging
     console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
+    console.log('Request headers:', config.headers);
+    console.log('Request data:', config.data);
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -59,6 +75,7 @@ apiClient.interceptors.response.use(
   (response) => {
     // Log successful responses
     console.log(`Response from ${response.config.url}:`, response.status);
+    console.log('Response data:', response.data);
     return response;
   },
   (error: AxiosError) => {
@@ -80,16 +97,17 @@ apiClient.interceptors.response.use(
       // Show help message for common setup issues
       console.info(
         'SETUP TIPS: \n' +
-        '1. Ensure your PHP server (Apache/XAMPP/WAMP) is running. \n' +
-        '2. Make sure project files are in correct directory (/keyeff_callpanel/). \n' +
-        '3. Check that backend is accessible at http://localhost/keyeff_callpanel/backend/. \n' +
-        '4. Verify CORS headers are correctly set in backend.'
+        '1. Stellen Sie sicher, dass Ihr PHP-Server (Apache/XAMPP/WAMP) läuft. \n' +
+        '2. Stellen Sie sicher, dass die Projektdateien im richtigen Verzeichnis liegen (/keyeff_callpanel/). \n' +
+        '3. Überprüfen Sie, ob das Backend unter http://localhost/keyeff_callpanel/backend/ erreichbar ist. \n' +
+        '4. Überprüfen Sie, ob CORS-Header korrekt in der backend/config/config.php gesetzt sind.'
       );
     }
     // Handle unauthorized errors
     else if (error.response?.status === 401) {
       console.warn('Unauthorized access attempt (401)', {
-        url: error.config?.url
+        url: error.config?.url,
+        data: error.response?.data
       });
       
       // Only redirect to login if not already on login page

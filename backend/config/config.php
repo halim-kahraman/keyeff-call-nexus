@@ -32,7 +32,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // CORS Headers - Only set them here, not in individual files
 function setCorsHeaders() {
     // Get the requesting origin - this allows multiple origins
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
     
     // List of allowed origins - add your development URLs here
     $allowed_origins = [
@@ -43,10 +43,11 @@ function setCorsHeaders() {
         'http://192.168.178.66:8080'
     ];
     
-    // If the origin is in our allowed list, or we're allowing any origin
-    if (in_array($origin, $allowed_origins) || $origin === '*') {
+    // If the origin is in our allowed list, set it specifically
+    if (in_array($origin, $allowed_origins)) {
         header("Access-Control-Allow-Origin: $origin");
     } else {
+        // Fall back to * for development ease
         header("Access-Control-Allow-Origin: *");
     }
     
@@ -117,7 +118,7 @@ function debugLog($message, $data = null) {
     $logEntry = "[{$timestamp}] {$message}";
     
     if ($data !== null) {
-        $logEntry .= ': ' . json_encode($data);
+        $logEntry .= ': ' . json_encode($data, JSON_UNESCAPED_UNICODE);
     }
     
     file_put_contents($logFile, $logEntry . PHP_EOL, FILE_APPEND);
