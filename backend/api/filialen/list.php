@@ -4,6 +4,8 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Filiale.php';
 require_once __DIR__ . '/../../models/Log.php';
 
+// CORS is already handled in config.php
+
 // Check if request method is GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(false, 'Invalid request method', null, 405);

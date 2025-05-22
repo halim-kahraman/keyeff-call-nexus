@@ -1,3 +1,4 @@
+
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { toast } from "sonner";
 
@@ -10,6 +11,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Added withCredentials for cookies if used
+  withCredentials: false
 });
 
 // Add request interceptor to add token to requests
@@ -75,6 +78,20 @@ export const authService = {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
+  },
+  
+  requestPasswordReset: async (email: string) => {
+    const response = await apiClient.post('/api/auth/reset-password.php', { email });
+    return response.data;
+  },
+  
+  resetPassword: async (email: string, resetCode: string, newPassword: string) => {
+    const response = await apiClient.post('/api/auth/reset-password.php', { 
+      email, 
+      reset_code: resetCode, 
+      new_password: newPassword 
+    });
+    return response.data;
   }
 };
 

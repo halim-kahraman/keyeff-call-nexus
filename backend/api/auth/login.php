@@ -4,6 +4,14 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/Log.php';
 
+// CORS is already handled in config.php, but we'll make sure it's set here too
+// These headers will be applied after the OPTIONS check in config.php
+if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
+    header('Access-Control-Allow-Origin: ' . APP_URL);
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+}
+
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, 'Invalid request method', null, 405);
