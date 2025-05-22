@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -111,7 +110,7 @@ const Settings = () => {
   });
   
   const { mutate: saveSipSettingsMutation } = useMutation({
-    mutationFn: (settings: typeof sipSettings) => 
+    mutationFn: (settings: Record<string, string>) => 
       settingsService.saveSettings('sip', settings, selectedFilialeId),
     onSuccess: () => {
       toast.success("Die SIP-Einstellungen wurden erfolgreich aktualisiert.");
@@ -123,7 +122,7 @@ const Settings = () => {
   });
   
   const { mutate: saveFritzboxSettingsMutation } = useMutation({
-    mutationFn: (settings: typeof fritzboxSettings) => 
+    mutationFn: (settings: Record<string, string>) => 
       settingsService.saveSettings('fritzbox', settings),
     onSuccess: () => {
       toast.success("Die FRITZ!Box-Einstellungen wurden erfolgreich aktualisiert.");
@@ -135,7 +134,7 @@ const Settings = () => {
   });
 
   const { mutate: saveVpnSettingsMutation } = useMutation({
-    mutationFn: (settings: typeof vpnSettings) => 
+    mutationFn: (settings: Record<string, string>) => 
       settingsService.saveSettings('vpn', settings, selectedFilialeId),
     onSuccess: () => {
       toast.success("Die VPN-Einstellungen wurden erfolgreich aktualisiert.");
@@ -248,30 +247,50 @@ const Settings = () => {
   
   const handleSaveSipSettings = () => {
     setLoading(true);
-    saveSipSettingsMutation({
-      ...sipSettings,
+    // Convert boolean values to strings before saving
+    const sipSettingsToSave: Record<string, string> = {
+      sipServer: sipSettings.sipServer,
+      sipPort: sipSettings.sipPort,
+      sipUser: sipSettings.sipUser,
+      sipPassword: sipSettings.sipPassword,
+      sipWebsocketUrl: sipSettings.sipWebsocketUrl,
+      displayName: sipSettings.displayName,
+      outboundProxy: sipSettings.outboundProxy,
+      transport: sipSettings.transport,
       enableWebRTC: sipSettings.enableWebRTC.toString(),
       useSrtp: sipSettings.useSrtp.toString(),
-    });
+    };
+    saveSipSettingsMutation(sipSettingsToSave);
     setLoading(false);
   };
   
   const handleSaveFritzBoxSettings = () => {
     setLoading(true);
-    saveFritzboxSettingsMutation({
-      ...fritzboxSettings,
+    // Convert boolean values to strings before saving
+    const fritzboxSettingsToSave: Record<string, string> = {
       enableFritzBox: fritzboxSettings.enableFritzBox.toString(),
+      fritzBoxIP: fritzboxSettings.fritzBoxIP,
+      fritzBoxUser: fritzboxSettings.fritzBoxUser,
+      fritzBoxPassword: fritzboxSettings.fritzBoxPassword,
       useFallback: fritzboxSettings.useFallback.toString(),
-    });
+    };
+    saveFritzboxSettingsMutation(fritzboxSettingsToSave);
     setLoading(false);
   };
 
   const handleSaveVpnSettings = () => {
     setLoading(true);
-    saveVpnSettingsMutation({
-      ...vpnSettings,
+    // Convert boolean values to strings before saving
+    const vpnSettingsToSave: Record<string, string> = {
       enableVpn: vpnSettings.enableVpn.toString(),
-    });
+      vpnServer: vpnSettings.vpnServer,
+      vpnPort: vpnSettings.vpnPort,
+      vpnProtocol: vpnSettings.vpnProtocol,
+      vpnUsername: vpnSettings.vpnUsername,
+      vpnPassword: vpnSettings.vpnPassword,
+      vpnCertificate: vpnSettings.vpnCertificate,
+    };
+    saveVpnSettingsMutation(vpnSettingsToSave);
     setLoading(false);
   };
 
