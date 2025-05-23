@@ -27,23 +27,40 @@ import { useAuth } from "@/context/AuthContext";
 import { customerService, callService, appointmentService } from "@/services/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import WebRTCClient from "@/components/sip/WebRTCClient";
+import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // Customer type definition
 interface CustomerContract {
+  id: string;
   type: string;
   status: string;
   expiryDate: string;
+}
+
+interface CustomerContact {
+  id: string;
+  phone: string;
+  contactType: string;
+  isPrimary: boolean;
 }
 
 interface Customer {
   id: string;
   name: string;
   company: string;
-  phone: string;
-  contract: CustomerContract;
+  contacts: CustomerContact[];
+  contracts: CustomerContract[];
   lastContact: string;
   priority: string;
   notes?: string;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
+  status: string;
+  customerCount: number;
 }
 
 const CallPanel = () => {
@@ -51,27 +68,72 @@ const CallPanel = () => {
   const [callDuration, setCallDuration] = useState(0);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [callLog, setCallLog] = useState("");
   const [callOutcome, setCallOutcome] = useState("");
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("beratung");
+  const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
+  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
   const { toast: useToastHook } = useToast();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Check if we need to show filiale selection for admin
+  const needsFilialSelection = user && user.role === "admin" && !selectedFiliale;
+  
+  useEffect(() => {
+    if (needsFilialSelection) {
+      setIsFilialSelectionOpen(true);
+    }
+  }, [needsFilialSelection]);
+  
+  // Handle filiale selection
+  const handleFilialeSelected = (filialeId: string) => {
+    setSelectedFiliale(filialeId);
+    setIsFilialSelectionOpen(false);
+  };
+
+  // Check if customer was passed from previous screen
+  useEffect(() => {
+    if (location.state?.customer) {
+      setSelectedCustomer(location.state.customer);
+      
+      if (location.state.contactId) {
+        setSelectedContactId(location.state.contactId);
+      }
+      
+      if (location.state.contractId) {
+        setSelectedContractId(location.state.contractId);
+      }
+    }
+  }, [location.state]);
 
   // Fetch customers data
   const { data: customers, isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['customers'],
-    queryFn: customerService.getCustomers,
+    queryKey: ['customers', selectedFiliale, selectedCampaignId],
+    queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaignId),
+    enabled: !needsFilialSelection,
+  });
+  
+  // Fetch campaigns
+  const { data: campaigns, isLoading: isLoadingCampaigns } = useQuery({
+    queryKey: ['campaigns', selectedFiliale],
+    queryFn: () => customerService.getCampaigns(selectedFiliale),
+    enabled: !needsFilialSelection,
   });
 
   // Set first customer as selected when data loads
   useEffect(() => {
-    if (customers && customers.length > 0 && !selectedCustomer) {
+    if (customers && customers.length > 0 && !selectedCustomer && !location.state?.customer) {
       setSelectedCustomer(customers[0]);
     }
-  }, [customers, selectedCustomer]);
+  }, [customers, selectedCustomer, location.state]);
 
   // Call log mutation
   const { mutate: logCallMutation, isPending: isLoggingCall } = useMutation({
@@ -143,7 +205,11 @@ const CallPanel = () => {
 
   const handleCustomerChange = (customerId: string) => {
     const customer = customers.find((c: Customer) => c.id === customerId);
-    if (customer) setSelectedCustomer(customer);
+    if (customer) {
+      setSelectedCustomer(customer);
+      setSelectedContactId(null);
+      setSelectedContractId(null);
+    }
   };
 
   const handleSaveCallLog = () => {
@@ -162,7 +228,10 @@ const CallPanel = () => {
       customer_id: selectedCustomer.id,
       log_text: callLog,
       outcome: callOutcome,
-      duration: callDuration
+      duration: callDuration,
+      contract_id: selectedContractId,
+      contact_id: selectedContactId,
+      campaign_id: selectedCampaignId
     });
   };
 
@@ -183,7 +252,9 @@ const CallPanel = () => {
       date: appointmentDate,
       time: appointmentTime,
       type: appointmentType,
-      description: callLog
+      description: callLog,
+      contract_id: selectedContractId,
+      campaign_id: selectedCampaignId
     });
   };
 
@@ -214,20 +285,34 @@ const CallPanel = () => {
     setActiveCall(false);
     setCallDuration(duration);
   };
+  
+  const handleGotoCustomers = () => {
+    navigate("/customers");
+  };
 
-  if (isLoadingCustomers) {
+  if (isLoadingCustomers || needsFilialSelection) {
     return (
       <AppLayout 
         title="Anrufpanel" 
         subtitle="Kundenkontakte verwalten"
         showCallButton={false}
       >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-keyeff-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Kundendaten werden geladen...</p>
+        {needsFilialSelection && (
+          <BranchSelectionDialog 
+            open={isFilialSelectionOpen} 
+            onOpenChange={setIsFilialSelectionOpen}
+            onBranchSelected={handleFilialeSelected}
+          />
+        )}
+        
+        {!needsFilialSelection && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-keyeff-500 mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Kundendaten werden geladen...</p>
+            </div>
           </div>
-        </div>
+        )}
       </AppLayout>
     );
   }
@@ -241,14 +326,41 @@ const CallPanel = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Customer List */}
         <div className="lg:col-span-1">
-          <Card className="h-full">
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Kundenliste</CardTitle>
-              <CardDescription>Nach Priorität sortierte Kontakte</CardDescription>
+              <CardTitle>Kampagnen</CardTitle>
+              <CardDescription>Wählen Sie eine aktive Kampagne</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select value={selectedCampaignId || ""} onValueChange={(value) => setSelectedCampaignId(value || null)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Alle Kunden anzeigen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Alle Kunden anzeigen</SelectItem>
+                  {campaigns && campaigns.map((campaign: any) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name} ({campaign.customerCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+          
+          <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Kundenliste</CardTitle>
+                <CardDescription>Nach Priorität sortierte Kontakte</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleGotoCustomers}>
+                Alle Kunden
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {customers && customers.length > 0 ? (
-                customers.map((customer: Customer) => (
+                customers.map((customer: any) => (
                   <div 
                     key={customer.id}
                     className={`p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors ${selectedCustomer?.id === customer.id ? 'border-keyeff-500 bg-accent' : ''}`}
@@ -263,7 +375,9 @@ const CallPanel = () => {
                     <p className="text-sm text-muted-foreground">{customer.company}</p>
                     <div className="mt-2 flex justify-between items-center">
                       <span className="text-xs text-muted-foreground">
-                        Vertrag: {new Date(customer.contract.expiryDate).toLocaleDateString('de-DE')}
+                        {customer.primary_phones ? (
+                          <Badge variant="outline" className="font-mono">{customer.primary_phones.split(',')[0]}</Badge>
+                        ) : 'Keine Telefonnummer'}
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -293,32 +407,73 @@ const CallPanel = () => {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{selectedCustomer.phone}</span>
-                    </div>
+                    <Label>Kontaktnummer auswählen</Label>
+                    <Select 
+                      value={selectedContactId || ""} 
+                      onValueChange={(value) => setSelectedContactId(value || null)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Telefonnummer auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedCustomer.contacts ? (
+                          selectedCustomer.contacts.map(contact => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                              {contact.phone} ({contact.contactType}{contact.isPrimary ? ", Primär" : ""})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>Keine Kontakte verfügbar</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Label>Vertrag auswählen</Label>
+                    <Select 
+                      value={selectedContractId || ""} 
+                      onValueChange={(value) => setSelectedContractId(value || null)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Vertrag auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Kein spezifischer Vertrag</SelectItem>
+                        {selectedCustomer.contracts ? (
+                          selectedCustomer.contracts.map(contract => (
+                            <SelectItem key={contract.id} value={contract.id}>
+                              {contract.type} ({contract.status})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>Keine Verträge verfügbar</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Letzter Kontakt: {new Date(selectedCustomer.lastContact).toLocaleDateString('de-DE')}</span>
+                      <span className="text-sm">Letzter Kontakt: {
+                        selectedCustomer.lastContact 
+                          ? new Date(selectedCustomer.lastContact).toLocaleDateString('de-DE')
+                          : 'Keine Kontakthistorie'
+                      }</span>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Vertrag: {selectedCustomer.contract.type}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Läuft ab: {new Date(selectedCustomer.contract.expiryDate).toLocaleDateString('de-DE')}</span>
-                    </div>
+                  
+                  {/* WebRTC SIP Client */}
+                  <div className="flex flex-col justify-center">
+                    <WebRTCClient
+                      onCallStart={handleWebRTCCallStart}
+                      onCallEnd={handleWebRTCCallEnd}
+                      phoneNumber={selectedContactId 
+                        ? selectedCustomer.contacts.find(c => c.id === selectedContactId)?.phone 
+                        : selectedCustomer.contacts && selectedCustomer.contacts.length > 0 
+                          ? selectedCustomer.contacts[0].phone 
+                          : ""
+                      }
+                    />
                   </div>
                 </div>
-
-                {/* WebRTC SIP Client */}
-                <WebRTCClient
-                  onCallStart={handleWebRTCCallStart}
-                  onCallEnd={handleWebRTCCallEnd}
-                />
 
                 <div className="pt-4 border-t">
                   <h3 className="text-lg font-medium mb-3">Gesprächsnotiz</h3>
@@ -438,6 +593,28 @@ const CallPanel = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            {selectedCustomer && selectedCustomer.contracts && selectedCustomer.contracts.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="contractSelection">Bezogen auf Vertrag</Label>
+                <Select
+                  value={selectedContractId || ""}
+                  onValueChange={(value) => setSelectedContractId(value || null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vertrag auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Kein spezifischer Vertrag</SelectItem>
+                    {selectedCustomer.contracts.map(contract => (
+                      <SelectItem key={contract.id} value={contract.id}>
+                        {contract.type} ({contract.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAppointmentDialog(false)}>

@@ -52,8 +52,8 @@ const navItems: NavItem[] = [
   },
   {
     icon: Users,
-    label: "Kontakte",
-    href: "/contacts",
+    label: "Kunden",
+    href: "/customers",
     roles: ["admin", "telefonist", "filialleiter"],
   },
   {
@@ -128,7 +128,7 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
   return (
     <div
       className={cn(
-        "h-screen flex flex-col bg-keyeff-500 text-white transition-all duration-300 fixed left-0 top-0 z-40 lg:relative",
+        "h-screen flex flex-col bg-keyeff-500 text-white transition-all duration-300 fixed left-0 top-0 z-40 overflow-hidden",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -144,7 +144,7 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-keyeff-600"
+          className="text-white hover:bg-keyeff-600 flex-shrink-0"
           onClick={onToggle}
         >
           {collapsed ? <Menu /> : <ChevronLeft />}
@@ -153,8 +153,8 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
 
       <Separator className="bg-keyeff-600" />
 
-      <div className="flex flex-col justify-between h-full py-4 overflow-y-auto">
-        <nav className="space-y-1 px-2">
+      <div className="flex flex-col flex-grow justify-between overflow-y-auto scrollbar-thin scrollbar-thumb-keyeff-600 scrollbar-track-transparent">
+        <nav className="space-y-1 p-2">
           {/* Standard navigation items */}
           {navItems
             .filter((item) => item.roles.includes(user.role))
@@ -171,7 +171,7 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
                 )}
               >
                 <item.icon size={20} />
-                {!collapsed && <span className="ml-3">{item.label}</span>}
+                {!collapsed && <span className="ml-3 whitespace-nowrap">{item.label}</span>}
               </Link>
             ))}
           
@@ -198,14 +198,14 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
                   )}
                 >
                   <item.icon size={20} />
-                  {!collapsed && <span className="ml-3">{item.label}</span>}
+                  {!collapsed && <span className="ml-3 whitespace-nowrap">{item.label}</span>}
                 </Link>
               ))}
             </>
           )}
         </nav>
 
-        <div className="px-4 mt-auto">
+        <div className="p-4 mt-auto">
           <UserProfileDialog 
             trigger={
               <div className={cn(
@@ -214,12 +214,12 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
               )}>
                 <Avatar>
                   <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{user.name?.substring(0, 2).toUpperCase() || "US"}</AvatarFallback>
                 </Avatar>
                 {!collapsed && (
-                  <div>
-                    <p className="font-medium truncate-text">{user.name}</p>
-                    <p className="text-xs opacity-70 truncate-text">{getRoleDisplayName(user.role)}</p>
+                  <div className="overflow-hidden">
+                    <p className="font-medium truncate">{user.name}</p>
+                    <p className="text-xs opacity-70 truncate">{getRoleDisplayName(user.role)}</p>
                   </div>
                 )}
               </div>
