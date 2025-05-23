@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -111,14 +112,17 @@ const Customers = () => {
   };
 
   // Query for customers
-  const { data: customers, isLoading } = useQuery({
+  const { data: customersData, isLoading } = useQuery({
     queryKey: ['customers', selectedFiliale, selectedCampaign],
     queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaign),
     enabled: !needsFilialSelection,
   });
 
+  // Make sure customers is always an array
+  const customers = Array.isArray(customersData) ? customersData : [];
+
   // Filter customers based on search and status
-  const filteredCustomers = (customers || []).filter(customer => {
+  const filteredCustomers = customers.filter(customer => {
     const matchesSearch = 
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (customer.primary_phones && customer.primary_phones.includes(searchQuery)) ||

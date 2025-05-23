@@ -35,8 +35,8 @@ const WhatsAppTemplates = () => {
     },
     {
       id: "3", 
-      name: "Fahrzeug Interesse",
-      content: "Hallo {{name}}, vielen Dank für Ihr Interesse am {{carModel}}. Können wir einen Termin für eine Probefahrt vereinbaren? Mit freundlichen Grüßen, Ihr KeyEff Team."
+      name: "Tarif Interesse",
+      content: "Hallo {{name}}, vielen Dank für Ihr Interesse an der {{tarifinformation}}. Können wir einen Termin für ein Beratungsgespräch vereinbaren? Mit freundlichen Grüßen, Ihr KeyEff Team."
     }
   ]);
   
@@ -116,7 +116,7 @@ const WhatsAppTemplates = () => {
       .replace("{{name}}", "Max Mustermann")
       .replace("{{date}}", "01.06.2025")
       .replace("{{time}}", "14:00")
-      .replace("{{carModel}}", "VW Golf GTI");
+      .replace("{{tarifinformation}}", "Premium Tarif Plus");
     
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
@@ -160,11 +160,11 @@ const WhatsAppTemplates = () => {
               <div className="text-xs text-muted-foreground mb-4">
                 <p>Verfügbare Variablen:</p>
                 <ul className="list-disc pl-5 mt-1">
-                  <li>{`{{name}}`}</li>
-                  <li>{`{{phoneNumber}}`}</li>
-                  <li>{`{{date}}`}</li>
-                  <li>{`{{time}}`}</li>
-                  <li>{`{{carModel}}`}</li>
+                  <li>{"{{name}}"}</li>
+                  <li>{"{{phoneNumber}}"}</li>
+                  <li>{"{{date}}"}</li>
+                  <li>{"{{time}}"}</li>
+                  <li>{"{{tarifinformation}}"}</li>
                 </ul>
               </div>
               
@@ -234,7 +234,7 @@ const WhatsAppTemplates = () => {
                   <div className="mt-2 text-xs text-muted-foreground">
                     <p>Verfügbare Variablen:</p>
                     <p className="mt-1">
-                      <code>{`{{name}} {{phoneNumber}} {{date}} {{time}} {{carModel}}`}</code>
+                      <code>{"{{name}} {{phoneNumber}} {{date}} {{time}} {{tarifinformation}}"}</code>
                     </p>
                   </div>
                 </div>

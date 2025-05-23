@@ -24,7 +24,7 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button>Verwalten</Button>
+            <Button variant="default">Verwalten</Button>
           </CardFooter>
         </Card>
 
@@ -42,7 +42,7 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button>Verwalten</Button>
+            <Button variant="default">Verwalten</Button>
           </CardFooter>
         </Card>
 
@@ -76,8 +76,8 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button asChild>
-              <Link to="/whatsapp-templates">Verwalten</Link>
+            <Button>
+              <Link to="/whatsapp-templates" className="text-white">Verwalten</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -96,7 +96,7 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button>Verwalten</Button>
+            <Button variant="default">Verwalten</Button>
           </CardFooter>
         </Card>
 
@@ -114,7 +114,7 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button>Verwalten</Button>
+            <Button variant="default">Verwalten</Button>
           </CardFooter>
         </Card>
       </div>

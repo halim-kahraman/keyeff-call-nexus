@@ -25,12 +25,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+import { UserProfileDialog } from "@/components/user/UserProfileDialog"
 
 export function SideNav() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation()
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(true);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -58,6 +60,9 @@ export function SideNav() {
       .substring(0, 2);
   };
 
+  // Common button styling to ensure consistency
+  const buttonClassName = "w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary";
+
   return (
     <div className="flex flex-col h-full bg-primary text-primary-foreground w-64 border-r border-primary/20 fixed left-0 top-0 bottom-0 overflow-y-auto z-30">
       <div className="px-6 py-4">
@@ -70,7 +75,7 @@ export function SideNav() {
         <nav className="flex-1 space-y-1 p-2">
           <Button
             variant={pathname === "/" || pathname === "/dashboard" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+            className={buttonClassName}
             asChild
           >
             <Link to="/dashboard">
@@ -80,7 +85,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/customers" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+            className={buttonClassName}
             asChild
           >
             <Link to="/customers">
@@ -90,7 +95,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname.startsWith("/call") ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+            className={buttonClassName}
             asChild
           >
             <Link to="/call">
@@ -100,7 +105,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/calendar" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+            className={buttonClassName}
             asChild
           >
             <Link to="/calendar">
@@ -110,7 +115,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/statistics" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+            className={buttonClassName}
             asChild
           >
             <Link to="/statistics">
@@ -122,14 +127,14 @@ export function SideNav() {
           {/* Admin Section */}
           {user?.role === "admin" && (
             <>
-              <div className="px-3 py-2">
+              <div className="px-3 py-2 w-full">
                 <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-primary-foreground/90">
                   Administration
                 </h2>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full">
                   <Button
                     variant={pathname === "/admin/tools" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/admin/tools">
@@ -139,7 +144,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/users" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/admin/users">
@@ -149,7 +154,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/filialen" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/admin/filialen">
@@ -159,7 +164,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/logs" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/admin/logs">
@@ -176,14 +181,14 @@ export function SideNav() {
           {/* Settings Section */}
           {(user?.role === "admin" || user?.role === "filialleiter") && (
             <>
-              <div className="px-3 py-2">
+              <div className="px-3 py-2 w-full">
                 <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-primary-foreground/90">
                   Einstellungen
                 </h2>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full">
                   <Button
                     variant={pathname === "/settings" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/settings">
@@ -193,7 +198,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/templates" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
+                    className={buttonClassName}
                     asChild
                   >
                     <Link to="/templates">
@@ -211,28 +216,18 @@ export function SideNav() {
       <div className="p-4 mt-auto">
         {user && (
           <div className="flex items-center space-x-3 mb-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer border-2 border-primary-foreground">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} />
-                  <AvatarFallback className="bg-secondary text-secondary-foreground">{getUserInitials()}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-white">
-                <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => alert('Profil bearbeiten')}>Profil bearbeiten</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => alert('Passwort ändern')}>Passwort ändern</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>Abmelden</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Avatar 
+              className="cursor-pointer border-2 border-primary-foreground"
+              onClick={() => setIsProfileDialogOpen(true)}
+            >
+              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} />
+              <AvatarFallback className="bg-secondary text-secondary-foreground">{getUserInitials()}</AvatarFallback>
+            </Avatar>
             <div className="overflow-hidden">
               <p className="text-sm font-medium truncate text-primary-foreground">{user.name}</p>
-              <p className="text-xs text-primary-foreground/80 truncate">{user.role === "admin" ? "Administrator" : user.role === "filialleiter" ? "Filialleiter" : "Telefonist"}</p>
+              <p className="text-xs text-primary-foreground/80 truncate">
+                {user.role === "admin" ? "Administrator" : user.role === "filialleiter" ? "Filialleiter" : "Telefonist"}
+              </p>
             </div>
           </div>
         )}
@@ -240,6 +235,11 @@ export function SideNav() {
           <span className="text-primary-foreground hover:text-primary">Logout</span>
         </Button>
       </div>
+
+      {/* User Profile Dialog */}
+      {isProfileDialogOpen && (
+        <UserProfileDialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} user={user} />
+      )}
     </div>
   )
 }
