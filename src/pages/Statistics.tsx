@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,7 +97,7 @@ const Statistics = () => {
     });
   }, [timeRange]);
   
-  // Fetch statistics from API
+  // Update fetch statistics from API with the correct parameter order
   const { data: statsResponse, isLoading } = useQuery({
     queryKey: ['statistics', dateRange.startDate, dateRange.endDate, filterUser],
     queryFn: async () => {

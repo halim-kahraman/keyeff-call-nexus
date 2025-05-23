@@ -1,4 +1,3 @@
-
 // API Services for the application
 
 // Auth Service
@@ -453,6 +452,90 @@ export const settingsService = {
   }
 };
 
+// Statistics Service
+export const statisticsService = {
+  getStatistics: async (startDate?: string, endDate?: string, userId?: string) => {
+    try {
+      let url = `/backend/api/statistics/get.php?`;
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      if (userId) params.append('user_id', userId);
+      
+      const queryString = params.toString();
+      url += queryString;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch statistics');
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      // Mock data for development
+      return {
+        success: true,
+        data: {
+          summary: {
+            total_calls: 256,
+            total_appointments: 48,
+            total_customers_contacted: 180,
+            period: {
+              start: startDate || date('Y-m-d', strtotime('-30 days')),
+              end: endDate || date('Y-m-d')
+            }
+          },
+          calls_by_day: [
+            { day: '2023-05-01', total_calls: 12, total_duration: 3600, avg_duration: 300 },
+            { day: '2023-05-02', total_calls: 15, total_duration: 4500, avg_duration: 300 },
+            { day: '2023-05-03', total_calls: 8, total_duration: 2400, avg_duration: 300 },
+            { day: '2023-05-04', total_calls: 20, total_duration: 6000, avg_duration: 300 },
+            { day: '2023-05-05', total_calls: 18, total_duration: 5400, avg_duration: 300 },
+            { day: '2023-05-06', total_calls: 5, total_duration: 1500, avg_duration: 300 },
+            { day: '2023-05-07', total_calls: 3, total_duration: 900, avg_duration: 300 }
+          ],
+          calls_by_outcome: [
+            { outcome: 'interested', count: 75 },
+            { outcome: 'callback', count: 45 },
+            { outcome: 'no_answer', count: 69 },
+            { outcome: 'not_interested', count: 40 },
+            { outcome: 'appointment', count: 27 }
+          ],
+          top_callers: [
+            { id: '1', name: 'Max Mustermann', total_calls: 85, total_duration: 25500, avg_duration: 300 },
+            { id: '2', name: 'Anna Schmidt', total_calls: 65, total_duration: 19500, avg_duration: 300 },
+            { id: '3', name: 'Thomas Weber', total_calls: 45, total_duration: 13500, avg_duration: 300 },
+            { id: '4', name: 'Laura Meyer', total_calls: 35, total_duration: 10500, avg_duration: 300 },
+            { id: '5', name: 'Michael Fischer', total_calls: 26, total_duration: 7800, avg_duration: 300 }
+          ],
+          appointments_by_type: [
+            { type: 'Beratung', count: 20 },
+            { type: 'Verkauf', count: 15 },
+            { type: 'Support', count: 8 },
+            { type: 'Schulung', count: 5 }
+          ],
+          filiale_stats: [
+            { id: '1', name: 'Zentrale', total_users: 15, total_calls: 120, total_appointments: 22, total_call_duration: 36000, avg_call_duration: 300 },
+            { id: '2', name: 'Berlin', total_users: 8, total_calls: 75, total_appointments: 12, total_call_duration: 22500, avg_call_duration: 300 },
+            { id: '3', name: 'München', total_users: 6, total_calls: 45, total_appointments: 9, total_call_duration: 13500, avg_call_duration: 300 },
+            { id: '4', name: 'Hamburg', total_users: 4, total_calls: 16, total_appointments: 5, total_call_duration: 4800, avg_call_duration: 300 }
+          ]
+        }
+      };
+    }
+  }
+};
+
 // Add this function to make campaigns available for the CallPanel component
 export const campaignService = {
   getCampaigns: async () => {
@@ -515,87 +598,6 @@ export const filialeService = {
         { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
         { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln" }
       ];
-    }
-  }
-};
-
-// Statistics Service
-export const statisticsService = {
-  getStatistics: async (period: string = 'month', filialeId?: string) => {
-    try {
-      let url = `/backend/api/statistics/get.php?period=${period}`;
-      if (filialeId) {
-        url += `&filiale_id=${filialeId}`;
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch statistics');
-      }
-      
-      const data = await response.json();
-      return data.data;
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-      // Mock data for development
-      return {
-        calls: {
-          total: 256,
-          successful: 187,
-          missed: 69,
-          average_duration: 345, // in seconds
-          by_day: [
-            { date: '2023-05-01', count: 12 },
-            { date: '2023-05-02', count: 15 },
-            { date: '2023-05-03', count: 8 },
-            { date: '2023-05-04', count: 20 },
-            { date: '2023-05-05', count: 18 },
-            { date: '2023-05-06', count: 5 },
-            { date: '2023-05-07', count: 3 }
-          ]
-        },
-        appointments: {
-          total: 48,
-          upcoming: 12,
-          completed: 36,
-          by_day: [
-            { date: '2023-05-01', count: 3 },
-            { date: '2023-05-02', count: 5 },
-            { date: '2023-05-03', count: 2 },
-            { date: '2023-05-04', count: 4 },
-            { date: '2023-05-05', count: 6 },
-            { date: '2023-05-06', count: 0 },
-            { date: '2023-05-07', count: 1 }
-          ]
-        },
-        contracts: {
-          total: 320,
-          active: 285,
-          expiring_soon: 15,
-          by_type: [
-            { type: 'Premium', count: 120 },
-            { type: 'Standard', count: 180 },
-            { type: 'Basic', count: 20 }
-          ]
-        },
-        customers: {
-          total: 412,
-          active: 380,
-          inactive: 32,
-          by_priority: [
-            { priority: 'high', count: 85 },
-            { priority: 'medium', count: 247 },
-            { priority: 'low', count: 80 }
-          ]
-        }
-      };
     }
   }
 };
