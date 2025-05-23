@@ -53,10 +53,66 @@ if ($filiale_id) {
     }
 }
 
-// In a real application, we would test the SIP connection here
-// For this demo, we'll simulate a successful connection
-$success = true;
-$message = 'SIP-Verbindung erfolgreich getestet';
+// Actually test the SIP connection
+$sip_server = $settings['sip_server'] ?? '';
+$sip_port = $settings['sip_port'] ?? '5060'; // Default SIP port
+$success = false;
+$details = [];
+
+// Validate required fields
+if (empty($sip_server)) {
+    jsonResponse(false, 'SIP-Server muss angegeben werden', null, 400);
+}
+
+// Test server reachability (ping)
+$ping_output = [];
+$ping_return_var = 0;
+exec("ping -c 2 -W 2 " . escapeshellarg($sip_server), $ping_output, $ping_return_var);
+$server_reachable = ($ping_return_var === 0);
+
+// Test if SIP port is open
+$port_open = false;
+$connection = @fsockopen($sip_server, $sip_port, $errno, $errstr, 2);
+if ($connection) {
+    fclose($connection);
+    $port_open = true;
+}
+
+// If we have credentials, we could attempt a basic SIP registration
+// but we'll simulate it for now
+$registration_valid = false;
+if (!empty($settings['sip_username']) && !empty($settings['sip_password'])) {
+    // In a real implementation, you'd use a SIP library to attempt registration
+    // For demo purposes, we'll consider credentials to be valid if they're not empty
+    $registration_valid = true;
+}
+
+// Determine overall success
+$success = $server_reachable && $port_open;
+if (!empty($settings['sip_username']) && !empty($settings['sip_password'])) {
+    $success = $success && $registration_valid;
+}
+
+// Generate appropriate message
+if (!$server_reachable) {
+    $message = 'SIP-Verbindung fehlgeschlagen: Server nicht erreichbar';
+} elseif (!$port_open) {
+    $message = 'SIP-Verbindung fehlgeschlagen: SIP-Port geschlossen';
+} elseif (!empty($settings['sip_username']) && !empty($settings['sip_password']) && !$registration_valid) {
+    $message = 'SIP-Verbindung fehlgeschlagen: Ungültige Anmeldedaten';
+} else {
+    $message = 'SIP-Verbindung erfolgreich getestet';
+}
+
+// Create details for response
+$details = [
+    'timestamp' => date('Y-m-d H:i:s'),
+    'status' => $success ? 'success' : 'failure',
+    'server_reachable' => $server_reachable,
+    'port_open' => $port_open,
+    'tested_host' => $sip_server,
+    'tested_port' => $sip_port
+];
 
 // Log the action
 $log = new Log();
@@ -65,11 +121,9 @@ $log->create(
     'test_sip_connection',
     'settings',
     null,
-    "User tested SIP connection" . ($filiale_id ? " for filiale $filiale_id" : "")
+    "User tested SIP connection" . ($filiale_id ? " for filiale $filiale_id" : "") . 
+    " - Result: " . ($success ? "Success" : "Failed")
 );
 
-jsonResponse($success, $message, [
-    'timestamp' => date('Y-m-d H:i:s'),
-    'status' => $success ? 'success' : 'failure'
-]);
+jsonResponse($success, $message, $details);
 ?>

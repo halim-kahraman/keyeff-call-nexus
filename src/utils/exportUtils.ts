@@ -1,6 +1,8 @@
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import { toast } from 'sonner';
 
 /**
@@ -11,31 +13,45 @@ import { toast } from 'sonner';
  */
 export const exportToPdf = async (data: any[], filename: string, title: string) => {
   try {
-    // Since we don't have a direct PDF generation library, we'll use an alternative approach
-    // Here we'll simulate PDF export temporarily until properly implemented
+    // Create new PDF document
+    const doc = new jsPDF();
     
-    // Create a temporary text representation of the data
-    let textContent = `${title}\n\n`;
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
     
-    // Add headers
+    // Get columns from data
     if (data.length > 0) {
-      textContent += Object.keys(data[0]).join('\t') + '\n';
+      const columns = Object.keys(data[0]);
       
-      // Add data rows
-      data.forEach(row => {
-        textContent += Object.values(row).join('\t') + '\n';
+      // Format data for autoTable
+      const tableData = data.map(item => Object.values(item));
+      
+      // Add table to PDF
+      (doc as any).autoTable({
+        head: [columns],
+        body: tableData,
+        startY: 30,
+        headStyles: {
+          fillColor: [66, 133, 244],
+          textColor: 255
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240]
+        }
       });
+      
+      // Save the PDF
+      doc.save(`${filename}.pdf`);
+      
+      toast.success("Die Daten wurden als PDF exportiert.");
+    } else {
+      // If no data, create simple PDF with title
+      doc.text("Keine Daten verfügbar", 14, 30);
+      doc.save(`${filename}.pdf`);
+      
+      toast.success("Leeres PDF wurde exportiert, da keine Daten vorhanden sind.");
     }
-    
-    // Create a blob from the text content
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    
-    // Save the file
-    saveAs(blob, `${filename}.txt`);
-    
-    toast.success("Daten wurden exportiert. PDF-Funktionalität wird in Kürze vollständig implementiert.");
-    
-    // In a real implementation, you would use jsPDF or another PDF library
   } catch (error) {
     console.error("PDF Export error:", error);
     toast.error("Beim Exportieren der Daten ist ein Fehler aufgetreten.");

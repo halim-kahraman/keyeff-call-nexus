@@ -53,10 +53,44 @@ if ($filiale_id) {
     }
 }
 
-// In a real application, we would test the VPN connection here
-// For this demo, we'll simulate a successful connection
-$success = true;
-$message = 'VPN-Verbindung erfolgreich getestet';
+// Actually test the VPN connection
+$vpn_server = $settings['vpn_server'] ?? '';
+$vpn_port = $settings['vpn_port'] ?? '';
+
+// Check if we have required fields
+if (empty($vpn_server) || empty($vpn_port)) {
+    jsonResponse(false, 'VPN-Server und Port müssen angegeben werden', null, 400);
+}
+
+// Try to ping the VPN server
+$success = false;
+$output = [];
+$return_var = 0;
+
+// Check if the server responds to ping (2 seconds timeout, 2 packets)
+exec("ping -c 2 -W 2 " . escapeshellarg($vpn_server), $output, $return_var);
+
+// Check if port is open using netcat or fsockopen
+$port_open = false;
+$connection = @fsockopen($vpn_server, $vpn_port, $errno, $errstr, 2);
+if ($connection) {
+    fclose($connection);
+    $port_open = true;
+}
+
+// Determine success based on ping and port test
+$success = ($return_var === 0 && $port_open);
+$message = $success ? 'VPN-Verbindung erfolgreich getestet' : 'VPN-Verbindung fehlgeschlagen: Server nicht erreichbar oder Port geschlossen';
+
+// Additional error details
+$details = [
+    'timestamp' => date('Y-m-d H:i:s'),
+    'status' => $success ? 'success' : 'failure',
+    'server_reachable' => $return_var === 0,
+    'port_open' => $port_open,
+    'tested_host' => $vpn_server,
+    'tested_port' => $vpn_port
+];
 
 // Log the action
 $log = new Log();
@@ -65,11 +99,9 @@ $log->create(
     'test_vpn_connection',
     'settings',
     null,
-    "User tested VPN connection" . ($filiale_id ? " for filiale $filiale_id" : "")
+    "User tested VPN connection" . ($filiale_id ? " for filiale $filiale_id" : "") . 
+    " - Result: " . ($success ? "Success" : "Failed")
 );
 
-jsonResponse($success, $message, [
-    'timestamp' => date('Y-m-d H:i:s'),
-    'status' => $success ? 'success' : 'failure'
-]);
+jsonResponse($success, $message, $details);
 ?>

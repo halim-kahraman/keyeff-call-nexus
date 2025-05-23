@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { settingsService } from "@/services/api";
 
@@ -21,37 +20,33 @@ const createTestFunction = (
 ) => {
   return async (settings: ConnectionSettings): Promise<ConnectionTestResult> => {
     try {
-      // Only validate real settings, not demo placeholders
-      if (containsOnlyPlaceholders(settings)) {
-        // For demo purposes, simulate success if using placeholder data
-        toast.success("Demo-Verbindungstest erfolgreich", {
-          description: "Im Produktivmodus würde eine echte Verbindung getestet werden."
-        });
-        
-        return {
-          success: true,
-          message: successMessage,
-          details: { demo: true, message: "Demo-Test erfolgreich" }
-        };
-      }
-      
       // Validate required fields before sending the request
       if (!validateSettings(settings)) {
         throw new Error("Bitte füllen Sie alle erforderlichen Felder aus.");
       }
       
+      // Show testing toast
+      const toastId = toast.loading("Verbindung wird getestet...");
+      
+      // Send test request
       const response = await testFn(settings);
       
-      if (!response.success) {
-        throw new Error(response.message || "Verbindungstest fehlgeschlagen");
+      // Update toast based on response
+      if (response.success) {
+        toast.success(successMessage, {
+          id: toastId,
+          description: response.message
+        });
+      } else {
+        toast.error(errorMessage, {
+          id: toastId,
+          description: response.message
+        });
       }
       
-      // Show success toast
-      toast.success(successMessage);
-      
       return {
-        success: true,
-        message: successMessage,
+        success: response.success,
+        message: response.message,
         details: response
       };
     } catch (error: any) {
@@ -73,71 +68,77 @@ const createTestFunction = (
   };
 };
 
-// Check if settings contain only placeholder values (for demo purposes)
-const containsOnlyPlaceholders = (settings: ConnectionSettings): boolean => {
+// Check if settings object has valid values (not placeholder values)
+const validateSettings = (settings: ConnectionSettings): boolean => {
+  // Placeholder patterns
   const placeholderPatterns = [
-    /\*+/,                    // ******
-    /<[^>]+>/,                // <placeholder>
-    /\{\{[^}]+\}\}/,          // {{placeholder}}
-    /^demo.*/i,               // demo...
-    /^placeholder.*/i,        // placeholder...
-    /^example.*/i,            // example...
-    /^test.*/i,               // test...
-    /^(192\.168\.1\.\d+)$/    // Common local IP
+    /^\*+$/,                     // ******
+    /^<[^>]+>$/,                 // <placeholder>
+    /^\{\{[^}]+\}\}$/,          // {{placeholder}}
+    /^demo.*/i,                 // demo...
+    /^placeholder.*/i,          // placeholder...
+    /^example.*/i,              // example...
+    /^test.*/i,                 // test...
   ];
   
-  // Check if all values match a placeholder pattern
-  return Object.values(settings).every(value => {
-    if (!value) return true; // Empty values are treated as placeholders
-    
-    // Check if value matches any of the placeholder patterns
-    return placeholderPatterns.some(pattern => pattern.test(value));
-  });
-};
+  // Check all required fields
+  const hasRequiredFields = Object.entries(settings).every(([key, value]) => {
+    // Skip optional fields or fields with default values
+    if (key.includes('enabled') || key.includes('timeout') || key.includes('encryption')) {
+      return true;
+    }
 
-// Validate settings object for required fields
-const validateSettings = (settings: ConnectionSettings): boolean => {
-  // Check if any value is empty string
-  const hasEmptyValues = Object.values(settings).some(
-    value => value === "" || value === undefined || value === null
-  );
+    // Skip password fields that might contain unchanged placeholder stars
+    if (key.includes('password') && value === '********') {
+      return true;
+    }
+    
+    // Check if value is empty
+    if (!value || value.trim() === '') {
+      return false;
+    }
+    
+    // Check if value looks like a placeholder
+    for (const pattern of placeholderPatterns) {
+      if (pattern.test(value)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
   
-  // Exclude password fields with placeholder value
-  const hasInvalidPasswords = Object.entries(settings).some(
-    ([key, value]) => key.includes("password") && value === "********"
-  );
-  
-  return !hasEmptyValues && !hasInvalidPasswords;
+  return hasRequiredFields;
 };
 
 export const connectionTester = {
   testSipConnection: createTestFunction(
     settingsService.testSipConnection,
-    "SIP-Verbindung erfolgreich getestet",
+    "SIP-Verbindung erfolgreich",
     "SIP-Verbindung fehlgeschlagen"
   ),
   
   testVpnConnection: createTestFunction(
     settingsService.testVpnConnection,
-    "VPN-Verbindung erfolgreich getestet",
+    "VPN-Verbindung erfolgreich",
     "VPN-Verbindung fehlgeschlagen"
   ),
   
   testFritzboxConnection: createTestFunction(
     settingsService.testFritzboxConnection,
-    "FRITZ!Box-Verbindung erfolgreich getestet",
+    "FRITZ!Box-Verbindung erfolgreich",
     "FRITZ!Box-Verbindung fehlgeschlagen"
   ),
   
   testEmailConnection: createTestFunction(
     settingsService.testEmailConnection,
-    "E-Mail-Verbindung erfolgreich getestet",
+    "E-Mail-Verbindung erfolgreich",
     "E-Mail-Verbindung fehlgeschlagen"
   ),
   
   testKeyEffApiConnection: createTestFunction(
     settingsService.testKeyEffApiConnection,
-    "KeyEff API-Verbindung erfolgreich getestet",
+    "KeyEff API-Verbindung erfolgreich",
     "KeyEff API-Verbindung fehlgeschlagen"
   )
 };

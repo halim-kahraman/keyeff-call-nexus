@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +30,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { customerService } from "@/services/api";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
+import { NewCustomerDialog } from "@/components/customers/NewCustomerDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
@@ -84,6 +84,7 @@ const Customers = () => {
   const [newCampaignName, setNewCampaignName] = useState("");
   const [newCampaignDesc, setNewCampaignDesc] = useState("");
   const [importPreview, setImportPreview] = useState(null);
+  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -296,6 +297,11 @@ const Customers = () => {
     XLSX.writeFile(wb, "Kundenimport_Vorlage.xlsx");
   };
 
+  // Handler for new customer button
+  const handleNewCustomerClick = () => {
+    setIsNewCustomerDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <AppLayout 
@@ -339,7 +345,11 @@ const Customers = () => {
                 <Upload className="h-4 w-4 mr-2" />
                 Importieren
               </Button>
-              <Button variant="default" className="bg-keyeff-500 hover:bg-keyeff-600">
+              <Button 
+                variant="default" 
+                className="bg-keyeff-500 hover:bg-keyeff-600"
+                onClick={handleNewCustomerClick}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Neu
               </Button>
@@ -606,6 +616,14 @@ const Customers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* New Customer Dialog */}
+      <NewCustomerDialog 
+        open={isNewCustomerDialogOpen}
+        onOpenChange={setIsNewCustomerDialogOpen}
+        filialeId={selectedFiliale}
+        campaignId={selectedCampaign}
+      />
       
       {/* Customer Details Sheet */}
       {selectedCustomer && (

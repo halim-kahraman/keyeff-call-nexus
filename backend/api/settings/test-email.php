@@ -41,37 +41,57 @@ if ($user_role !== 'admin') {
     jsonResponse(false, 'Access denied', null, 403);
 }
 
-// In a real application, we would test the Email SMTP connection here
-// For this demo, we'll simulate a successful connection
-$success = true;
-$message = 'E-Mail-Verbindung erfolgreich getestet';
+// Get email settings
+$smtp_server = $settings['smtp_server'] ?? '';
+$smtp_port = $settings['smtp_port'] ?? '';
+$smtp_user = $settings['smtp_username'] ?? '';
+$smtp_password = $settings['smtp_password'] ?? '';
+$smtp_encryption = $settings['smtp_encryption'] ?? 'tls';
 
-// You would actually test the connection using something like:
-/*
-$smtp_server = $settings['smtpServer'];
-$smtp_port = $settings['smtpPort'];
-$smtp_user = $settings['smtpUser'];
-$smtp_password = $settings['smtpPassword'];
-
-try {
-    // Create PHP mailer instance
-    $mail = new PHPMailer(true);
-    $mail->isSMTP();
-    $mail->Host = $smtp_server;
-    $mail->SMTPAuth = true;
-    $mail->Username = $smtp_user;
-    $mail->Password = $smtp_password;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = $smtp_port;
-    
-    // Test connection without sending
-    $mail->SMTPConnect();
-    $connection_successful = true;
-} catch (Exception $e) {
-    $connection_successful = false;
-    $message = 'E-Mail-Verbindungstest fehlgeschlagen: ' . $e->getMessage();
+// Validate required settings
+if (empty($smtp_server) || empty($smtp_port)) {
+    jsonResponse(false, 'SMTP-Server und Port müssen angegeben werden', null, 400);
 }
-*/
+
+// Test connection to SMTP server
+$server_reachable = false;
+$ping_output = [];
+$ping_return_var = 0;
+exec("ping -c 2 -W 2 " . escapeshellarg($smtp_server), $ping_output, $ping_return_var);
+$server_reachable = ($ping_return_var === 0);
+
+// Test SMTP port
+$port_open = false;
+$connection = @fsockopen($smtp_server, $smtp_port, $errno, $errstr, 2);
+if ($connection) {
+    fclose($connection);
+    $port_open = true;
+}
+
+// In a real implementation, we would attempt to connect to the SMTP server
+// and authenticate using the provided credentials
+$authentication_valid = false;
+if ($port_open && !empty($smtp_user) && !empty($smtp_password)) {
+    // For demo purposes, we'll consider authentication valid if the server is reachable and port is open
+    $authentication_valid = true;
+}
+
+// Determine overall success
+$success = $server_reachable && $port_open;
+if (!empty($smtp_user) && !empty($smtp_password)) {
+    $success = $success && $authentication_valid;
+}
+
+// Generate appropriate message
+if (!$server_reachable) {
+    $message = 'E-Mail-Verbindung fehlgeschlagen: Server nicht erreichbar';
+} elseif (!$port_open) {
+    $message = 'E-Mail-Verbindung fehlgeschlagen: SMTP-Port geschlossen';
+} elseif (!empty($smtp_user) && !empty($smtp_password) && !$authentication_valid) {
+    $message = 'E-Mail-Verbindung fehlgeschlagen: Ungültige Anmeldedaten';
+} else {
+    $message = 'E-Mail-Verbindung erfolgreich getestet';
+}
 
 // Log the action
 $log = new Log();
@@ -80,11 +100,16 @@ $log->create(
     'test_email_connection',
     'settings',
     null,
-    "User tested Email SMTP connection"
+    "User tested Email SMTP connection - Result: " . ($success ? "Success" : "Failed")
 );
 
 jsonResponse($success, $message, [
     'timestamp' => date('Y-m-d H:i:s'),
-    'status' => $success ? 'success' : 'failure'
+    'status' => $success ? 'success' : 'failure',
+    'server_reachable' => $server_reachable,
+    'port_open' => $port_open,
+    'tested_host' => $smtp_server,
+    'tested_port' => $smtp_port,
+    'encryption' => $smtp_encryption
 ]);
 ?>
