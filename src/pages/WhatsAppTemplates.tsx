@@ -160,11 +160,11 @@ const WhatsAppTemplates = () => {
               <div className="text-xs text-muted-foreground mb-4">
                 <p>Verfügbare Variablen:</p>
                 <ul className="list-disc pl-5 mt-1">
-                  <li>{{'{'}}{'{name}}{'}'}}</li>
-                  <li>{{'{'}}{'{phoneNumber}}{'}'}}</li>
-                  <li>{{'{'}}{'{date}}{'}'}}</li>
-                  <li>{{'{'}}{'{time}}{'}'}}</li>
-                  <li>{{'{'}}{'{carModel}}{'}'}}</li>
+                  <li>{`{{name}}`}</li>
+                  <li>{`{{phoneNumber}}`}</li>
+                  <li>{`{{date}}`}</li>
+                  <li>{`{{time}}`}</li>
+                  <li>{`{{carModel}}`}</li>
                 </ul>
               </div>
               
@@ -234,7 +234,7 @@ const WhatsAppTemplates = () => {
                   <div className="mt-2 text-xs text-muted-foreground">
                     <p>Verfügbare Variablen:</p>
                     <p className="mt-1">
-                      <code>{{'{'}}{'{name}}{'}'}} {{'{'}}{'{phoneNumber}}{'}'}} {{'{'}}{'{date}}{'}'}} {{'{'}}{'{time}}{'}'}} {{'{'}}{'{carModel}}{'}'}}</code>
+                      <code>{`{{name}} {{phoneNumber}} {{date}} {{time}} {{carModel}}`}</code>
                     </p>
                   </div>
                 </div>
