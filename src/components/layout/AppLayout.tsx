@@ -2,7 +2,6 @@
 import React from "react";
 import { SideNav } from "./SideNav";
 import { Header } from "./Header";
-import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;

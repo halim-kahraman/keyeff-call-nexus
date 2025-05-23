@@ -1,651 +1,437 @@
 
-import axios from 'axios';
-import { User } from '@/context/types/auth.types';
+import axios from "axios";
 
-// Configure axios
+// Base API configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: "/backend/api",
 });
 
-// Add request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Request interceptor to add auth token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
-);
+  return config;
+});
 
-// Mock statistics service for development
-const mockStatisticsService = {
-  getStatistics: async (startDate: string, endDate: string, userId?: string) => {
-    console.log("Getting statistics for date range:", startDate, endDate, "user:", userId);
-    
-    // Generate dummy data
-    const generateCallsByDay = () => {
-      const days = [];
-      const currentDate = new Date(startDate);
-      const end = new Date(endDate);
-      
-      while (currentDate <= end) {
-        const calls = Math.floor(Math.random() * 15) + 5; // 5-20 calls per day
-        days.push({
-          day: new Date(currentDate).toISOString().split('T')[0],
-          total_calls: calls,
-          total_duration: calls * (Math.floor(Math.random() * 300) + 120), // 2-7 minutes per call in seconds
-          avg_duration: Math.floor(Math.random() * 180) + 120 // 2-5 minutes in seconds
-        });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      return days;
-    };
-    
-    const callsByOutcome = [
-      { outcome: "interested", count: Math.floor(Math.random() * 20) + 30 }, // 30-50
-      { outcome: "not_interested", count: Math.floor(Math.random() * 10) + 10 }, // 10-20
-      { outcome: "callback", count: Math.floor(Math.random() * 15) + 15 }, // 15-30
-      { outcome: "no_answer", count: Math.floor(Math.random() * 20) + 20 }, // 20-40
-      { outcome: "appointment", count: Math.floor(Math.random() * 10) + 5 } // 5-15
-    ];
-    
-    const totalCalls = callsByOutcome.reduce((sum, item) => sum + item.count, 0);
-    const totalAppointments = callsByOutcome.find(o => o.outcome === "appointment")?.count || 0;
-    const totalContactedCustomers = Math.floor(totalCalls * 0.7); // Assuming some calls are to the same customer
-    
-    const mockTopCallers = [
-      { id: "1", name: "Hans Müller", total_calls: 42, total_duration: 7560, avg_duration: 180 },
-      { id: "2", name: "Anna Schmidt", total_calls: 36, total_duration: 5940, avg_duration: 165 },
-      { id: "3", name: "Max Weber", total_calls: 28, total_duration: 4480, avg_duration: 160 },
-      { id: "4", name: "Laura Fischer", total_calls: 26, total_duration: 3900, avg_duration: 150 },
-      { id: "5", name: "Thomas Klein", total_calls: 24, total_duration: 3600, avg_duration: 150 }
-    ];
-    
-    const mockAppointmentTypes = [
-      { type: "Beratung", count: Math.floor(Math.random() * 10) + 5 },
-      { type: "Produktvorstellung", count: Math.floor(Math.random() * 8) + 3 },
-      { type: "Support", count: Math.floor(Math.random() * 5) + 2 },
-      { type: "Vertragsverlängerung", count: Math.floor(Math.random() * 7) + 4 }
-    ];
-    
-    const mockFilialeStats = [
-      { 
-        id: "1", 
-        name: "Berlin", 
-        total_users: 8, 
-        total_calls: 156, 
-        total_appointments: 24, 
-        total_call_duration: 26520, 
-        avg_call_duration: 170 
-      },
-      { 
-        id: "2", 
-        name: "München", 
-        total_users: 6, 
-        total_calls: 124, 
-        total_appointments: 18, 
-        total_call_duration: 20460, 
-        avg_call_duration: 165 
-      },
-      { 
-        id: "3", 
-        name: "Hamburg", 
-        total_users: 5, 
-        total_calls: 98, 
-        total_appointments: 14, 
-        total_call_duration: 15680, 
-        avg_call_duration: 160 
-      }
-    ];
-    
-    return {
-      summary: {
-        total_calls: totalCalls,
-        total_appointments: totalAppointments,
-        total_customers_contacted: totalContactedCustomers,
-        period: {
-          start: startDate,
-          end: endDate
-        }
-      },
-      calls_by_day: generateCallsByDay(),
-      calls_by_outcome: callsByOutcome,
-      top_callers: mockTopCallers,
-      appointments_by_type: mockAppointmentTypes,
-      filiale_stats: mockFilialeStats
-    };
-  }
-};
-
-// Mock auth service for development
-const mockAuthService = {
+// Auth service
+export const authService = {
   login: async (email: string, password: string) => {
-    console.log("Mock login with:", email);
-    
-    // For testing, define some mock users
-    const mockUsers = {
-      "admin@keyeff.de": {
-        id: "1",
-        name: "Admin User",
-        email: "admin@keyeff.de",
-        role: "admin" as const,
-      },
-      "agent@keyeff.de": {
-        id: "2",
-        name: "Telefonist",
-        email: "agent@keyeff.de",
-        role: "telefonist" as const,
-        filiale: "Berlin"
-      },
-      "manager@keyeff.de": {
-        id: "3",
-        name: "Filialleiter",
-        email: "manager@keyeff.de",
-        role: "filialleiter" as const,
-        filiale: "München"
-      }
-    };
-    
-    // Simple password check
-    if (password !== "password123") {
-      throw new Error("Invalid credentials");
-    }
-
-    // Check if user exists
-    const user = mockUsers[email as keyof typeof mockUsers];
-    if (!user) {
-      throw new Error("User not found");
-    }
-    
-    // Demo: Simulate 2FA for admin
-    if (user.role === 'admin') {
-      return {
-        success: true,
-        message: "2FA required",
-        data: {
-          needs_verification: true,
-          user_id: user.id,
-          otp: "123456" // Demo OTP
-        }
-      };
-    }
-    
-    // For non-admin, direct login
-    return {
-      success: true,
-      data: {
-        user: user,
-        token: "mock-jwt-token"
-      }
-    };
-  },
-  
-  verify2FA: async (userId: string, code: string) => {
-    console.log("Verifying 2FA code:", code, "for user:", userId);
-    
-    // For demo purposes, accept any code
-    if (code && code.length === 6) {
-      return {
-        success: true,
-        data: {
-          user: {
-            id: "1",
-            name: "Admin User",
-            email: "admin@keyeff.de",
-            role: "admin"
-          },
-          token: "mock-jwt-token-after-2fa"
-        }
-      };
-    } else {
-      throw new Error("Invalid verification code");
+    try {
+      const response = await api.post("/auth/login.php", { email, password });
+      return response.data;
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
   },
   
-  requestPasswordReset: async (email: string) => {
-    console.log("Password reset requested for:", email);
-    
-    // For demo purposes, always succeed
-    return {
-      success: true,
-      message: "If the email exists, a reset code has been sent",
-      data: {
-        reset_code: "654321", // Demo reset code
-        email_success: true
-      }
-    };
-  },
-  
-  resetPassword: async (email: string, code: string, newPassword: string) => {
-    console.log("Resetting password for:", email, "with code:", code);
-    
-    // For demo purposes, always succeed if code is correct length
-    if (code && code.length === 6) {
-      return {
-        success: true,
-        message: "Password successfully reset",
-        data: {
-          email_success: true
-        }
-      };
-    } else {
-      throw new Error("Invalid reset code");
+  verify: async () => {
+    try {
+      const response = await api.get("/auth/verify.php");
+      return response.data;
+    } catch (error) {
+      console.error("Verification error:", error);
+      throw error;
     }
   },
   
   logout: async () => {
-    console.log("User logged out");
-    // For client-side logout, nothing needed on backend
-    return { success: true };
-  }
-};
-
-// Mock settings service for development
-const mockSettingsService = {
-  getSettings: async (category: string, filialeId?: string | null) => {
-    console.log("Getting settings for:", category, "filiale:", filialeId);
-    
-    // For demo purposes, return mock settings based on category
-    switch (category) {
-      case 'sip':
-        return {
-          sip_server: "sip.example.com",
-          sip_port: "5060",
-          sip_username: "user123",
-          sip_password: "password",
-          stun_server: "stun.example.com",
-          turn_server: "turn.example.com",
-          turn_username: "turnuser",
-          turn_password: "turnpass",
-          sip_enabled: "1"
-        };
-      case 'vpn':
-        return {
-          vpn_server: "vpn.example.com",
-          vpn_port: "1194",
-          vpn_username: "vpnuser",
-          vpn_password: "vpnpass",
-          vpn_enabled: "1"
-        };
-      case 'fritzbox':
-        return {
-          fritzbox_ip: "192.168.178.1",
-          fritzbox_port: "443",
-          fritzbox_username: "admin",
-          fritzbox_password: "fritzbox",
-          fritzbox_enabled: "1"
-        };
-      case 'email':
-        return {
-          smtp_server: "smtp.example.com",
-          smtp_port: "587",
-          smtp_username: "mail@example.com",
-          smtp_password: "mailpass",
-          smtp_encryption: "tls",
-          smtp_from_email: "noreply@keyeff.de",
-          smtp_from_name: "KeyEff System",
-          smtp_enabled: "1"
-        };
-      case 'keyeffApi':
-        return {
-          api_url: "https://api.keyeff.de/v1",
-          api_key: "demo-key-123",
-          api_secret: "demo-secret-456",
-          api_timeout: "30",
-          api_enabled: "1"
-        };
-      default:
-        return {};
+    try {
+      const response = await api.post("/auth/logout.php");
+      return response.data;
+    } catch (error) {
+      console.error("Logout error:", error);
+      throw error;
     }
   },
   
-  saveSettings: async (category: string, settings: Record<string, string>, filialeId?: string) => {
-    console.log("Saving settings for:", category, "filiale:", filialeId);
-    console.log("Settings:", settings);
-    
-    // For demo purposes, just return success
-    return {
-      success: true,
-      message: "Settings saved successfully"
-    };
-  },
-  
-  testSipConnection: async (settings: Record<string, string>) => {
-    console.log("Testing SIP connection with settings:", settings);
-    
-    // For demo purposes, simulate a successful test
-    return {
-      success: true,
-      message: "SIP connection test successful",
-      details: {
-        server_status: "online",
-        registration_status: "registered"
-      }
-    };
-  },
-  
-  testVpnConnection: async (settings: Record<string, string>) => {
-    console.log("Testing VPN connection with settings:", settings);
-    
-    // For demo purposes, simulate a successful test
-    return {
-      success: true,
-      message: "VPN connection test successful",
-      details: {
-        server_status: "connected",
-        encryption: "AES-256"
-      }
-    };
-  },
-  
-  testFritzboxConnection: async (settings: Record<string, string>) => {
-    console.log("Testing FRITZ!Box connection with settings:", settings);
-    
-    // For demo purposes, simulate a successful test
-    return {
-      success: true,
-      message: "FRITZ!Box connection test successful",
-      details: {
-        model: "FRITZ!Box 7590",
-        firmware: "7.29"
-      }
-    };
-  },
-  
-  testEmailConnection: async (settings: Record<string, string>) => {
-    console.log("Testing Email connection with settings:", settings);
-    
-    // For demo purposes, simulate a successful test
-    return {
-      success: true,
-      message: "Email connection test successful",
-      details: {
-        smtp_test: "passed",
-        test_email_sent: true
-      }
-    };
-  },
-  
-  testKeyEffApiConnection: async (settings: Record<string, string>) => {
-    console.log("Testing KeyEff API connection with settings:", settings);
-    
-    // For demo purposes, simulate a successful test
-    return {
-      success: true,
-      message: "KeyEff API connection test successful",
-      details: {
-        api_version: "1.0",
-        permissions: ["read", "write"]
-      }
-    };
+  resetPassword: async (email: string) => {
+    try {
+      const response = await api.post("/auth/reset-password.php", { email });
+      return response.data;
+    } catch (error) {
+      console.error("Password reset error:", error);
+      throw error;
+    }
   }
 };
 
-// Mock customer service for development
-const mockCustomerService = {
-  getCustomers: async (filialeId?: string | null, campaignId?: string | null) => {
-    console.log("Getting customers for filiale:", filialeId, "campaign:", campaignId);
+// Customer service
+export const customerService = {
+  getCustomers: async (filiale_id: string, campaign_id?: string) => {
+    console.info("Getting customers for filiale:", filiale_id, "campaign:", campaign_id);
     
-    // For demo purposes, return mock customer data
-    return [
-      {
-        id: "1",
-        name: "Mustermann GmbH",
-        company: "Mustermann GmbH",
-        email: "info@mustermann.de",
-        primary_phones: "+49 123 456789,+49 987 654321",
-        contract_types: "Premium,Support",
-        contract_statuses: "Aktiv,Gekündigt",
-        contract_expiry_dates: "2025-12-31,2023-06-30",
-        priority: "high"
-      },
-      {
-        id: "2",
-        name: "Schmidt AG",
-        company: "Schmidt AG",
-        email: "kontakt@schmidt-ag.de",
-        primary_phones: "+49 555 123456",
-        contract_types: "Standard",
-        contract_statuses: "Aktiv",
-        contract_expiry_dates: "2024-08-15",
-        priority: "medium"
-      },
-      {
-        id: "3",
-        name: "Max Meyer",
-        company: "",
-        email: "max.meyer@example.com",
-        primary_phones: "+49 170 9876543",
-        contract_types: "Basic",
-        contract_statuses: "In Bearbeitung",
-        contract_expiry_dates: "2025-03-01",
-        priority: "low"
+    try {
+      const params = { filiale_id };
+      if (campaign_id && campaign_id !== "all") {
+        Object.assign(params, { campaign_id });
       }
-    ];
+      
+      const response = await api.get("/customers/list.php", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      throw error;
+    }
   },
   
-  getCustomerById: async (id: string) => {
-    console.log("Getting customer with ID:", id);
-    
-    // For demo purposes, return a mock customer based on ID
-    const mockCustomers = {
-      "1": {
-        id: "1",
-        name: "Mustermann GmbH",
-        company: "Mustermann GmbH",
-        email: "info@mustermann.de",
-        address: "Musterstraße 1",
-        city: "Berlin",
-        postal_code: "10115",
-        primary_phones: "+49 123 456789,+49 987 654321",
-        priority: "high",
-        notes: "Wichtiger Großkunde mit mehreren Standorten",
-        last_contact: "2023-11-15",
-        contacts: [
-          {
-            id: "101",
-            contact_name: "Hans Mustermann",
-            contact_type: "Geschäftsführer",
-            phone: "+49 123 456789",
-            email: "h.mustermann@mustermann.de",
-            is_primary: "1",
-            notes: "Bevorzugt Kontakt am Vormittag"
-          },
-          {
-            id: "102",
-            contact_name: "Maria Musterfrau",
-            contact_type: "Office Manager",
-            phone: "+49 987 654321",
-            email: "m.musterfrau@mustermann.de",
-            is_primary: "0",
-            notes: ""
-          }
-        ],
-        contracts: [
-          {
-            id: "201",
-            contract_type: "Premium",
-            contract_number: "KE-2023-001",
-            contract_status: "Aktiv",
-            contract_start: "2023-01-01",
-            contract_expiry: "2025-12-31",
-            monthly_value: "999.00",
-            notes: "Vollumfänglicher Support mit 24/7 Hotline"
-          },
-          {
-            id: "202",
-            contract_type: "Support",
-            contract_number: "KE-2023-002",
-            contract_status: "Gekündigt",
-            contract_start: "2022-07-01",
-            contract_expiry: "2023-06-30",
-            monthly_value: "299.00",
-            notes: "Gekündigt wegen Umstellung auf Premium-Paket"
-          }
-        ],
-        call_logs: [
-          {
-            id: "301",
-            created_at: "2023-11-15T10:23:45",
-            user_name: "Admin User",
-            duration: 345,
-            outcome: "Erfolgreich",
-            contract_type: "Premium",
-            contract_number: "KE-2023-001",
-            log_text: "Kunde hat Fragen zur Rechnungsstellung. Problem geklärt und neue Rechnungskopie per E-Mail zugesandt."
-          },
-          {
-            id: "302",
-            created_at: "2023-10-22T14:15:30",
-            user_name: "Telefonist",
-            duration: 185,
-            outcome: "Rückruf vereinbart",
-            contract_type: "Support",
-            contract_number: "KE-2023-002",
-            log_text: "Kunde wünscht Beratung zu Premium-Upgrade. Termin mit Vertrieb für nächste Woche vereinbart."
-          }
-        ]
-      },
-      "2": {
-        id: "2",
-        name: "Schmidt AG",
-        company: "Schmidt AG",
-        email: "kontakt@schmidt-ag.de",
-        address: "Schmidtstraße 42",
-        city: "München",
-        postal_code: "80331",
-        primary_phones: "+49 555 123456",
-        priority: "medium",
-        notes: "Mittelgroßer Kunde mit Potential für Upselling",
-        last_contact: "2023-12-05",
-        contacts: [
-          {
-            id: "103",
-            contact_name: "Peter Schmidt",
-            contact_type: "IT-Leiter",
-            phone: "+49 555 123456",
-            email: "p.schmidt@schmidt-ag.de",
-            is_primary: "1",
-            notes: "Technisch sehr versiert"
-          }
-        ],
-        contracts: [
-          {
-            id: "203",
-            contract_type: "Standard",
-            contract_number: "KE-2023-045",
-            contract_status: "Aktiv",
-            contract_start: "2023-08-15",
-            contract_expiry: "2024-08-15",
-            monthly_value: "499.00",
-            notes: ""
-          }
-        ],
-        call_logs: [
-          {
-            id: "303",
-            created_at: "2023-12-05T09:45:12",
-            user_name: "Filialleiter",
-            duration: 420,
-            outcome: "Information",
-            contract_type: "Standard",
-            contract_number: "KE-2023-045",
-            log_text: "Kunde interessiert sich für zusätzliche Module. Produktinformationen per E-Mail versendet."
-          }
-        ]
-      },
-      "3": {
-        id: "3",
-        name: "Max Meyer",
-        company: "",
-        email: "max.meyer@example.com",
-        address: "Meyerweg 7",
-        city: "Hamburg",
-        postal_code: "20095",
-        primary_phones: "+49 170 9876543",
-        priority: "low",
-        notes: "Einzelunternehmer",
-        last_contact: "2024-01-10",
-        contacts: [],
-        contracts: [
-          {
-            id: "204",
-            contract_type: "Basic",
-            contract_number: "",
-            contract_status: "In Bearbeitung",
-            contract_start: "2024-02-01",
-            contract_expiry: "2025-03-01",
-            monthly_value: "99.00",
-            notes: "Vertrag noch nicht unterschrieben"
-          }
-        ],
-        call_logs: [
-          {
-            id: "304",
-            created_at: "2024-01-10T16:30:00",
-            user_name: "Telefonist",
-            duration: 235,
-            outcome: "Nicht erreicht",
-            log_text: "Kunde nicht erreichbar. Voicemail hinterlassen."
-          },
-          {
-            id: "305",
-            created_at: "2024-01-08T11:20:15",
-            user_name: "Telefonist",
-            duration: 310,
-            outcome: "Erfolgreich",
-            contract_type: "Basic",
-            log_text: "Vertragsdetails besprochen. Kunde erhält Angebot per E-Mail."
-          }
-        ]
-      }
-    };
-    
-    return mockCustomers[id] || null;
+  getCustomerDetails: async (id: string) => {
+    try {
+      const response = await api.get(`/customers/detail.php`, { params: { id } });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+      throw error;
+    }
   },
   
-  getCampaigns: async (filialeId?: string) => {
-    console.log("Getting campaigns for filiale:", filialeId);
-    
-    // For demo purposes, return mock campaign data
-    return [
-      { id: "1", name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
-      { id: "2", name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
-    ];
+  importCustomers: async (file: File, filiale_id: string, campaign_id: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("filiale_id", filiale_id);
+      formData.append("campaign_id", campaign_id);
+      
+      const response = await api.post("/customers/import.php", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error importing customers:", error);
+      throw error;
+    }
   }
 };
 
-// Mock filiale service for development
-const mockFilialeService = {
+// Campaign service
+export const campaignService = {
+  getCampaigns: async (filiale_id: string) => {
+    console.info("Getting campaigns for filiale:", filiale_id);
+    
+    try {
+      const response = await api.get("/campaigns/list.php", { params: { filiale_id } });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      throw error;
+    }
+  }
+};
+
+// Filiale service
+export const filialeService = {
   getFilialen: async () => {
-    console.log("Getting filialen");
+    console.info("Getting filialen");
     
-    // For demo purposes, return mock filiale data
-    return [
-      { id: "1", name: "Berlin", address: "Berliner Str. 123, 10115 Berlin" },
-      { id: "2", name: "München", address: "Münchner Pl. 45, 80331 München" },
-      { id: "3", name: "Hamburg", address: "Hamburger Allee 67, 20095 Hamburg" }
-    ];
+    try {
+      const response = await api.get("/filialen/list.php");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching filialen:", error);
+      throw error;
+    }
   }
 };
 
-// Export auth service
-export const authService = mockAuthService;
+// Call log service
+export const callLogService = {
+  logCall: async (data: any) => {
+    try {
+      const response = await api.post("/calls/log.php", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error logging call:", error);
+      throw error;
+    }
+  }
+};
 
-// Export statistics service
-export const statisticsService = mockStatisticsService;
+// Appointment service
+export const appointmentService = {
+  createAppointment: async (data: any) => {
+    try {
+      const response = await api.post("/appointments/create.php", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      throw error;
+    }
+  },
+  
+  getAppointments: async (params: any) => {
+    try {
+      const response = await api.get("/appointments/list.php", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      throw error;
+    }
+  }
+};
 
-// Export other services
-export const settingsService = mockSettingsService;
-export const customerService = mockCustomerService;
-export const filialeService = mockFilialeService;
+// Settings service
+export const settingsService = {
+  getSettings: async (category: string, filiale_id?: string) => {
+    console.info("Getting settings for:", category, "filiale:", filiale_id);
+    
+    try {
+      const params = { category };
+      if (filiale_id) {
+        Object.assign(params, { filiale_id });
+      }
+      
+      const response = await api.get("/settings/get.php", { params });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      throw error;
+    }
+  },
+  
+  saveSettings: async (category: string, settings: any, filiale_id?: string) => {
+    try {
+      const data = { 
+        category, 
+        settings,
+        filiale_id
+      };
+      
+      const response = await api.post("/settings/save.php", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      throw error;
+    }
+  },
+  
+  testSipConnection: async (settings: any) => {
+    try {
+      const response = await api.post("/settings/test-sip.php", { settings });
+      return response.data;
+    } catch (error) {
+      console.error("Error testing SIP connection:", error);
+      throw error;
+    }
+  },
+  
+  testVpnConnection: async (settings: any) => {
+    try {
+      const response = await api.post("/settings/test-vpn.php", { settings });
+      return response.data;
+    } catch (error) {
+      console.error("Error testing VPN connection:", error);
+      throw error;
+    }
+  },
+  
+  testFritzboxConnection: async (settings: any) => {
+    try {
+      const response = await api.post("/settings/test-fritzbox.php", { settings });
+      return response.data;
+    } catch (error) {
+      console.error("Error testing FRITZ!Box connection:", error);
+      throw error;
+    }
+  },
+  
+  testEmailConnection: async (settings: any) => {
+    try {
+      const response = await api.post("/settings/test-email.php", { settings });
+      return response.data;
+    } catch (error) {
+      console.error("Error testing Email connection:", error);
+      throw error;
+    }
+  },
+  
+  testKeyEffApiConnection: async (settings: any) => {
+    try {
+      const response = await api.post("/settings/test-keyeff-api.php", { settings });
+      return response.data;
+    } catch (error) {
+      console.error("Error testing KeyEff API connection:", error);
+      throw error;
+    }
+  }
+};
 
-// Export the API instance
-export default api;
+// Statistics service
+export const statisticsService = {
+  getStatistics: async (startDate: string, endDate: string, userId?: string) => {
+    console.info("Getting statistics for date range:", startDate, endDate, "user:", userId);
+    
+    try {
+      // For testing purposes, create mock data that makes sense
+      // In a real app, this would be a call to the backend API
+      // return await api.get("/statistics/get.php", { params: { start_date: startDate, end_date: endDate, user_id: userId } });
+      
+      // Create consistent mock data for all users
+      const mockUsers = [
+        { id: "1", name: "Laura Fischer", filiale: "1" },
+        { id: "2", name: "Markus Schmidt", filiale: "1" },
+        { id: "3", name: "Anna Müller", filiale: "2" },
+        { id: "4", name: "Thomas Weber", filiale: "2" },
+        { id: "5", name: "Sarah Becker", filiale: "3" }
+      ];
+      
+      // Base call data per user
+      const userStats = {
+        "1": { calls: 85, appointments: 23, customers: 72, avgDuration: 186 },
+        "2": { calls: 64, appointments: 17, customers: 55, avgDuration: 205 },
+        "3": { calls: 92, appointments: 28, customers: 80, avgDuration: 167 },
+        "4": { calls: 77, appointments: 22, customers: 62, avgDuration: 194 },
+        "5": { calls: 103, appointments: 31, customers: 87, avgDuration: 176 }
+      };
+      
+      // Filiale data
+      const filialeStats = [
+        { 
+          id: "1", 
+          name: "Berlin", 
+          total_users: 18, 
+          total_calls: 149, 
+          total_appointments: 40, 
+          total_call_duration: 27945, 
+          avg_call_duration: 187 
+        },
+        { 
+          id: "2", 
+          name: "Hamburg", 
+          total_users: 14, 
+          total_calls: 169, 
+          total_appointments: 50, 
+          total_call_duration: 30589, 
+          avg_call_duration: 181 
+        },
+        { 
+          id: "3", 
+          name: "München", 
+          total_users: 12, 
+          total_calls: 103, 
+          total_appointments: 31, 
+          total_call_duration: 18128, 
+          avg_call_duration: 176 
+        }
+      ];
+      
+      // Call outcomes distribution
+      const outcomePercentages = {
+        "interested": 38,
+        "not_interested": 25,
+        "callback": 13,
+        "appointment": 11,
+        "no_answer": 13
+      };
+      
+      // Generate calls by day (last 7 days)
+      const days = 7;
+      const calls_by_day = [];
+      let totalCalls = 0;
+      let totalDuration = 0;
+      
+      for (let i = 0; i < days; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (days - i - 1));
+        const callCount = userId ? 
+          Math.floor(userStats[userId as keyof typeof userStats]?.calls / days) + Math.floor(Math.random() * 5) : 
+          Math.floor(Math.random() * 10) + 15;
+          
+        const avgDur = userId ? 
+          userStats[userId as keyof typeof userStats]?.avgDuration : 
+          180 + Math.floor(Math.random() * 60);
+          
+        totalCalls += callCount;
+        totalDuration += callCount * avgDur;
+        
+        calls_by_day.push({
+          day: date.toISOString().split('T')[0],
+          total_calls: callCount,
+          total_duration: callCount * avgDur,
+          avg_duration: avgDur
+        });
+      }
+      
+      // Generate calls by outcome
+      const calls_by_outcome = [];
+      for (const [outcome, percentage] of Object.entries(outcomePercentages)) {
+        const count = Math.round(totalCalls * (percentage/100));
+        calls_by_outcome.push({
+          outcome,
+          count
+        });
+      }
+      
+      // Generate top callers
+      const top_callers = mockUsers.map(user => {
+        const stats = userStats[user.id as keyof typeof userStats];
+        return {
+          id: user.id,
+          name: user.name,
+          total_calls: stats.calls,
+          total_duration: stats.calls * stats.avgDuration,
+          avg_duration: stats.avgDuration
+        };
+      });
+      
+      // Filter by user if specified
+      if (userId) {
+        const userIndex = mockUsers.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+          const stats = userStats[userId as keyof typeof userStats];
+          const selectedUser = mockUsers[userIndex];
+          
+          return {
+            success: true,
+            message: "Statistics retrieved successfully",
+            data: {
+              summary: {
+                total_calls: stats.calls,
+                total_appointments: stats.appointments,
+                total_customers_contacted: stats.customers,
+                period: { start: startDate, end: endDate }
+              },
+              calls_by_day,
+              calls_by_outcome,
+              top_callers: [top_callers[userIndex]],
+              appointments_by_type: [
+                { type: "Beratung", count: Math.floor(stats.appointments * 0.6) },
+                { type: "Probefahrt", count: Math.floor(stats.appointments * 0.3) },
+                { type: "Kaufabschluss", count: Math.floor(stats.appointments * 0.1) }
+              ],
+              filiale_stats: filialeStats.filter(f => f.id === selectedUser.filiale)
+            }
+          };
+        }
+      }
+      
+      // Return all statistics if no user is specified
+      return {
+        success: true,
+        message: "Statistics retrieved successfully",
+        data: {
+          summary: {
+            total_calls: top_callers.reduce((sum, caller) => sum + caller.total_calls, 0),
+            total_appointments: Math.floor(totalCalls * 0.25),
+            total_customers_contacted: Math.floor(totalCalls * 0.85),
+            period: { start: startDate, end: endDate }
+          },
+          calls_by_day,
+          calls_by_outcome,
+          top_callers,
+          appointments_by_type: [
+            { type: "Beratung", count: 46 },
+            { type: "Probefahrt", count: 27 },
+            { type: "Kaufabschluss", count: 8 }
+          ],
+          filiale_stats: filialeStats
+        }
+      };
+      
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      throw error;
+    }
+  }
+};

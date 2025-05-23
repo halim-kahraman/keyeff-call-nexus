@@ -17,6 +17,7 @@ import Customers from "./pages/Customers";
 import Statistics from "./pages/Statistics";
 import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
+import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 
 // Admin Pages
 import UserManagement from "./pages/UserManagement";
@@ -60,6 +61,7 @@ function App() {
                 <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']}>{() => <></>}</RequireAuth>}>
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
+                  <Route path="/whatsapp-templates" element={<WhatsAppTemplates />} />
                 </Route>
               </Route>
               

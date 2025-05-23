@@ -21,7 +21,16 @@ const createTestFunction = (
 ) => {
   return async (settings: ConnectionSettings): Promise<ConnectionTestResult> => {
     try {
+      // Validate required fields before sending the request
+      if (!validateSettings(settings)) {
+        throw new Error("Bitte füllen Sie alle erforderlichen Felder aus.");
+      }
+      
       const response = await testFn(settings);
+      
+      if (!response.success) {
+        throw new Error(response.message || "Verbindungstest fehlgeschlagen");
+      }
       
       // Show success toast
       toast.success(successMessage);
@@ -50,34 +59,49 @@ const createTestFunction = (
   };
 };
 
+// Validate settings object for required fields
+const validateSettings = (settings: ConnectionSettings): boolean => {
+  // Check if any value is empty string
+  const hasEmptyValues = Object.values(settings).some(
+    value => value === "" || value === undefined || value === null
+  );
+  
+  // Exclude password fields with placeholder value
+  const hasInvalidPasswords = Object.entries(settings).some(
+    ([key, value]) => key.includes("password") && value === "********"
+  );
+  
+  return !hasEmptyValues && !hasInvalidPasswords;
+};
+
 export const connectionTester = {
   testSipConnection: createTestFunction(
     settingsService.testSipConnection,
-    "SIP-Verbindung erfolgreich",
+    "SIP-Verbindung erfolgreich getestet",
     "SIP-Verbindung fehlgeschlagen"
   ),
   
   testVpnConnection: createTestFunction(
     settingsService.testVpnConnection,
-    "VPN-Verbindung erfolgreich",
+    "VPN-Verbindung erfolgreich getestet",
     "VPN-Verbindung fehlgeschlagen"
   ),
   
   testFritzboxConnection: createTestFunction(
     settingsService.testFritzboxConnection,
-    "FRITZ!Box-Verbindung erfolgreich",
+    "FRITZ!Box-Verbindung erfolgreich getestet",
     "FRITZ!Box-Verbindung fehlgeschlagen"
   ),
   
   testEmailConnection: createTestFunction(
     settingsService.testEmailConnection,
-    "E-Mail-Verbindung erfolgreich",
+    "E-Mail-Verbindung erfolgreich getestet",
     "E-Mail-Verbindung fehlgeschlagen"
   ),
   
   testKeyEffApiConnection: createTestFunction(
     settingsService.testKeyEffApiConnection,
-    "KeyEff API-Verbindung erfolgreich",
+    "KeyEff API-Verbindung erfolgreich getestet",
     "KeyEff API-Verbindung fehlgeschlagen"
   )
 };

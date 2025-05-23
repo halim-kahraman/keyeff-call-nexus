@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Bell, Phone } from "lucide-react";
+import { Bell, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="border-b border-border bg-white dark:bg-card px-6 py-4 flex justify-between items-center">
+    <header className="border-b border-border bg-white dark:bg-card px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm w-full">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
         {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
+          <PopoverContent className="w-80 p-0 z-50 bg-white" align="end">
             <div className="p-3 border-b">
               <h3 className="font-medium">Benachrichtigungen</h3>
             </div>
@@ -113,14 +113,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <AvatarFallback className="bg-primary text-primary-foreground">{getUserInitials()}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="z-50 bg-white">
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {}}>Profil</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {}}>Einstellungen</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => alert('Profil wird bearbeitet')}>Profil</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => alert('Einstellungen werden geöffnet')}>Einstellungen</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>Abmelden</DropdownMenuItem>
             </DropdownMenuContent>

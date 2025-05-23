@@ -59,7 +59,7 @@ export function SideNav() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-primary text-primary-foreground w-64 border-r border-primary/20 fixed left-0 top-0 bottom-0 overflow-y-auto">
+    <div className="flex flex-col h-full bg-primary text-primary-foreground w-64 border-r border-primary/20 fixed left-0 top-0 bottom-0 overflow-y-auto z-30">
       <div className="px-6 py-4">
         <Link to="/dashboard">
           <h1 className="font-bold text-2xl">KeyEff CallPanel</h1>
@@ -70,7 +70,7 @@ export function SideNav() {
         <nav className="flex-1 space-y-1 p-2">
           <Button
             variant={pathname === "/" || pathname === "/dashboard" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
             asChild
           >
             <Link to="/dashboard">
@@ -80,7 +80,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/customers" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
             asChild
           >
             <Link to="/customers">
@@ -90,7 +90,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname.startsWith("/call") ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
             asChild
           >
             <Link to="/call">
@@ -100,7 +100,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/calendar" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
             asChild
           >
             <Link to="/calendar">
@@ -110,7 +110,7 @@ export function SideNav() {
           </Button>
           <Button
             variant={pathname === "/statistics" ? "secondary" : "ghost"}
-            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+            className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
             asChild
           >
             <Link to="/statistics">
@@ -129,7 +129,7 @@ export function SideNav() {
                 <div className="space-y-1">
                   <Button
                     variant={pathname === "/admin/tools" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/admin/tools">
@@ -139,7 +139,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/users" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/admin/users">
@@ -149,7 +149,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/filialen" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/admin/filialen">
@@ -159,7 +159,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/admin/logs" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/admin/logs">
@@ -183,7 +183,7 @@ export function SideNav() {
                 <div className="space-y-1">
                   <Button
                     variant={pathname === "/settings" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/settings">
@@ -193,7 +193,7 @@ export function SideNav() {
                   </Button>
                   <Button
                     variant={pathname === "/templates" ? "secondary" : "ghost"}
-                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground"
+                    className="w-full justify-start text-primary-foreground hover:text-primary hover:bg-primary-foreground data-[state=active]:bg-secondary data-[state=active]:text-primary"
                     asChild
                   >
                     <Link to="/templates">
@@ -218,11 +218,14 @@ export function SideNav() {
                   <AvatarFallback className="bg-secondary text-secondary-foreground">{getUserInitials()}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="start" className="bg-white">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-medium">{user.name}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => alert('Profil bearbeiten')}>Profil bearbeiten</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => alert('Passwort ändern')}>Passwort ändern</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>Abmelden</DropdownMenuItem>
               </DropdownMenuContent>
@@ -234,7 +237,7 @@ export function SideNav() {
           </div>
         )}
         <Button variant="outline" className="w-full border-primary-foreground/20 text-primary-foreground hover:text-primary hover:bg-primary-foreground" onClick={logout}>
-          Logout
+          <span className="text-primary-foreground hover:text-primary">Logout</span>
         </Button>
       </div>
     </div>

@@ -104,6 +104,79 @@
   @apply absolute w-full h-full rounded-full animate-pulse-ring bg-keyeff-500/50;
 }
 
+/* Add animation for pulse ring */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s infinite;
+}
+
 .truncate-text {
   @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+/* Call panel specific styles */
+.call-panel-container {
+  @apply p-6 bg-white shadow-md rounded-lg;
+}
+
+.call-control-button {
+  @apply flex flex-col items-center justify-center gap-2 p-4 rounded-lg transition-colors;
+}
+
+.call-control-button:hover {
+  @apply bg-muted;
+}
+
+.telephony-section {
+  @apply bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 shadow-sm;
+}
+
+.customer-section {
+  @apply bg-gradient-to-r from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200 shadow-sm;
+}
+
+.call-actions {
+  @apply grid grid-cols-2 md:grid-cols-4 gap-4 my-6;
+}
+
+.call-button {
+  @apply bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-md hover:shadow-lg;
+}
+
+/* Override dropdown contents to ensure they're visible */
+.bg-popover {
+  @apply bg-white;
+}
+
+[data-state=open] > .select-content {
+  @apply bg-white;
+}
+
+.select-content {
+  @apply bg-white;
+}
+
+[data-radix-popper-content-wrapper] {
+  @apply z-50;
+}
+
+/* Make sure dropdowns have correct z-index */
+.select-content, 
+.dropdown-menu-content,
+.popover-content {
+  @apply z-50;
 }

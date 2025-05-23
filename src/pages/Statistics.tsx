@@ -99,7 +99,7 @@ const Statistics = () => {
   }, [timeRange]);
   
   // Fetch statistics from API
-  const { data: statsData, isLoading } = useQuery({
+  const { data: statsResponse, isLoading } = useQuery({
     queryKey: ['statistics', dateRange.startDate, dateRange.endDate, filterUser],
     queryFn: async () => {
       return await statisticsService.getStatistics(
@@ -109,6 +109,9 @@ const Statistics = () => {
       );
     }
   });
+  
+  // Extract statsData from response
+  const statsData = statsResponse?.data;
   
   // Update filter user when changed
   const handleUserChange = (userId: string) => {
@@ -156,7 +159,7 @@ const Statistics = () => {
     setTimeout(() => {
       toast({
         title: "Export erfolgreich",
-        description: "Die Statistiken wurden erfolgreich exportiert.",
+        description: "Die Statistiken wurden erfolgreich als PDF exportiert.",
       });
     }, 2000);
   };
@@ -172,7 +175,7 @@ const Statistics = () => {
     setTimeout(() => {
       toast({
         title: "E-Mail gesendet",
-        description: "Die Statistiken wurden erfolgreich versendet.",
+        description: "Die Statistiken wurden erfolgreich per E-Mail versendet.",
       });
     }, 2000);
   };
@@ -214,7 +217,7 @@ const Statistics = () => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Zeitraum wählen" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white z-50">
               <SelectItem value="day">Heute</SelectItem>
               <SelectItem value="week">Diese Woche</SelectItem>
               <SelectItem value="month">Dieser Monat</SelectItem>
@@ -227,7 +230,7 @@ const Statistics = () => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Mitarbeiter wählen" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white z-50">
               <SelectItem value="all">Alle Mitarbeiter</SelectItem>
               {statsData?.top_callers?.map(caller => (
                 <SelectItem key={caller.id} value={caller.id}>{caller.name}</SelectItem>
@@ -288,7 +291,7 @@ const Statistics = () => {
           <TabsTrigger value="calls">Anrufstatistiken</TabsTrigger>
           <TabsTrigger value="appointments">Terminstatistiken</TabsTrigger>
           <TabsTrigger value="users">Telefonisten Performance</TabsTrigger>
-          {(user?.role === "admin" || user?.role === "filialleiter") && !filterUser && (
+          {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
             <TabsTrigger value="filialen">Filialstatistiken</TabsTrigger>
           )}
         </TabsList>
@@ -499,6 +502,13 @@ const Statistics = () => {
                     title: "Report wird generiert",
                     description: "Der individuelle Leistungsbericht wird erstellt...",
                   });
+                  
+                  setTimeout(() => {
+                    toast({
+                      title: "Report versendet",
+                      description: "Der Leistungsbericht wurde erfolgreich per E-Mail versendet.",
+                    });
+                  }, 2000);
                 }}>
                   <FileText className="mr-2 h-4 w-4" />
                   An Mitarbeiter senden
