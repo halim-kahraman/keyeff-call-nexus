@@ -1,3 +1,4 @@
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,6 +23,7 @@ import UserManagement from "./pages/UserManagement";
 import Filialen from "./pages/Filialen";
 import Permissions from "./pages/Permissions";
 import Templates from "./pages/Templates";
+import AdminTools from "./pages/AdminTools";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +40,7 @@ function App() {
               <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Protected Routes */}
-              <Route element={<RequireAuth />}>
+              <Route element={<RequireAuth>{({ user }) => <></>}</RequireAuth>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/call" element={<CallPanel />} />
@@ -47,7 +49,7 @@ function App() {
                 <Route path="/statistics" element={<Statistics />} />
                 
                 {/* Admin Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin']} />}>
+                <Route element={<RequireAuth allowedRoles={['admin']}>{({ user }) => <></>}</RequireAuth>}>
                   <Route path="/admin/tools" element={<AdminTools />} />
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/filialen" element={<Filialen />} />
@@ -55,7 +57,7 @@ function App() {
                 </Route>
                 
                 {/* Admin or Filialleiter Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']} />}>
+                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']}>{({ user }) => <></>}</RequireAuth>}>
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
                 </Route>

@@ -23,10 +23,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="flex min-h-screen bg-background w-full">
-      <SideNav 
-        collapsed={sidebarCollapsed} 
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
+      <SideNav />
 
       <main className={cn(
         "flex flex-col flex-grow transition-all duration-300 w-full",
