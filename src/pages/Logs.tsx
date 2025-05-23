@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -18,13 +17,13 @@ import { exportToExcel, exportToPdf, sendDataByEmail } from "@/utils/exportUtils
 
 // Mock data for logs
 const mockLogs = [
-  { id: 1, timestamp: "2023-05-21 10:30:45", user: { id: 1, name: "Administrator", email: "admin@keyeff.de" }, action: "login", details: "User logged in" },
-  { id: 2, timestamp: "2023-05-21 10:32:12", user: { id: 2, name: "Telefonist 1", email: "telefonist1@keyeff.de" }, action: "view_customer", details: "Viewed customer #12345" },
-  { id: 3, timestamp: "2023-05-21 10:45:30", user: { id: 2, name: "Telefonist 1", email: "telefonist1@keyeff.de" }, action: "call_log", details: "Logged call to customer #12345" },
-  { id: 4, timestamp: "2023-05-21 11:05:22", user: { id: 3, name: "Telefonist 2", email: "telefonist2@keyeff.de" }, action: "update_customer", details: "Updated customer #54321" },
-  { id: 5, timestamp: "2023-05-21 11:15:10", user: { id: 1, name: "Administrator", email: "admin@keyeff.de" }, action: "system_settings", details: "Updated system settings" },
-  { id: 6, timestamp: "2023-05-21 12:00:05", user: { id: 4, name: "Filialleiter", email: "filialleiter@keyeff.de" }, action: "export_report", details: "Exported monthly report" },
-  { id: 7, timestamp: "2023-05-21 12:35:30", user: { id: 2, name: "Telefonist 1", email: "telefonist1@keyeff.de" }, action: "logout", details: "User logged out" },
+  { id: 1, timestamp: "2023-05-21 10:30:45", user: { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" }, action: "login", details: "User logged in" },
+  { id: 2, timestamp: "2023-05-21 10:32:12", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "view_customer", details: "Viewed customer #12345" },
+  { id: 3, timestamp: "2023-05-21 10:45:30", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "call_log", details: "Logged call to customer #12345" },
+  { id: 4, timestamp: "2023-05-21 11:05:22", user: { id: 3, name: "Thomas Müller", email: "telefonist2@keyeff.de" }, action: "update_customer", details: "Updated customer #54321" },
+  { id: 5, timestamp: "2023-05-21 11:15:10", user: { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" }, action: "system_settings", details: "Updated system settings" },
+  { id: 6, timestamp: "2023-05-21 12:00:05", user: { id: 4, name: "Laura Weber", email: "filialleiter@keyeff.de" }, action: "export_report", details: "Exported monthly report" },
+  { id: 7, timestamp: "2023-05-21 12:35:30", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "logout", details: "User logged out" },
 ];
 
 // Mock data for users
