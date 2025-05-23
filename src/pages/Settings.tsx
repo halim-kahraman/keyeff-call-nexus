@@ -369,30 +369,59 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
-                  <TestConnectionButton 
-                    onClick={handleTestSipConnection}
-                    isPending={isSaving}
-                    testStatus={testStatus.sip}
-                  />
-                  <Button 
-                    onClick={() => handleSaveSettings('sip')} 
-                    disabled={isSaving}
-                    className="ml-auto"
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Einstellungen speichern
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isMobile ? (
+                  <div className="settings-buttons-mobile">
+                    <div className="flex items-center justify-between w-full">
+                      <TestConnectionButton 
+                        onClick={handleTestSipConnection}
+                        isPending={isSaving}
+                        testStatus={testStatus.sip}
+                      />
+                      <Button 
+                        onClick={() => handleSaveSettings('sip')} 
+                        disabled={isSaving}
+                        className="ml-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Speichern...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Speichern
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-4">
+                    <TestConnectionButton 
+                      onClick={handleTestSipConnection}
+                      isPending={isSaving}
+                      testStatus={testStatus.sip}
+                    />
+                    <Button 
+                      onClick={() => handleSaveSettings('sip')} 
+                      disabled={isSaving}
+                      className="ml-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Einstellungen speichern
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -460,30 +489,59 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
-                  <TestConnectionButton 
-                    onClick={handleTestVpnConnection}
-                    isPending={isSaving}
-                    testStatus={testStatus.vpn}
-                  />
-                  <Button 
-                    onClick={() => handleSaveSettings('vpn')} 
-                    disabled={isSaving}
-                    className="ml-auto"
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Einstellungen speichern
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isMobile ? (
+                  <div className="settings-buttons-mobile">
+                    <div className="flex items-center justify-between w-full">
+                      <TestConnectionButton 
+                        onClick={handleTestVpnConnection}
+                        isPending={isSaving}
+                        testStatus={testStatus.vpn}
+                      />
+                      <Button 
+                        onClick={() => handleSaveSettings('vpn')} 
+                        disabled={isSaving}
+                        className="ml-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Speichern...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Speichern
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-4">
+                    <TestConnectionButton 
+                      onClick={handleTestVpnConnection}
+                      isPending={isSaving}
+                      testStatus={testStatus.vpn}
+                    />
+                    <Button 
+                      onClick={() => handleSaveSettings('vpn')} 
+                      disabled={isSaving}
+                      className="ml-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Einstellungen speichern
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -551,30 +609,59 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
-                  <TestConnectionButton 
-                    onClick={handleTestFritzboxConnection}
-                    isPending={isSaving}
-                    testStatus={testStatus.fritzbox}
-                  />
-                  <Button 
-                    onClick={() => handleSaveSettings('fritzbox')} 
-                    disabled={isSaving}
-                    className="ml-auto"
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Einstellungen speichern
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isMobile ? (
+                  <div className="settings-buttons-mobile">
+                    <div className="flex items-center justify-between w-full">
+                      <TestConnectionButton 
+                        onClick={handleTestFritzboxConnection}
+                        isPending={isSaving}
+                        testStatus={testStatus.fritzbox}
+                      />
+                      <Button 
+                        onClick={() => handleSaveSettings('fritzbox')} 
+                        disabled={isSaving}
+                        className="ml-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Speichern...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Speichern
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-4">
+                    <TestConnectionButton 
+                      onClick={handleTestFritzboxConnection}
+                      isPending={isSaving}
+                      testStatus={testStatus.fritzbox}
+                    />
+                    <Button 
+                      onClick={() => handleSaveSettings('fritzbox')} 
+                      disabled={isSaving}
+                      className="ml-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Einstellungen speichern
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -675,30 +762,59 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
-                  <TestConnectionButton 
-                    onClick={handleTestEmailConnection}
-                    isPending={isSaving}
-                    testStatus={testStatus.email}
-                  />
-                  <Button 
-                    onClick={() => handleSaveSettings('email')} 
-                    disabled={isSaving}
-                    className="ml-auto"
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Einstellungen speichern
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isMobile ? (
+                  <div className="settings-buttons-mobile">
+                    <div className="flex items-center justify-between w-full">
+                      <TestConnectionButton 
+                        onClick={handleTestEmailConnection}
+                        isPending={isSaving}
+                        testStatus={testStatus.email}
+                      />
+                      <Button 
+                        onClick={() => handleSaveSettings('email')} 
+                        disabled={isSaving}
+                        className="ml-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Speichern...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Speichern
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-4">
+                    <TestConnectionButton 
+                      onClick={handleTestEmailConnection}
+                      isPending={isSaving}
+                      testStatus={testStatus.email}
+                    />
+                    <Button 
+                      onClick={() => handleSaveSettings('email')} 
+                      disabled={isSaving}
+                      className="ml-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Einstellungen speichern
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -767,30 +883,59 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
-                  <TestConnectionButton 
-                    onClick={handleTestKeyEffApiConnection}
-                    isPending={isSaving}
-                    testStatus={testStatus.keyeffApi}
-                  />
-                  <Button 
-                    onClick={() => handleSaveSettings('keyeffApi')} 
-                    disabled={isSaving}
-                    className="ml-auto"
-                  >
-                    {isSaving ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Einstellungen speichern
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isMobile ? (
+                  <div className="settings-buttons-mobile">
+                    <div className="flex items-center justify-between w-full">
+                      <TestConnectionButton 
+                        onClick={handleTestKeyEffApiConnection}
+                        isPending={isSaving}
+                        testStatus={testStatus.keyeffApi}
+                      />
+                      <Button 
+                        onClick={() => handleSaveSettings('keyeffApi')} 
+                        disabled={isSaving}
+                        className="ml-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Speichern...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Speichern
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between pt-4">
+                    <TestConnectionButton 
+                      onClick={handleTestKeyEffApiConnection}
+                      isPending={isSaving}
+                      testStatus={testStatus.keyeffApi}
+                    />
+                    <Button 
+                      onClick={() => handleSaveSettings('keyeffApi')} 
+                      disabled={isSaving}
+                      className="ml-auto"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Einstellungen speichern
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
