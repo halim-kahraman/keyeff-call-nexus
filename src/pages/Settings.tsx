@@ -68,10 +68,15 @@ const Settings = () => {
   } as Record<string, "idle" | "pending" | "success" | "error">);
 
   // Fetch filiale data
-  const { data: filialen = [] } = useQuery({
+  const { data: filialenData = { data: [] }, isLoading: isLoadingFilialen } = useQuery({
     queryKey: ['filialen'],
     queryFn: filialeService.getFilialen,
   });
+
+  // Extract filialen array from response with fallback to empty array
+  const filialen = Array.isArray(filialenData) ? filialenData : (
+    Array.isArray(filialenData.data) ? filialenData.data : []
+  );
 
   // For admin, use selected filiale or null; for others, use their assigned filiale
   const effectiveFiliale = isAdmin ? selectedFiliale : user?.filiale;
