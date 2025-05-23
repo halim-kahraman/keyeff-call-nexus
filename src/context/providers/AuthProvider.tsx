@@ -13,6 +13,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [loginAttemptCount, setLoginAttemptCount] = useState(0);
+  const [isProcessingLogin, setIsProcessingLogin] = useState(false);
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -21,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(JSON.parse(storedUser));
       } catch (error) {
+        console.error('Failed to parse stored user:', error);
         localStorage.removeItem('user');
       }
     }
@@ -28,11 +30,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Prevent multiple simultaneous login attempts
+    if (isProcessingLogin) {
+      console.log('Login already in progress, ignoring duplicate request');
+      return;
+    }
+    
     // Prevent duplicate login attempts
     setLoginAttemptCount(prev => prev + 1);
     const currentAttempt = loginAttemptCount + 1;
     
+    setIsProcessingLogin(true);
     setIsLoading(true);
+    
     try {
       console.log('Login attempt for:', email);
       const response = await authService.login(email, password);
@@ -50,16 +60,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           // For demo purposes, show the OTP
-          console.log('Demo OTP for login:', response.data.otp);
-          toast.info(`Demo OTP: ${response.data.otp}`, {
-            description: "Nur für Demozwecke!"
-          });
+          if (response.data.otp) {
+            console.log('Demo OTP for login:', response.data.otp);
+            toast.info(`Demo OTP: ${response.data.otp}`, {
+              description: "Nur für Demozwecke!"
+            });
+          }
         }
       }
     } catch (error) {
       // Only show error if this is still the latest login attempt
       if (currentAttempt === loginAttemptCount) {
         console.error('Login error:', error);
+        
         // Show only one toast for failed login
         toast.error("Anmeldung fehlgeschlagen", {
           description: "Bitte überprüfen Sie Ihre Anmeldedaten"
@@ -70,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentAttempt === loginAttemptCount) {
         setIsLoading(false);
       }
+      setIsProcessingLogin(false);
     }
   };
 
@@ -115,10 +129,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         // For demo, return the code
-        console.log('Demo reset code:', response.data?.reset_code);
-        toast.info(`Demo Reset-Code: ${response.data?.reset_code}`, {
-          description: "Nur für Demozwecke!"
-        });
+        if (response.data?.reset_code) {
+          console.log('Demo reset code:', response.data.reset_code);
+          toast.info(`Demo Reset-Code: ${response.data.reset_code}`, {
+            description: "Nur für Demozwecke!"
+          });
+        }
         
         return response;
       }

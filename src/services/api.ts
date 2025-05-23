@@ -49,6 +49,12 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // In mock mode, simulate responses directly
+    if (isMockMode) {
+      console.log('Mock mode active - request will be intercepted');
+    }
+    
     return config;
   },
   (error) => {
@@ -68,7 +74,7 @@ apiClient.interceptors.response.use(
     console.error('API Error:', error);
     
     // Handle mock mode for Lovable preview
-    if (isMockMode && error.message && error.message.includes('Network Error')) {
+    if (isMockMode) {
       console.log('Mock mode activated - generating demo response');
       
       // Extract endpoint from URL
@@ -88,6 +94,7 @@ apiClient.interceptors.response.use(
         
         if (demoUsers[email] && password === 'password') {
           // Successful login - return needs_verification with OTP
+          console.log('Demo login successful for:', email);
           return Promise.resolve({
             data: {
               success: true, 
@@ -101,6 +108,7 @@ apiClient.interceptors.response.use(
           });
         }
         
+        console.log('Demo login failed for:', email);
         // Invalid credentials
         return Promise.reject({
           response: {
@@ -127,6 +135,8 @@ apiClient.interceptors.response.use(
         
         // In mock mode, accept any valid demo user ID
         if (demoUsers[user_id]) {
+          console.log('Demo 2FA successful for user ID:', user_id);
+          
           // Generate a demo token
           const token = `demo_token_${Math.random().toString(36).substring(2)}`;
           
@@ -141,9 +151,21 @@ apiClient.interceptors.response.use(
             }
           });
         }
+        
+        console.log('Demo 2FA failed for user ID:', user_id);
+        return Promise.reject({
+          response: {
+            status: 401,
+            data: {
+              success: false,
+              message: 'Invalid verification code'
+            }
+          }
+        });
       }
       
       // For any other API in mock mode, return generic success
+      console.log('Generic mock response for:', url);
       return Promise.resolve({
         data: {
           success: true,
@@ -162,11 +184,47 @@ export const authService = {
   login: async (email: string, password: string) => {
     console.log('Login attempt for:', email);
     try {
+      // For Lovable preview, handle demo users directly to avoid network requests
+      if (isMockMode) {
+        const demoUsers = {
+          'admin@keyeff.de': { id: 'demo_admin', name: 'Admin User', role: 'admin' },
+          'telefonist@keyeff.de': { id: 'demo_telefonist', name: 'Telefonist User', role: 'telefonist' },
+          'filialleiter@keyeff.de': { id: 'demo_filialleiter', name: 'Filialleiter User', role: 'filialleiter' }
+        };
+        
+        if (demoUsers[email] && password === 'password') {
+          console.log('Direct mock login successful for:', email);
+          return {
+            success: true, 
+            message: 'OTP generated successfully',
+            data: {
+              needs_verification: true,
+              user_id: demoUsers[email].id,
+              otp: '123456' // Demo OTP
+            }
+          };
+        } else {
+          console.log('Direct mock login failed for:', email);
+          throw {
+            response: {
+              status: 401,
+              data: {
+                success: false,
+                message: 'Invalid credentials'
+              }
+            }
+          };
+        }
+      }
+      
       const response = await apiClient.post('/api/auth/login.php', { email, password });
       console.log('Login response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
+      if (error.response?.data) {
+        throw error.response.data;
+      }
       throw error;
     }
   },
@@ -174,6 +232,45 @@ export const authService = {
   verify2FA: async (userId: string, otp: string) => {
     console.log('2FA verification for user:', userId);
     try {
+      // For Lovable preview, handle demo users directly
+      if (isMockMode) {
+        const demoUsers = {
+          'demo_admin': { id: 'demo_admin', name: 'Admin User', role: 'admin', email: 'admin@keyeff.de' },
+          'demo_telefonist': { id: 'demo_telefonist', name: 'Telefonist User', role: 'telefonist', email: 'telefonist@keyeff.de' },
+          'demo_filialleiter': { id: 'demo_filialleiter', name: 'Filialleiter User', role: 'filialleiter', email: 'filialleiter@keyeff.de' }
+        };
+        
+        if (demoUsers[userId]) {
+          console.log('Direct mock 2FA successful for:', userId);
+          // Generate a demo token
+          const token = `demo_token_${Math.random().toString(36).substring(2)}`;
+          
+          // Save token and user in localStorage
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(demoUsers[userId]));
+          
+          return {
+            success: true,
+            message: 'Login successful',
+            data: {
+              token,
+              user: demoUsers[userId]
+            }
+          };
+        } else {
+          console.log('Direct mock 2FA failed for:', userId);
+          throw {
+            response: {
+              status: 401,
+              data: {
+                success: false,
+                message: 'Invalid verification code'
+              }
+            }
+          };
+        }
+      }
+      
       const response = await apiClient.post('/api/auth/verify.php', { user_id: userId, otp });
       console.log('2FA response:', response.data);
       if (response.data.success) {
@@ -183,6 +280,9 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('2FA verification error:', error);
+      if (error.response?.data) {
+        throw error.response.data;
+      }
       throw error;
     }
   },

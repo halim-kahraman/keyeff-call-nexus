@@ -9,8 +9,7 @@ debugLog('Login request received', [
     'method' => $_SERVER['REQUEST_METHOD'],
     'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'Not set',
     'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'Not set',
-    'headers' => getallheaders(),
-    'raw_post' => file_get_contents('php://input')
+    'headers' => getallheaders()
 ]);
 
 // Check if request method is POST
