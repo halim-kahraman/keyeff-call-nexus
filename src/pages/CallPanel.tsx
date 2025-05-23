@@ -207,7 +207,8 @@ const CallPanel = () => {
                             <SelectValue placeholder="Alle Kunden anzeigen" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Alle Kunden anzeigen</SelectItem>
+                            {/* Fix: Changed empty string value to "all" */}
+                            <SelectItem value="all">Alle Kunden anzeigen</SelectItem>
                             {campaigns.map(campaign => (
                               <SelectItem key={campaign.id} value={campaign.id.toString()}>
                                 {campaign.name}

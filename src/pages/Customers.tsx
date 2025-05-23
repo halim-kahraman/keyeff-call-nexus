@@ -244,6 +244,7 @@ const Customers = () => {
     }, 2000);
   };
   
+  // Helper function for download template
   const downloadTemplate = () => {
     // Create template Excel file
     const template = [
@@ -293,7 +294,11 @@ const Customers = () => {
 
   if (isLoading) {
     return (
-      <AppLayout title="Kunden" subtitle="Kunden und Verträge verwalten" showCallButton>
+      <AppLayout 
+        title="Kunden" 
+        subtitle="Kunden und Verträge verwalten"
+        showCallButton={true}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-keyeff-500 mx-auto"></div>
@@ -305,7 +310,11 @@ const Customers = () => {
   }
 
   return (
-    <AppLayout title="Kunden" subtitle="Kunden und Verträge verwalten" showCallButton>
+    <AppLayout 
+      title="Kunden" 
+      subtitle="Kunden und Verträge verwalten"
+      showCallButton={true}
+    >
       {needsFilialSelection && (
         <BranchSelectionDialog 
           open={isFilialSelectionOpen} 
