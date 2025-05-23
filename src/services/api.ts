@@ -24,6 +24,106 @@ api.interceptors.request.use(
   }
 );
 
+// Mock statistics service for development
+const mockStatisticsService = {
+  getStatistics: async (startDate: string, endDate: string, userId?: string) => {
+    console.log("Getting statistics for date range:", startDate, endDate, "user:", userId);
+    
+    // Generate dummy data
+    const generateCallsByDay = () => {
+      const days = [];
+      const currentDate = new Date(startDate);
+      const end = new Date(endDate);
+      
+      while (currentDate <= end) {
+        const calls = Math.floor(Math.random() * 15) + 5; // 5-20 calls per day
+        days.push({
+          day: new Date(currentDate).toISOString().split('T')[0],
+          total_calls: calls,
+          total_duration: calls * (Math.floor(Math.random() * 300) + 120), // 2-7 minutes per call in seconds
+          avg_duration: Math.floor(Math.random() * 180) + 120 // 2-5 minutes in seconds
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      return days;
+    };
+    
+    const callsByOutcome = [
+      { outcome: "interested", count: Math.floor(Math.random() * 20) + 30 }, // 30-50
+      { outcome: "not_interested", count: Math.floor(Math.random() * 10) + 10 }, // 10-20
+      { outcome: "callback", count: Math.floor(Math.random() * 15) + 15 }, // 15-30
+      { outcome: "no_answer", count: Math.floor(Math.random() * 20) + 20 }, // 20-40
+      { outcome: "appointment", count: Math.floor(Math.random() * 10) + 5 } // 5-15
+    ];
+    
+    const totalCalls = callsByOutcome.reduce((sum, item) => sum + item.count, 0);
+    const totalAppointments = callsByOutcome.find(o => o.outcome === "appointment")?.count || 0;
+    const totalContactedCustomers = Math.floor(totalCalls * 0.7); // Assuming some calls are to the same customer
+    
+    const mockTopCallers = [
+      { id: "1", name: "Hans Müller", total_calls: 42, total_duration: 7560, avg_duration: 180 },
+      { id: "2", name: "Anna Schmidt", total_calls: 36, total_duration: 5940, avg_duration: 165 },
+      { id: "3", name: "Max Weber", total_calls: 28, total_duration: 4480, avg_duration: 160 },
+      { id: "4", name: "Laura Fischer", total_calls: 26, total_duration: 3900, avg_duration: 150 },
+      { id: "5", name: "Thomas Klein", total_calls: 24, total_duration: 3600, avg_duration: 150 }
+    ];
+    
+    const mockAppointmentTypes = [
+      { type: "Beratung", count: Math.floor(Math.random() * 10) + 5 },
+      { type: "Produktvorstellung", count: Math.floor(Math.random() * 8) + 3 },
+      { type: "Support", count: Math.floor(Math.random() * 5) + 2 },
+      { type: "Vertragsverlängerung", count: Math.floor(Math.random() * 7) + 4 }
+    ];
+    
+    const mockFilialeStats = [
+      { 
+        id: "1", 
+        name: "Berlin", 
+        total_users: 8, 
+        total_calls: 156, 
+        total_appointments: 24, 
+        total_call_duration: 26520, 
+        avg_call_duration: 170 
+      },
+      { 
+        id: "2", 
+        name: "München", 
+        total_users: 6, 
+        total_calls: 124, 
+        total_appointments: 18, 
+        total_call_duration: 20460, 
+        avg_call_duration: 165 
+      },
+      { 
+        id: "3", 
+        name: "Hamburg", 
+        total_users: 5, 
+        total_calls: 98, 
+        total_appointments: 14, 
+        total_call_duration: 15680, 
+        avg_call_duration: 160 
+      }
+    ];
+    
+    return {
+      summary: {
+        total_calls: totalCalls,
+        total_appointments: totalAppointments,
+        total_customers_contacted: totalContactedCustomers,
+        period: {
+          start: startDate,
+          end: endDate
+        }
+      },
+      calls_by_day: generateCallsByDay(),
+      calls_by_outcome: callsByOutcome,
+      top_callers: mockTopCallers,
+      appointments_by_type: mockAppointmentTypes,
+      filiale_stats: mockFilialeStats
+    };
+  }
+};
+
 // Mock auth service for development
 const mockAuthService = {
   login: async (email: string, password: string) => {
@@ -516,8 +616,8 @@ const mockCustomerService = {
     
     // For demo purposes, return mock campaign data
     return [
-      { id: 1, name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
-      { id: 2, name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
+      { id: "1", name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
+      { id: "2", name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
     ];
   }
 };
@@ -539,7 +639,10 @@ const mockFilialeService = {
 // Export auth service
 export const authService = mockAuthService;
 
-// Export services that are used in other files
+// Export statistics service
+export const statisticsService = mockStatisticsService;
+
+// Export other services
 export const settingsService = mockSettingsService;
 export const customerService = mockCustomerService;
 export const filialeService = mockFilialeService;

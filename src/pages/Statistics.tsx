@@ -6,13 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Calendar } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { format, sub } from "date-fns";
 import { de } from "date-fns/locale";
+import { statisticsService } from "@/services/api";
 
 // Types for statistics data
 interface StatisticsData {
@@ -99,19 +99,14 @@ const Statistics = () => {
   }, [timeRange]);
   
   // Fetch statistics from API
-  const { data: statsData, isLoading, refetch } = useQuery({
+  const { data: statsData, isLoading } = useQuery({
     queryKey: ['statistics', dateRange.startDate, dateRange.endDate, filterUser],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/statistics/get.php`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          start_date: dateRange.startDate,
-          end_date: dateRange.endDate,
-          user_id: filterUser
-        }
-      });
-      return response.data.data as StatisticsData;
+      return await statisticsService.getStatistics(
+        dateRange.startDate, 
+        dateRange.endDate, 
+        filterUser !== "all" ? filterUser : undefined
+      );
     }
   });
   
@@ -544,7 +539,7 @@ const Statistics = () => {
           )}
         </TabsContent>
         
-        {(user?.role === "admin" || user?.role === "filialleiter") && !filterUser && (
+        {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
           <TabsContent value="filialen" className="space-y-4">
             <Card>
               <CardHeader>

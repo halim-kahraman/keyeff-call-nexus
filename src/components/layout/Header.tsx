@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/context/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   title: string;
@@ -19,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   showCallButton = false,
   onCallButtonClick
 }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   // Mock notifications for demo
   const notifications = [
@@ -29,6 +37,17 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    return user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <header className="border-b border-border bg-white dark:bg-card px-6 py-4 flex justify-between items-center">
@@ -41,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
         {showCallButton && user?.role === "telefonist" && (
           <Button 
             onClick={onCallButtonClick}
-            className="call-button bg-keyeff-500 hover:bg-keyeff-600"
+            className="call-button bg-primary hover:bg-primary/90"
           >
             <Phone className="mr-2" size={18} />
             Anruf starten
@@ -54,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Bell size={20} />
               {unreadCount > 0 && (
                 <Badge 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-keyeff-500"
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary"
                   variant="default"
                 >
                   {unreadCount}
@@ -85,6 +104,28 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </PopoverContent>
         </Popover>
+        
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="cursor-pointer">
+                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} />
+                <AvatarFallback className="bg-primary text-primary-foreground">{getUserInitials()}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => {}}>Profil</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {}}>Einstellungen</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout}>Abmelden</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </header>
   );
