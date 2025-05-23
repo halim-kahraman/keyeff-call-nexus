@@ -1,3 +1,4 @@
+
 // API Services for the application
 
 // Helper function to format dates as YYYY-MM-DD
@@ -5,10 +6,79 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
+// Check if in preview mode (Lovable preview environment)
+const isPreviewMode = () => {
+  return window.location.hostname.includes('lovable');
+};
+
+// Demo users for preview mode
+const demoUsers = {
+  'admin@keyeff.de': {
+    id: 'demo_admin',
+    name: 'Admin User',
+    email: 'admin@keyeff.de',
+    role: 'admin',
+    filiale: null,
+    avatar: null
+  },
+  'telefonist@keyeff.de': {
+    id: 'demo_telefonist',
+    name: 'Telefonist User',
+    email: 'telefonist@keyeff.de',
+    role: 'telefonist',
+    filiale: null,
+    avatar: null
+  },
+  'filialleiter@keyeff.de': {
+    id: 'demo_filialleiter',
+    name: 'Filialleiter User',
+    email: 'filialleiter@keyeff.de',
+    role: 'filialleiter',
+    filiale: null,
+    avatar: null
+  },
+  'halim.kahraman@googlemail.com': {
+    id: 'demo_dev',
+    name: 'Developer',
+    email: 'halim.kahraman@googlemail.com',
+    role: 'admin',
+    filiale: null,
+    avatar: null
+  }
+};
+
 // Auth Service
 export const authService = {
   login: async (email: string, password: string) => {
     try {
+      // Handle preview mode with demo users
+      if (isPreviewMode()) {
+        console.log('Preview mode detected, checking demo credentials');
+        const demoUser = demoUsers[email];
+        
+        if (demoUser && password === 'password') {
+          console.log('Demo login successful:', demoUser);
+          return {
+            success: true,
+            message: 'OTP generated successfully',
+            data: {
+              needs_verification: true,
+              user_id: demoUser.id,
+              otp: '123456', // Demo OTP
+              message: 'A verification code has been sent to your email.'
+            }
+          };
+        } else {
+          console.error('Invalid demo credentials');
+          return {
+            success: false,
+            message: 'Invalid credentials',
+            data: null
+          };
+        }
+      }
+      
+      // Normal backend login for non-preview mode
       const response = await fetch('/backend/api/auth/login.php', {
         method: 'POST',
         headers: {
@@ -26,6 +96,16 @@ export const authService = {
   
   logout: async () => {
     try {
+      // Handle preview mode
+      if (isPreviewMode()) {
+        console.log('Preview mode detected, simulating logout');
+        return {
+          success: true,
+          message: 'Logged out successfully',
+          data: null
+        };
+      }
+      
       const response = await fetch('/backend/api/auth/logout.php', {
         method: 'POST',
         headers: {
@@ -43,6 +123,44 @@ export const authService = {
   
   verify2FA: async (userId: string, code: string) => {
     try {
+      // Handle preview mode with demo users
+      if (isPreviewMode()) {
+        console.log('Preview mode detected, simulating 2FA verification');
+        // Extract user type from userId (demo_admin, demo_telefonist, etc.)
+        const userType = userId.split('_')[1];
+        let userEmail = '';
+        
+        // Find the email for this userId
+        Object.entries(demoUsers).forEach(([email, user]) => {
+          if (user.id === userId) {
+            userEmail = email;
+          }
+        });
+        
+        if (!userEmail) {
+          throw new Error('User not found');
+        }
+        
+        const user = demoUsers[userEmail];
+        
+        if (code === '123456') { // Accept any code in preview mode
+          return {
+            success: true,
+            message: 'Verified successfully',
+            data: {
+              user: user,
+              token: 'demo-token-' + Date.now()
+            }
+          };
+        } else {
+          return {
+            success: false,
+            message: 'Invalid verification code',
+            data: null
+          };
+        }
+      }
+      
       const response = await fetch('/backend/api/auth/verify.php', {
         method: 'POST',
         headers: {
@@ -60,6 +178,27 @@ export const authService = {
   
   requestPasswordReset: async (email: string) => {
     try {
+      // Handle preview mode
+      if (isPreviewMode()) {
+        console.log('Preview mode detected, simulating password reset request');
+        
+        if (demoUsers[email]) {
+          return {
+            success: true,
+            message: 'Reset code sent successfully',
+            data: {
+              reset_code: '123456' // Demo reset code
+            }
+          };
+        } else {
+          return {
+            success: true, // Still return success for security
+            message: 'If the email exists, a reset code has been sent',
+            data: null
+          };
+        }
+      }
+      
       const response = await fetch('/backend/api/auth/reset-password.php', {
         method: 'POST',
         headers: {
@@ -77,6 +216,25 @@ export const authService = {
   
   resetPassword: async (email: string, code: string, newPassword: string) => {
     try {
+      // Handle preview mode
+      if (isPreviewMode()) {
+        console.log('Preview mode detected, simulating password reset');
+        
+        if (demoUsers[email] && code === '123456') {
+          return {
+            success: true,
+            message: 'Password reset successfully',
+            data: null
+          };
+        } else {
+          return {
+            success: false,
+            message: 'Invalid or expired reset code',
+            data: null
+          };
+        }
+      }
+      
       const response = await fetch('/backend/api/auth/reset-password.php', {
         method: 'POST',
         headers: {
