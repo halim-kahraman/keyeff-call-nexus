@@ -36,6 +36,16 @@ export const authService = {
       throw error;
     }
   },
+
+  verify2FA: async (userId: string, code: string) => {
+    try {
+      const response = await api.post("/auth/verify-2fa.php", { user_id: userId, code });
+      return response.data;
+    } catch (error) {
+      console.error("2FA verification error:", error);
+      throw error;
+    }
+  },
   
   logout: async () => {
     try {
@@ -47,9 +57,23 @@ export const authService = {
     }
   },
   
-  resetPassword: async (email: string) => {
+  requestPasswordReset: async (email: string) => {
     try {
-      const response = await api.post("/auth/reset-password.php", { email });
+      const response = await api.post("/auth/request-reset.php", { email });
+      return response.data;
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      throw error;
+    }
+  },
+  
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    try {
+      const response = await api.post("/auth/reset-password.php", { 
+        email, 
+        code, 
+        new_password: newPassword 
+      });
       return response.data;
     } catch (error) {
       console.error("Password reset error:", error);
@@ -85,6 +109,10 @@ export const customerService = {
       console.error("Error fetching customer details:", error);
       throw error;
     }
+  },
+  
+  getCustomerById: async (id: string) => {
+    return customerService.getCustomerDetails(id);
   },
   
   importCustomers: async (file: File, filiale_id: string, campaign_id: string) => {

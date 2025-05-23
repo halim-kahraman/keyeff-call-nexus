@@ -133,7 +133,7 @@ const Customers = () => {
 
   const handleCustomerClick = (customer) => {
     // Fetch full customer details
-    customerService.getCustomerById(customer.id)
+    customerService.getCustomerDetails(customer.id)
       .then(data => {
         setSelectedCustomer(data);
         setIsDetailSheetOpen(true);

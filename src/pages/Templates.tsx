@@ -3,7 +3,7 @@ import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, Phone, FileSpreadsheet, WhatsappIcon } from "lucide-react";
+import { MessageSquare, Mail, Phone, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Templates = () => {
@@ -76,7 +76,9 @@ const Templates = () => {
             </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button as={Link} to="/whatsapp-templates">Verwalten</Button>
+            <Button asChild>
+              <Link to="/whatsapp-templates">Verwalten</Link>
+            </Button>
           </CardFooter>
         </Card>
 

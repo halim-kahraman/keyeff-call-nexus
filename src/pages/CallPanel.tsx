@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -14,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { useQuery } from "@tanstack/react-query";
-import { customerService } from "@/services/api";
+import { customerService, campaignService } from "@/services/api";
 import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff } from "lucide-react";
 
 const CallPanel = () => {
@@ -57,7 +56,7 @@ const CallPanel = () => {
   // Fetch campaigns for the selected filiale
   const { data: campaigns } = useQuery({
     queryKey: ['campaigns', selectedFiliale],
-    queryFn: () => customerService.getCampaigns(selectedFiliale),
+    queryFn: () => campaignService.getCampaigns(selectedFiliale),
     enabled: !!selectedFiliale,
   });
 
