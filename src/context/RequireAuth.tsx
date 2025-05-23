@@ -1,5 +1,5 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { ReactNode } from "react";
 import { User } from "./types/auth.types";
@@ -24,12 +24,15 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedRoles }) => 
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Render children with user data if children is a function
-  if (typeof children === 'function' && user) {
-    return <>{children({ user })}</>;
-  }
-
-  return <>{children}</>;
+  // Return the outlet (child routes) wrapped in the children function if provided
+  return (
+    <>
+      {typeof children === 'function' && user 
+        ? children({ user }) 
+        : children}
+      <Outlet />
+    </>
+  );
 };
 
 export default RequireAuth;

@@ -21,6 +21,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
     <div className="flex min-h-screen bg-background w-full">
       <SideNav />

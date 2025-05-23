@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,11 @@ const Dashboard = () => {
   const isAdmin = user?.role === "admin";
   const isTelefonist = user?.role === "telefonist";
   const isFilialleiter = user?.role === "filialleiter";
+  
+  useEffect(() => {
+    // Debug
+    console.log("Dashboard rendered with user:", user);
+  }, [user]);
 
   // Mock data for dashboard
   const stats = {
@@ -27,7 +32,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout 
-      title={`Willkommen, ${user?.name}!`} 
+      title={`Willkommen, ${user?.name || 'Benutzer'}!`} 
       subtitle={`${user?.filiale ? `Filiale ${user?.filiale}` : "System Administration"}`}
       showCallButton={isTelefonist}
     >
