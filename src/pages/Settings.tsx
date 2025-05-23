@@ -213,12 +213,12 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Select value={selectedFiliale || ''} onValueChange={setSelectedFiliale}>
+              <Select value={selectedFiliale || "central"} onValueChange={setSelectedFiliale}>
                 <SelectTrigger className="w-full md:w-[300px]">
                   <SelectValue placeholder="Zentrale Einstellungen" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Zentrale Einstellungen</SelectItem>
+                  <SelectItem value="central">Zentrale Einstellungen</SelectItem>
                   {filialen.map((filiale: any) => (
                     <SelectItem key={filiale.id} value={filiale.id}>
                       {filiale.name}
