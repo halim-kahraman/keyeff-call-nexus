@@ -2,8 +2,16 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
+// Import jspdf-autotable as a plugin
 import 'jspdf-autotable';
 import { toast } from 'sonner';
+
+// Add type declaration for jsPDF with autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 /**
  * Exports data to a PDF file
@@ -28,7 +36,7 @@ export const exportToPdf = async (data: any[], filename: string, title: string) 
       const tableData = data.map(item => Object.values(item));
       
       // Add table to PDF
-      (doc as any).autoTable({
+      doc.autoTable({
         head: [columns],
         body: tableData,
         startY: 30,
