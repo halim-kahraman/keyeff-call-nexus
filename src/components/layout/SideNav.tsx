@@ -1,241 +1,198 @@
-
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
 import {
-  Home,
-  Phone,
-  Calendar,
-  Users,
-  Settings,
-  FileText,
-  LogOut,
-  Menu,
-  ChevronLeft,
-  BarChart,
-  Database,
-  Shield,
-  Mail,
-  User
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { UserProfileDialog } from "@/components/user/UserProfileDialog";
+  HomeIcon,
+  LayoutDashboard,
+  Settings as SettingsIcon,
+  User2 as UserIcon,
+  Calendar as CalendarIcon,
+  Phone as PhoneIcon,
+  Users2 as Users2Icon,
+  Building as BuildingIcon,
+  ListChecks as ListChecksIcon,
+  History as HistoryIcon,
+} from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
 
-type NavItem = {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  roles: string[];
-};
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/context/AuthContext"
+import { useEffect, useState } from "react"
 
-const navItems: NavItem[] = [
-  {
-    icon: Home,
-    label: "Dashboard",
-    href: "/",
-    roles: ["admin", "telefonist", "filialleiter"],
-  },
-  {
-    icon: Phone,
-    label: "Anrufen",
-    href: "/call",
-    roles: ["admin", "telefonist", "filialleiter"],
-  },
-  {
-    icon: Calendar,
-    label: "Termine",
-    href: "/calendar",
-    roles: ["admin", "telefonist", "filialleiter"],
-  },
-  {
-    icon: Users,
-    label: "Kunden",
-    href: "/customers",
-    roles: ["admin", "telefonist", "filialleiter"],
-  },
-  {
-    icon: BarChart,
-    label: "Statistiken",
-    href: "/statistics",
-    roles: ["admin", "filialleiter"],
-  },
-  {
-    icon: FileText,
-    label: "DSGVO-Logs",
-    href: "/logs",
-    roles: ["admin"],
-  },
-  {
-    icon: Settings,
-    label: "Einstellungen",
-    href: "/settings",
-    roles: ["admin", "filialleiter"],
-  },
-];
-
-// Admin-only items
-const adminItems: NavItem[] = [
-  {
-    icon: Users,
-    label: "Benutzerverwaltung",
-    href: "/users",
-    roles: ["admin"],
-  },
-  {
-    icon: Database,
-    label: "Filialen",
-    href: "/filialen",
-    roles: ["admin"],
-  },
-  {
-    icon: Shield,
-    label: "Berechtigungen",
-    href: "/permissions",
-    roles: ["admin"],
-  },
-  {
-    icon: Mail,
-    label: "Vorlagen",
-    href: "/templates",
-    roles: ["admin"],
-  },
-];
-
-interface SideNavProps {
-  collapsed: boolean;
-  onToggle: () => void;
-}
-
-export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
-  const location = useLocation();
+export function SideNav() {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation()
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsMenuOpen(window.innerWidth >= 768);
+    };
 
-  const isAdmin = user.role === 'admin';
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrator';
-      case 'filialleiter': return 'Filialleiter';
-      case 'telefonist': return 'Telefonist';
-      default: return role;
-    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
   return (
-    <div
-      className={cn(
-        "h-screen flex flex-col bg-keyeff-500 text-white transition-all duration-300 fixed left-0 top-0 z-40 overflow-hidden",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
-      <div className="flex items-center justify-between p-4">
-        <div className={cn("flex items-center", collapsed && "justify-center w-full")}>
-          {!collapsed && (
-            <span className="text-xl font-bold">KeyEff Call</span>
-          )}
-          {collapsed && (
-            <span className="text-xl font-bold">KCP</span>
-          )}
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-white hover:bg-keyeff-600 flex-shrink-0"
-          onClick={onToggle}
-        >
-          {collapsed ? <Menu /> : <ChevronLeft />}
-        </Button>
+    <div className={`flex flex-col h-full ${isMobile ? 'w-full' : 'w-64'} border-r bg-secondary`}>
+      <div className="px-6 py-4">
+        <Link to="/dashboard">
+          <h1 className="font-bold text-2xl">KeyEff CallPanel</h1>
+        </Link>
       </div>
-
-      <Separator className="bg-keyeff-600" />
-
-      <div className="flex flex-col flex-grow justify-between overflow-y-auto scrollbar-thin scrollbar-thumb-keyeff-600 scrollbar-track-transparent">
-        <nav className="space-y-1 p-2">
-          {/* Standard navigation items */}
-          {navItems
-            .filter((item) => item.roles.includes(user.role))
-            .map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-md transition-colors",
-                  location.pathname === item.href
-                    ? "bg-keyeff-600 text-white"
-                    : "text-white hover:bg-keyeff-600",
-                  collapsed && "justify-center"
-                )}
-              >
-                <item.icon size={20} />
-                {!collapsed && <span className="ml-3 whitespace-nowrap">{item.label}</span>}
-              </Link>
-            ))}
+      <Separator />
+      <div className="flex flex-col flex-1">
+        <nav className="flex-1 space-y-1 p-2">
+          <Button
+            variant={pathname === "/dashboard" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to="/dashboard">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
+          <Button
+            variant={pathname === "/customers" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to="/customers">
+              <Users2Icon className="mr-2 h-4 w-4" />
+              Kunden
+            </Link>
+          </Button>
+          <Button
+            variant={pathname.startsWith("/call") ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to="/call">
+              <PhoneIcon className="mr-2 h-4 w-4" />
+              Anruf
+            </Link>
+          </Button>
+          <Button
+            variant={pathname === "/calendar" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to="/calendar">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Kalender
+            </Link>
+          </Button>
+          <Button
+            variant={pathname === "/statistics" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            asChild
+          >
+            <Link to="/statistics">
+              <ListChecksIcon className="mr-2 h-4 w-4" />
+              Statistiken
+            </Link>
+          </Button>
           
-          {/* Admin section */}
-          {isAdmin && (
+          {/* Admin Section */}
+          {user?.role === "admin" && (
             <>
-              <div className={cn(
-                "mt-6 mb-2 px-3 text-xs font-semibold text-gray-300 uppercase tracking-wider",
-                collapsed && "text-center"
-              )}>
-                {!collapsed ? "Administration" : "Admin"}
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+                  Administration
+                </h2>
+                <div className="space-y-1">
+                  <Button
+                    variant={pathname === "/admin/tools" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/admin/tools">
+                      <SettingsIcon className="mr-2 h-4 w-4" />
+                      Admin Tools
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={pathname === "/admin/users" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/admin/users">
+                      <Users2Icon className="mr-2 h-4 w-4" />
+                      Benutzer
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={pathname === "/admin/filialen" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/admin/filialen">
+                      <BuildingIcon className="mr-2 h-4 w-4" />
+                      Filialen
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={pathname === "/admin/logs" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/admin/logs">
+                      <HistoryIcon className="mr-2 h-4 w-4" />
+                      Logs
+                    </Link>
+                  </Button>
+                </div>
               </div>
-              
-              {adminItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-2 rounded-md transition-colors",
-                    location.pathname === item.href
-                      ? "bg-keyeff-600 text-white"
-                      : "text-white hover:bg-keyeff-600",
-                    collapsed && "justify-center"
-                  )}
-                >
-                  <item.icon size={20} />
-                  {!collapsed && <span className="ml-3 whitespace-nowrap">{item.label}</span>}
-                </Link>
-              ))}
+              <Separator />
+            </>
+          )}
+          
+          {/* Settings Section */}
+          {(user?.role === "admin" || user?.role === "filialleiter") && (
+            <>
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+                  Einstellungen
+                </h2>
+                <div className="space-y-1">
+                  <Button
+                    variant={pathname === "/settings" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/settings">
+                      <SettingsIcon className="mr-2 h-4 w-4" />
+                      Allgemein
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={pathname === "/templates" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    asChild
+                  >
+                    <Link to="/templates">
+                      <HomeIcon className="mr-2 h-4 w-4" />
+                      Vorlagen
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <Separator />
             </>
           )}
         </nav>
-
-        <div className="p-4 mt-auto">
-          <UserProfileDialog 
-            trigger={
-              <div className={cn(
-                "flex items-center space-x-3 mb-4 cursor-pointer hover:bg-keyeff-600 rounded-md p-2 transition-colors",
-                collapsed && "flex-col space-x-0 space-y-2 items-center"
-              )}>
-                <Avatar>
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name?.substring(0, 2).toUpperCase() || "US"}</AvatarFallback>
-                </Avatar>
-                {!collapsed && (
-                  <div className="overflow-hidden">
-                    <p className="font-medium truncate">{user.name}</p>
-                    <p className="text-xs opacity-70 truncate">{getRoleDisplayName(user.role)}</p>
-                  </div>
-                )}
-              </div>
-            } 
-          />
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            className="w-full justify-start text-white hover:bg-keyeff-600"
-            onClick={logout}
-          >
-            <LogOut size={20} />
-            {!collapsed && <span className="ml-2">Abmelden</span>}
-          </Button>
-        </div>
+      </div>
+      <div className="p-4">
+        <Button variant="outline" className="w-full" onClick={logout}>
+          Logout
+        </Button>
       </div>
     </div>
-  );
-};
+  )
+}

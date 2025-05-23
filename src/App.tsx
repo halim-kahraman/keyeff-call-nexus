@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,98 +25,50 @@ import Templates from "./pages/Templates";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            
-            {/* Protected routes - Any authenticated user */}
-            <Route path="/" element={
-              <RequireAuth>
-                <Dashboard />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Any authenticated user */}
-            <Route path="/call" element={
-              <RequireAuth>
-                <CallPanel />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Any authenticated user */}
-            <Route path="/calendar" element={
-              <RequireAuth>
-                <Calendar />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Any authenticated user */}
-            <Route path="/customers" element={
-              <RequireAuth>
-                <Customers />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Admin and Filialleiter only */}
-            <Route path="/statistics" element={
-              <RequireAuth allowedRoles={["admin", "filialleiter"]}>
-                <Statistics />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Admin only */}
-            <Route path="/logs" element={
-              <RequireAuth allowedRoles={["admin"]}>
-                <Logs />
-              </RequireAuth>
-            } />
-            
-            {/* Protected routes - Admin and Filialleiter only */}
-            <Route path="/settings" element={
-              <RequireAuth allowedRoles={["admin", "filialleiter"]}>
-                <Settings />
-              </RequireAuth>
-            } />
-            
-            {/* Admin routes */}
-            <Route path="/users" element={
-              <RequireAuth allowedRoles={["admin"]}>
-                <UserManagement />
-              </RequireAuth>
-            } />
-            
-            <Route path="/filialen" element={
-              <RequireAuth allowedRoles={["admin"]}>
-                <Filialen />
-              </RequireAuth>
-            } />
-            
-            <Route path="/permissions" element={
-              <RequireAuth allowedRoles={["admin"]}>
-                <Permissions />
-              </RequireAuth>
-            } />
-            
-            <Route path="/templates" element={
-              <RequireAuth allowedRoles={["admin"]}>
-                <Templates />
-              </RequireAuth>
-            } />
-            
-            {/* Catch all route for 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
+              
+              {/* Protected Routes */}
+              <Route element={<RequireAuth />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/call" element={<CallPanel />} />
+                <Route path="/call/:id" element={<CallPanel />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="/statistics" element={<Statistics />} />
+                
+                {/* Admin Routes */}
+                <Route element={<RequireAuth allowedRoles={['admin']} />}>
+                  <Route path="/admin/tools" element={<AdminTools />} />
+                  <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/filialen" element={<Filialen />} />
+                  <Route path="/admin/logs" element={<Logs />} />
+                </Route>
+                
+                {/* Admin or Filialleiter Routes */}
+                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']} />}>
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/templates" element={<Templates />} />
+                </Route>
+              </Route>
+              
+              {/* Catch all route for 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
