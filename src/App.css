@@ -1,8 +1,27 @@
+
 #root {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  text-align: left;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-content {
+  flex: 1;
+  padding: 1rem;
+  overflow-x: hidden;
 }
 
 .logo {
@@ -11,9 +30,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -39,4 +60,57 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Layout adjustments */
+.main-layout {
+  display: flex;
+  width: 100%;
+}
+
+.content-area {
+  flex: 1;
+  width: 100%;
+  padding: 1rem;
+}
+
+/* Make the top header full width */
+.app-header {
+  width: 100%;
+}
+
+/* Admin panel styles */
+.admin-controls {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Status indicators */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-active {
+  background-color: #10b981;
+}
+
+.status-inactive {
+  background-color: #ef4444;
+}
+
+.status-pending {
+  background-color: #f59e0b;
+}
+
+/* Table adjustments */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
 }

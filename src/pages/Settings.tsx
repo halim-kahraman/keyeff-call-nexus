@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import { settingsService, filialeService } from "@/services/api";
 import WebRTCClient from "@/components/sip/WebRTCClient";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ interface Filiale {
 const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [selectedFilialeId, setSelectedFilialeId] = useState<string | undefined>(undefined);
-  const { toast: useToastHook } = useToast();
+  const { user } = useAuth();
   
   // Settings state
   const [emailSettings, setEmailSettings] = useState({
@@ -95,6 +95,13 @@ const Settings = () => {
     queryFn: () => settingsService.getSettings('vpn', selectedFilialeId),
     enabled: !!selectedFilialeId,
   });
+
+  // Global settings
+  const { data: globalSettingsData, isLoading: isLoadingGlobalSettings, refetch: refetchGlobalSettings } = useQuery({
+    queryKey: ['settings', 'global'],
+    queryFn: () => settingsService.getSettings('global'),
+    enabled: user?.role === 'admin',
+  });
   
   // Save settings mutations
   const { mutate: saveEmailSettingsMutation } = useMutation({
@@ -145,7 +152,19 @@ const Settings = () => {
     }
   });
 
-  // Test SIP connection mutation
+  const { mutate: saveGlobalSettingsMutation } = useMutation({
+    mutationFn: (settings: Record<string, string>) => 
+      settingsService.saveSettings('global', settings),
+    onSuccess: () => {
+      toast.success("Die globalen Einstellungen wurden erfolgreich aktualisiert.");
+      refetchGlobalSettings();
+    },
+    onError: () => {
+      toast.error("Fehler beim Speichern der globalen Einstellungen.");
+    }
+  });
+
+  // Test connections mutations
   const { mutate: testSipConnectionMutation, isPending: isTestingSipConnection } = useMutation({
     mutationFn: () => settingsService.testSipConnection({
       sipServer: sipSettings.sipServer,
@@ -156,7 +175,7 @@ const Settings = () => {
       transport: sipSettings.transport,
       useSrtp: sipSettings.useSrtp,
     }, selectedFilialeId),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("SIP-Verbindung erfolgreich getestet.");
     },
     onError: () => {
@@ -164,7 +183,6 @@ const Settings = () => {
     }
   });
 
-  // Test VPN connection mutation
   const { mutate: testVpnConnectionMutation, isPending: isTestingVpnConnection } = useMutation({
     mutationFn: () => settingsService.testVpnConnection({
       vpnServer: vpnSettings.vpnServer,
@@ -174,7 +192,7 @@ const Settings = () => {
       vpnPassword: vpnSettings.vpnPassword,
       vpnCertificate: vpnSettings.vpnCertificate,
     }, selectedFilialeId),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("VPN-Verbindung erfolgreich getestet.");
     },
     onError: () => {
@@ -239,6 +257,7 @@ const Settings = () => {
     }
   }, [vpnSettingsData]);
   
+  // Save handlers
   const handleSaveEmailSettings = () => {
     setLoading(true);
     saveEmailSettingsMutation(emailSettings);
@@ -304,7 +323,7 @@ const Settings = () => {
 
   return (
     <AppLayout title="Einstellungen" subtitle="System- und Benutzereinstellungen verwalten">
-      {!isLoadingFilialen && filialen?.length > 0 && (
+      {user?.role === 'admin' && (
         <div className="mb-6">
           <Label htmlFor="filiale-select" className="mb-2 block">Filiale auswählen</Label>
           <Select
@@ -316,7 +335,7 @@ const Settings = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={undefined}>Zentrale Einstellungen</SelectItem>
-              {filialen.map((filiale: Filiale) => (
+              {!isLoadingFilialen && filialen?.map((filiale: Filiale) => (
                 <SelectItem key={filiale.id} value={filiale.id}>{filiale.name}</SelectItem>
               ))}
             </SelectContent>
@@ -328,14 +347,16 @@ const Settings = () => {
       )}
       
       <Tabs defaultValue="sip" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full">
           <TabsTrigger value="sip">SIP & WebRTC</TabsTrigger>
-          <TabsTrigger value="vpn">VPN Einstellungen</TabsTrigger>
+          <TabsTrigger value="vpn">VPN</TabsTrigger>
           <TabsTrigger value="fritzbox">FRITZ!Box</TabsTrigger>
-          <TabsTrigger value="email">E-Mail & SMTP</TabsTrigger>
+          <TabsTrigger value="email">E-Mail</TabsTrigger>
+          <TabsTrigger value="global">Global</TabsTrigger>
           <TabsTrigger value="test">Testclient</TabsTrigger>
         </TabsList>
 
+        {/* SIP Tab */}
         <TabsContent value="sip" className="space-y-4">
           <Card>
             <CardHeader>
@@ -462,6 +483,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
+        {/* VPN Tab */}
         <TabsContent value="vpn" className="space-y-4">
           <Card>
             <CardHeader>
@@ -558,19 +580,19 @@ const Settings = () => {
               <div className="flex gap-4 mt-6">
                 <Button 
                   onClick={handleSaveVpnSettings} 
-                  disabled={loading || !selectedFilialeId}
+                  disabled={loading || (user?.role !== 'admin' && !selectedFilialeId)}
                 >
                   {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={handleTestVpnConnection}
-                  disabled={isTestingVpnConnection || !vpnSettings.enableVpn || !selectedFilialeId}
+                  disabled={isTestingVpnConnection || !vpnSettings.enableVpn || (user?.role !== 'admin' && !selectedFilialeId)}
                 >
                   {isTestingVpnConnection ? "Teste Verbindung..." : "Verbindung testen"}
                 </Button>
               </div>
-              {!selectedFilialeId && (
+              {user?.role === 'admin' && !selectedFilialeId && (
                 <p className="text-sm text-amber-500">
                   VPN-Einstellungen können nur für eine spezifische Filiale konfiguriert werden. 
                   Bitte wählen Sie oben eine Filiale aus.
@@ -580,6 +602,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* FRITZ!Box Tab */}
         <TabsContent value="fritzbox" className="space-y-4">
           <Card>
             <CardHeader>
@@ -639,6 +662,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Email Tab */}
         <TabsContent value="email" className="space-y-4">
           <Card>
             <CardHeader>
@@ -706,6 +730,79 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
+        {/* Global Settings Tab (Admin Only) */}
+        <TabsContent value="global" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Globale Einstellungen</CardTitle>
+              <CardDescription>
+                Systemweite Konfigurationseinstellungen, die für alle Filialen gelten.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {user?.role === 'admin' ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="systemName">Systemname</Label>
+                      <Input 
+                        id="systemName" 
+                        placeholder="KeyEff Call Panel" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="systemVersion">Systemversion</Label>
+                      <Input 
+                        id="systemVersion" 
+                        placeholder="1.0.0" 
+                      />
+                    </div>
+                    <div className="col-span-2 flex items-center space-x-2">
+                      <Switch id="enableDebugMode" />
+                      <Label htmlFor="enableDebugMode">Debug-Modus aktivieren</Label>
+                    </div>
+                    <div className="col-span-2 flex items-center space-x-2">
+                      <Switch id="enableDataBackup" />
+                      <Label htmlFor="enableDataBackup">Automatische Datensicherung aktivieren</Label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="backupInterval">Backup-Intervall (Tage)</Label>
+                      <Input 
+                        id="backupInterval" 
+                        type="number" 
+                        placeholder="7" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sessionTimeout">Sitzungstimeout (Minuten)</Label>
+                      <Input 
+                        id="sessionTimeout" 
+                        type="number" 
+                        placeholder="30" 
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label htmlFor="backupPath">Backup Pfad</Label>
+                      <Input 
+                        id="backupPath" 
+                        placeholder="/var/backups/keyeff" 
+                      />
+                    </div>
+                  </div>
+                  <Button>
+                    Globale Einstellungen speichern
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-amber-500">
+                  Die globalen Einstellungen können nur von Administratoren eingesehen und bearbeitet werden.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Testclient Tab */}
         <TabsContent value="test" className="space-y-4">
           <Card>
             <CardHeader>

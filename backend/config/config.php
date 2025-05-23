@@ -39,6 +39,9 @@ define('MAIL_ENCRYPTION', 'tls');
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
+// Debug mode - enable for development environments
+define('DEBUG_MODE', $is_localhost || $is_preview);
+
 // IMPORTANT: Set CORS headers BEFORE session start or any output
 function setCorsHeaders() {
     // Check if the request has an origin header
@@ -49,10 +52,10 @@ function setCorsHeaders() {
         
         if ($is_preview) {
             // For Lovable preview, allow Lovable domains
-            $allowed_origins = ['https://lovable.dev', 'https://lovable.app'];
+            $allowed_origins = ['https://lovable.dev', 'https://lovable.app', 'https://*.lovable.dev', 'https://*.lovable.app', 'https://*.lovableproject.com'];
             
             // Check if origin is allowed
-            if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+            if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins) || preg_match('/\.lovable\.(dev|app)$/', $_SERVER['HTTP_ORIGIN']) || preg_match('/\.lovableproject\.com$/', $_SERVER['HTTP_ORIGIN'])) {
                 header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
             } else {
                 header("Access-Control-Allow-Origin: *");
@@ -91,10 +94,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Error reporting for development
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Error reporting based on environment
+if (DEBUG_MODE) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', 0);
+    error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+}
 
 // Function to generate JSON response
 function jsonResponse($success = true, $message = '', $data = null, $status = 200) {
@@ -140,6 +148,8 @@ function validateToken($token) {
 
 // Debug function for development
 function debugLog($message, $data = null) {
+    if (!DEBUG_MODE) return;
+    
     $logFile = __DIR__ . '/../debug.log';
     $timestamp = date('Y-m-d H:i:s');
     $logEntry = "[{$timestamp}] {$message}";
