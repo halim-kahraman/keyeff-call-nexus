@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +14,7 @@ import { toast } from "sonner";
 import { settingsService, filialeService } from "@/services/api";
 import { connectionTester } from "@/utils/connectionTester";
 import { Save, Send, RefreshCw, Check } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define types for filialen
 interface Filiale {
@@ -64,6 +64,7 @@ const mockFilialen: Filiale[] = [
 
 const Settings = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("sip");
   const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
   const [sipSettings, setSipSettings] = useState<Record<string, string>>({});
@@ -223,10 +224,10 @@ const Settings = () => {
 
   return (
     <AppLayout title="Einstellungen" subtitle="System- und Benutzereinstellungen verwalten">
-      <div className="space-y-6">
+      <div className={`space-y-6 ${isMobile ? 'settings-page-mobile' : ''}`}>
         {/* Filiale selection for admin */}
         {isAdmin && (
-          <Card>
+          <Card className={isMobile ? 'settings-card-mobile' : ''}>
             <CardHeader>
               <CardTitle>Filiale auswählen</CardTitle>
               <CardDescription>
@@ -253,17 +254,27 @@ const Settings = () => {
 
         {/* Settings tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-8">
-            <TabsTrigger value="sip">SIP & WebRTC</TabsTrigger>
-            <TabsTrigger value="vpn">VPN</TabsTrigger>
-            <TabsTrigger value="fritzbox">FRITZ!Box</TabsTrigger>
-            <TabsTrigger value="email">E-Mail</TabsTrigger>
-            <TabsTrigger value="keyeffApi">KeyEff API</TabsTrigger>
+          <TabsList className={`${isMobile ? 'tabs-list-mobile' : 'grid grid-cols-5'} mb-8`}>
+            <TabsTrigger value="sip" className={isMobile ? 'tabs-trigger-mobile' : ''}>
+              SIP & WebRTC
+            </TabsTrigger>
+            <TabsTrigger value="vpn" className={isMobile ? 'tabs-trigger-mobile' : ''}>
+              VPN
+            </TabsTrigger>
+            <TabsTrigger value="fritzbox" className={isMobile ? 'tabs-trigger-mobile' : ''}>
+              FRITZ!Box
+            </TabsTrigger>
+            <TabsTrigger value="email" className={isMobile ? 'tabs-trigger-mobile' : ''}>
+              E-Mail
+            </TabsTrigger>
+            <TabsTrigger value="keyeffApi" className={isMobile ? 'tabs-trigger-mobile' : ''}>
+              KeyEff API
+            </TabsTrigger>
           </TabsList>
           
           {/* SIP Settings */}
           <TabsContent value="sip">
-            <Card>
+            <Card className={isMobile ? 'settings-card-mobile' : ''}>
               <CardHeader>
                 <CardTitle>SIP & WebRTC Einstellungen</CardTitle>
                 <CardDescription>
@@ -358,7 +369,7 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4">
+                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
                   <TestConnectionButton 
                     onClick={handleTestSipConnection}
                     isPending={isSaving}
@@ -388,7 +399,7 @@ const Settings = () => {
           
           {/* VPN Settings */}
           <TabsContent value="vpn">
-            <Card>
+            <Card className={isMobile ? 'settings-card-mobile' : ''}>
               <CardHeader>
                 <CardTitle>VPN Einstellungen</CardTitle>
                 <CardDescription>
@@ -449,7 +460,7 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4">
+                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
                   <TestConnectionButton 
                     onClick={handleTestVpnConnection}
                     isPending={isSaving}
@@ -479,7 +490,7 @@ const Settings = () => {
           
           {/* FRITZ!Box Settings */}
           <TabsContent value="fritzbox">
-            <Card>
+            <Card className={isMobile ? 'settings-card-mobile' : ''}>
               <CardHeader>
                 <CardTitle>FRITZ!Box Einstellungen</CardTitle>
                 <CardDescription>
@@ -540,7 +551,7 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4">
+                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
                   <TestConnectionButton 
                     onClick={handleTestFritzboxConnection}
                     isPending={isSaving}
@@ -570,7 +581,7 @@ const Settings = () => {
           
           {/* Email Settings */}
           <TabsContent value="email">
-            <Card>
+            <Card className={isMobile ? 'settings-card-mobile' : ''}>
               <CardHeader>
                 <CardTitle>E-Mail Einstellungen</CardTitle>
                 <CardDescription>
@@ -664,7 +675,7 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4">
+                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
                   <TestConnectionButton 
                     onClick={handleTestEmailConnection}
                     isPending={isSaving}
@@ -694,7 +705,7 @@ const Settings = () => {
 
           {/* KeyEff API Settings */}
           <TabsContent value="keyeffApi">
-            <Card>
+            <Card className={isMobile ? 'settings-card-mobile' : ''}>
               <CardHeader>
                 <CardTitle>KeyEff API Einstellungen</CardTitle>
                 <CardDescription>
@@ -756,7 +767,7 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4">
+                <div className={`flex items-center justify-between pt-4 ${isMobile ? 'settings-buttons-mobile' : ''}`}>
                   <TestConnectionButton 
                     onClick={handleTestKeyEffApiConnection}
                     isPending={isSaving}

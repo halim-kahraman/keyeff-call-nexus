@@ -89,13 +89,32 @@
     .tabs-list-mobile {
       @apply flex w-full overflow-x-auto overflow-y-hidden;
       @apply snap-x snap-mandatory;
-      @apply px-1;
+      @apply px-2 gap-2;
       scroll-behavior: smooth;
+      min-height: 48px;
     }
     
     .tabs-trigger-mobile {
       @apply snap-start flex-shrink-0;
-      @apply min-w-max px-4;
+      @apply min-w-max px-4 py-2;
+      @apply text-xs;
+      min-width: 120px;
+      height: 40px;
+    }
+
+    /* Ensure proper spacing for mobile settings page */
+    .settings-page-mobile {
+      @apply pb-24; /* Extra bottom padding for mobile */
+    }
+
+    .settings-card-mobile {
+      @apply mb-6; /* Extra margin between cards */
+    }
+
+    .settings-buttons-mobile {
+      @apply sticky bottom-4 bg-background/95 backdrop-blur-sm;
+      @apply pt-4 pb-4 px-4 -mx-4;
+      @apply border-t border-border;
     }
   }
 }
