@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { jsPDF } from 'jspdf';
@@ -78,148 +77,6 @@ export const exportToExcel = (data: any[], filename: string, sheetName = "Daten"
   } catch (error) {
     console.error("Excel Export error:", error);
     toast.error("Beim Exportieren der Daten ist ein Fehler aufgetreten.");
-  }
-};
-
-/**
- * Exports statistics to PDF including charts
- * @param statsData The statistics data
- * @param filename The name of the file to be saved
- * @param title Title for the document
- * @param charts Optional array of chart image data URLs
- */
-export const exportStatisticsToPdf = async (statsData: any, filename: string, title: string, charts: string[] = []) => {
-  try {
-    // Create new PDF document - landscape for better chart display
-    const doc = new jsPDF({
-      orientation: 'landscape'
-    });
-    
-    // Add title
-    doc.setFontSize(18);
-    doc.text(title, 14, 22);
-    
-    // Add period information
-    if (statsData.summary?.period) {
-      const period = `Zeitraum: ${statsData.summary.period.start} bis ${statsData.summary.period.end}`;
-      doc.setFontSize(12);
-      doc.text(period, 14, 30);
-    }
-    
-    // Add summary data
-    doc.setFontSize(14);
-    doc.text("Zusammenfassung", 14, 40);
-    
-    const summaryData = [
-      ["Gesamtanrufe", statsData.summary?.total_calls?.toString() || "0"],
-      ["Vereinbarte Termine", statsData.summary?.total_appointments?.toString() || "0"],
-      ["Kontaktierte Kunden", statsData.summary?.total_customers_contacted?.toString() || "0"]
-    ];
-    
-    (doc as any).autoTable({
-      startY: 45,
-      head: [["Kennzahl", "Wert"]],
-      body: summaryData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [66, 133, 244],
-        textColor: 255
-      }
-    });
-    
-    let yPosition = (doc as any).lastAutoTable.finalY + 15;
-    
-    // Add charts if available
-    if (charts && charts.length > 0) {
-      doc.setFontSize(14);
-      doc.text("Diagramme", 14, yPosition);
-      yPosition += 10;
-      
-      for (let i = 0; i < charts.length; i++) {
-        if (yPosition > 180) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        
-        try {
-          doc.addImage(
-            charts[i],
-            'PNG',
-            14,
-            yPosition,
-            180,
-            70
-          );
-          yPosition += 80;
-        } catch (e) {
-          console.error("Error adding chart to PDF:", e);
-        }
-      }
-    }
-    
-    // Add detailed data tables
-    if (statsData.calls_by_day && statsData.calls_by_day.length > 0) {
-      if (yPosition > 180) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      doc.setFontSize(14);
-      doc.text("Anrufe nach Tagen", 14, yPosition);
-      
-      const callsByDayData = statsData.calls_by_day.map((day: any) => [
-        day.day,
-        day.total_calls,
-        formatDuration(day.avg_duration)
-      ]);
-      
-      (doc as any).autoTable({
-        startY: yPosition + 5,
-        head: [["Datum", "Anrufe", "Durchschnittsdauer"]],
-        body: callsByDayData,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [66, 133, 244],
-          textColor: 255
-        }
-      });
-      
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
-    }
-    
-    if (statsData.top_callers && statsData.top_callers.length > 0) {
-      if (yPosition > 180) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      doc.setFontSize(14);
-      doc.text("Top Telefonisten", 14, yPosition);
-      
-      const topCallersData = statsData.top_callers.map((caller: any) => [
-        caller.name,
-        caller.total_calls,
-        formatDuration(caller.avg_duration)
-      ]);
-      
-      (doc as any).autoTable({
-        startY: yPosition + 5,
-        head: [["Name", "Anrufe", "Durchschnittsdauer"]],
-        body: topCallersData,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [66, 133, 244],
-          textColor: 255
-        }
-      });
-    }
-    
-    // Save the PDF
-    doc.save(`${filename}.pdf`);
-    toast.success("Die Statistiken wurden als PDF exportiert.");
-  } catch (error) {
-    console.error("Statistics PDF Export error:", error);
-    toast.error("Beim Exportieren der Statistiken ist ein Fehler aufgetreten.");
   }
 };
 
@@ -388,6 +245,148 @@ export const formatOutcome = (outcome: string): string => {
   };
   
   return outcomeMap[outcome] || outcome;
+};
+
+/**
+ * Exports statistics to PDF including charts
+ * @param statsData The statistics data
+ * @param filename The name of the file to be saved
+ * @param title Title for the document
+ * @param charts Optional array of chart image data URLs
+ */
+export const exportStatisticsToPdf = async (statsData: any, filename: string, title: string, charts: string[] = []) => {
+  try {
+    // Create new PDF document - landscape for better chart display
+    const doc = new jsPDF({
+      orientation: 'landscape'
+    });
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    
+    // Add period information
+    if (statsData.summary?.period) {
+      const period = `Zeitraum: ${statsData.summary.period.start} bis ${statsData.summary.period.end}`;
+      doc.setFontSize(12);
+      doc.text(period, 14, 30);
+    }
+    
+    // Add summary data
+    doc.setFontSize(14);
+    doc.text("Zusammenfassung", 14, 40);
+    
+    const summaryData = [
+      ["Gesamtanrufe", statsData.summary?.total_calls?.toString() || "0"],
+      ["Vereinbarte Termine", statsData.summary?.total_appointments?.toString() || "0"],
+      ["Kontaktierte Kunden", statsData.summary?.total_customers_contacted?.toString() || "0"]
+    ];
+    
+    (doc as any).autoTable({
+      startY: 45,
+      head: [["Kennzahl", "Wert"]],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [66, 133, 244],
+        textColor: 255
+      }
+    });
+    
+    let yPosition = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Add charts if available
+    if (charts && charts.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Diagramme", 14, yPosition);
+      yPosition += 10;
+      
+      for (let i = 0; i < charts.length; i++) {
+        if (yPosition > 180) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        try {
+          doc.addImage(
+            charts[i],
+            'PNG',
+            14,
+            yPosition,
+            180,
+            70
+          );
+          yPosition += 80;
+        } catch (e) {
+          console.error("Error adding chart to PDF:", e);
+        }
+      }
+    }
+    
+    // Add detailed data tables
+    if (statsData.calls_by_day && statsData.calls_by_day.length > 0) {
+      if (yPosition > 180) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text("Anrufe nach Tagen", 14, yPosition);
+      
+      const callsByDayData = statsData.calls_by_day.map((day: any) => [
+        day.day,
+        day.total_calls,
+        formatDuration(day.avg_duration)
+      ]);
+      
+      (doc as any).autoTable({
+        startY: yPosition + 5,
+        head: [["Datum", "Anrufe", "Durchschnittsdauer"]],
+        body: callsByDayData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [66, 133, 244],
+          textColor: 255
+        }
+      });
+      
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    if (statsData.top_callers && statsData.top_callers.length > 0) {
+      if (yPosition > 180) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text("Top Telefonisten", 14, yPosition);
+      
+      const topCallersData = statsData.top_callers.map((caller: any) => [
+        caller.name,
+        caller.total_calls,
+        formatDuration(caller.avg_duration)
+      ]);
+      
+      (doc as any).autoTable({
+        startY: yPosition + 5,
+        head: [["Name", "Anrufe", "Durchschnittsdauer"]],
+        body: topCallersData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [66, 133, 244],
+          textColor: 255
+        }
+      });
+    }
+    
+    // Save the PDF
+    doc.save(`${filename}.pdf`);
+    toast.success("Die Statistiken wurden als PDF exportiert.");
+  } catch (error) {
+    console.error("Statistics PDF Export error:", error);
+    toast.error("Beim Exportieren der Statistiken ist ein Fehler aufgetreten.");
+  }
 };
 
 /**
