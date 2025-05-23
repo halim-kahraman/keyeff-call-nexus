@@ -1,106 +1,69 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { filialeService } from "@/services/api";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
-interface BranchSelectionDialogProps {
-  isOpen: boolean;
+export interface BranchSelectionDialogProps {
+  open: boolean;
   onOpenChange: (open: boolean) => void;
-  targetPath: string;
+  onBranchSelected: (branchId: string) => void;
 }
 
-export const BranchSelectionDialog: React.FC<BranchSelectionDialogProps> = ({
-  isOpen,
+export function BranchSelectionDialog({ 
+  open, 
   onOpenChange,
-  targetPath,
-}) => {
-  const navigate = useNavigate();
+  onBranchSelected 
+}: BranchSelectionDialogProps) {
   const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const { toast } = useToast();
 
-  // Fetch branches
-  const { data: filialen = [], isLoading } = useQuery({
-    queryKey: ['filialen'],
-    queryFn: filialeService.getFilialen,
-  });
-
-  const handleContinue = () => {
+  const handleConfirm = () => {
     if (!selectedBranch) {
-      toast.error("Bitte wählen Sie eine Filiale aus");
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie eine Filiale aus.",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Add the selected branch as a query parameter and navigate
-    const url = new URL(targetPath, window.location.origin);
-    url.searchParams.set('filiale', selectedBranch);
-    navigate(url.pathname + url.search);
+    onBranchSelected(selectedBranch);
     onOpenChange(false);
   };
-
-  const handleCancel = () => {
-    navigate('/');
-    onOpenChange(false);
-  };
-
-  // If we're testing in preview mode and have no data, use mock data
-  const mockFilialen = [
-    { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin" },
-    { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin" },
-    { id: "3", name: "München", address: "Münchner Str. 25, 80333 München" },
-    { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
-  ];
-
-  const branchesData = filialen.length ? filialen : mockFilialen;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Filiale auswählen</DialogTitle>
           <DialogDescription>
             Bitte wählen Sie eine Filiale aus, um fortzufahren.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-6">
-          <div className="grid w-full items-center gap-4">
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="filiale">Filiale</Label>
-              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                <SelectTrigger id="filiale" className="w-full">
-                  <SelectValue placeholder="Filiale auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoading ? (
-                    <SelectItem value="loading" disabled>Laden...</SelectItem>
-                  ) : (
-                    branchesData.map((filiale) => (
-                      <SelectItem key={filiale.id} value={filiale.id}>
-                        {filiale.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        
+        <div className="py-4">
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filiale auswählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Berlin</SelectItem>
+              <SelectItem value="2">München</SelectItem>
+              <SelectItem value="3">Hamburg</SelectItem>
+              <SelectItem value="4">Köln</SelectItem>
+              <SelectItem value="5">Frankfurt</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+        
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>Abbrechen</Button>
-          <Button onClick={handleContinue} disabled={!selectedBranch}>Fortfahren</Button>
+          <Button onClick={handleConfirm} className="bg-keyeff-500 hover:bg-keyeff-600">
+            Bestätigen
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
+}

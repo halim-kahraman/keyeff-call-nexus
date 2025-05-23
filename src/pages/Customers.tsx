@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -369,7 +368,9 @@ const Customers = () => {
                   <SelectContent>
                     <SelectItem value={null}>Alle Kampagnen</SelectItem>
                     {campaignList.map(campaign => (
-                      <SelectItem key={campaign.id} value={campaign.id}>{campaign.name}</SelectItem>
+                      <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                        {campaign.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -507,7 +508,7 @@ const Customers = () => {
                 <Checkbox 
                   id="createCampaign" 
                   checked={createNewCampaign} 
-                  onCheckedChange={setCreateNewCampaign}
+                  onCheckedChange={(checked) => setCreateNewCampaign(checked === true)}
                 />
                 <Label htmlFor="createCampaign">Neue Kampagne erstellen</Label>
               </div>
@@ -542,7 +543,9 @@ const Customers = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {campaignList.map(campaign => (
-                        <SelectItem key={campaign.id} value={campaign.id}>{campaign.name}</SelectItem>
+                        <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                          {campaign.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

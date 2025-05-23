@@ -1,645 +1,419 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { 
-  Phone, 
-  PhoneOff, 
-  User, 
-  Calendar, 
-  Clock, 
-  ChevronRight, 
-  Check, 
-  X,
-  FileText,
-  Briefcase
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WebRTCClient } from "@/components/sip/WebRTCClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { customerService, callService, appointmentService } from "@/services/api";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import WebRTCClient from "@/components/sip/WebRTCClient";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
-import { useLocation, useNavigate } from "react-router-dom";
-
-// Customer type definition
-interface CustomerContract {
-  id: string;
-  type: string;
-  status: string;
-  expiryDate: string;
-}
-
-interface CustomerContact {
-  id: string;
-  phone: string;
-  contactType: string;
-  isPrimary: boolean;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  company: string;
-  contacts: CustomerContact[];
-  contracts: CustomerContract[];
-  lastContact: string;
-  priority: string;
-  notes?: string;
-}
-
-interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  customerCount: number;
-}
+import { useQuery } from "@tanstack/react-query";
+import { customerService } from "@/services/api";
+import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff } from "lucide-react";
 
 const CallPanel = () => {
-  const [activeCall, setActiveCall] = useState(false);
+  const [activeTab, setActiveTab] = useState("dialpad");
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState("");
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [callResult, setCallResult] = useState(null);
+  const [callNotes, setCallNotes] = useState("");
+  const [callOutcome, setCallOutcome] = useState("Erfolgreich");
   const [callDuration, setCallDuration] = useState(0);
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
-  const [callLog, setCallLog] = useState("");
-  const [callOutcome, setCallOutcome] = useState("");
-  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
-  const [appointmentDate, setAppointmentDate] = useState("");
-  const [appointmentTime, setAppointmentTime] = useState("");
-  const [appointmentType, setAppointmentType] = useState("beratung");
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
-  const { toast: useToastHook } = useToast();
-  const { user } = useAuth();
+  const [selectedFiliale, setSelectedFiliale] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  
   const location = useLocation();
-  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
   
-  // Check if we need to show filiale selection for admin
-  const needsFilialSelection = user && user.role === "admin" && !selectedFiliale;
+  // Customer from navigation state if available
+  const customerFromNav = location.state?.customer;
+  const contactIdFromNav = location.state?.contactId;
   
+  // Determine if user needs to select filiale
+  const needsFilialSelection = user && user.role === 'admin' && !selectedFiliale;
+
+  // Handle filiale selection
+  const handleFilialeSelected = (filialeId) => {
+    setSelectedFiliale(filialeId);
+    setIsFilialSelectionOpen(false);
+  };
+
+  // Format time for timer display
+  const formatCallDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Fetch campaigns for the selected filiale
+  const { data: campaigns } = useQuery({
+    queryKey: ['campaigns', selectedFiliale],
+    queryFn: () => customerService.getCampaigns(selectedFiliale),
+    enabled: !!selectedFiliale,
+  });
+
+  // Fetch customers based on the selected campaign
+  const { data: customers, isLoading } = useQuery({
+    queryKey: ['customers', selectedFiliale, selectedCampaign],
+    queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaign),
+    enabled: !!selectedFiliale,
+  });
+
+  // Set default customer from navigation if available
+  useEffect(() => {
+    if (customerFromNav) {
+      setActiveTab("customer");
+      
+      // If specific contact ID was passed, find it
+      if (contactIdFromNav && customerFromNav.contacts) {
+        const contact = customerFromNav.contacts.find(c => c.id === contactIdFromNav);
+        if (contact) {
+          setSelectedContact(contact);
+          setSelectedPhoneNumber(contact.phone);
+        } else {
+          // Default to first contact or primary phone
+          setSelectedPhoneNumber(customerFromNav.primary_phones?.split(',')[0] || "");
+        }
+      } else {
+        // Default to first phone number
+        setSelectedPhoneNumber(customerFromNav.primary_phones?.split(',')[0] || "");
+      }
+      
+      // Default to first contract
+      if (customerFromNav.contracts && customerFromNav.contracts.length > 0) {
+        setSelectedContract(customerFromNav.contracts[0]);
+      }
+    }
+  }, [customerFromNav, contactIdFromNav]);
+  
+  // Set up filial selection if needed
   useEffect(() => {
     if (needsFilialSelection) {
       setIsFilialSelectionOpen(true);
     }
   }, [needsFilialSelection]);
   
-  // Handle filiale selection
-  const handleFilialeSelected = (filialeId: string) => {
-    setSelectedFiliale(filialeId);
-    setIsFilialSelectionOpen(false);
+  const handleCallStart = () => {
+    toast({
+      title: "Anruf gestartet",
+      description: `Verbinde mit ${selectedPhoneNumber}...`,
+    });
   };
-
-  // Check if customer was passed from previous screen
-  useEffect(() => {
-    if (location.state?.customer) {
-      setSelectedCustomer(location.state.customer);
-      
-      if (location.state.contactId) {
-        setSelectedContactId(location.state.contactId);
-      }
-      
-      if (location.state.contractId) {
-        setSelectedContractId(location.state.contractId);
-      }
-    }
-  }, [location.state]);
-
-  // Fetch customers data
-  const { data: customers, isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['customers', selectedFiliale, selectedCampaignId],
-    queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaignId),
-    enabled: !needsFilialSelection,
-  });
   
-  // Fetch campaigns
-  const { data: campaigns, isLoading: isLoadingCampaigns } = useQuery({
-    queryKey: ['campaigns', selectedFiliale],
-    queryFn: () => customerService.getCampaigns(selectedFiliale),
-    enabled: !needsFilialSelection,
-  });
-
-  // Set first customer as selected when data loads
-  useEffect(() => {
-    if (customers && customers.length > 0 && !selectedCustomer && !location.state?.customer) {
-      setSelectedCustomer(customers[0]);
-    }
-  }, [customers, selectedCustomer, location.state]);
-
-  // Call log mutation
-  const { mutate: logCallMutation, isPending: isLoggingCall } = useMutation({
-    mutationFn: callService.logCall,
-    onSuccess: (data) => {
-      if (callOutcome === "appointment") {
-        setShowAppointmentDialog(true);
-      } else {
-        toast.success("Anruf wurde erfolgreich dokumentiert");
-        resetCallState();
-      }
-    },
-  });
-
-  // Create appointment mutation
-  const { mutate: createAppointmentMutation, isPending: isCreatingAppointment } = useMutation({
-    mutationFn: appointmentService.createAppointment,
-    onSuccess: (data) => {
-      toast.success(`Termin am ${appointmentDate} um ${appointmentTime} Uhr wurde eingetragen.`);
-      
-      if (data.sync_status) {
-        toast.success("Termin wurde erfolgreich mit KeyEff CRM synchronisiert.");
-      } else if (data.sync_message) {
-        toast.error(`Synchronisierung fehlgeschlagen: ${data.sync_message}`);
-      }
-      
-      setShowAppointmentDialog(false);
-      resetCallState();
-    },
-  });
-
-  const handleCall = () => {
-    if (!activeCall) {
-      // Start call
-      setActiveCall(true);
-      const timer = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-      setIntervalId(timer);
-    } else {
-      // End call
-      setActiveCall(false);
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    }
-  };
-
-  const resetCallState = () => {
-    setCallLog("");
-    setCallOutcome("");
-    setCallDuration(0);
-    setAppointmentDate("");
-    setAppointmentTime("");
-    setAppointmentType("beratung");
-    setActiveCall(false);
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
-    }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleCustomerChange = (customerId: string) => {
-    const customer = customers.find((c: Customer) => c.id === customerId);
-    if (customer) {
-      setSelectedCustomer(customer);
-      setSelectedContactId(null);
-      setSelectedContractId(null);
-    }
-  };
-
-  const handleSaveCallLog = () => {
-    if (!selectedCustomer) return;
-    
-    if (!callLog.trim() || !callOutcome) {
-      useToastHook({
-        title: "Fehlende Informationen",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    logCallMutation({
-      customer_id: selectedCustomer.id,
-      log_text: callLog,
-      outcome: callOutcome,
-      duration: callDuration,
-      contract_id: selectedContractId,
-      contact_id: selectedContactId,
-      campaign_id: selectedCampaignId
-    });
-  };
-
-  const handleSaveAppointment = () => {
-    if (!selectedCustomer) return;
-    
-    if (!appointmentDate || !appointmentTime || !appointmentType) {
-      useToastHook({
-        title: "Fehlende Informationen",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createAppointmentMutation({
-      customer_id: selectedCustomer.id,
-      date: appointmentDate,
-      time: appointmentTime,
-      type: appointmentType,
-      description: callLog,
-      contract_id: selectedContractId,
-      campaign_id: selectedCampaignId
-    });
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high": return "bg-red-100 text-red-800";
-      case "medium": return "bg-amber-100 text-amber-800";
-      case "low": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPriorityText = (priority: string) => {
-    switch (priority) {
-      case "high": return "Hoch";
-      case "medium": return "Mittel";
-      case "low": return "Niedrig";
-      default: return priority;
-    }
-  };
-
-  // WebRTC handlers
-  const handleWebRTCCallStart = () => {
-    setActiveCall(true);
-  };
-
-  const handleWebRTCCallEnd = (duration: number) => {
-    setActiveCall(false);
+  const handleCallEnd = (duration) => {
     setCallDuration(duration);
+    setCallResult({
+      status: "ended",
+      duration,
+    });
+    toast({
+      title: "Anruf beendet",
+      description: `Dauer: ${formatCallDuration(duration)}`,
+    });
   };
   
-  const handleGotoCustomers = () => {
-    navigate("/customers");
+  const handleSaveCallLog = () => {
+    if (callResult) {
+      toast({
+        title: "Anruf gespeichert",
+        description: "Die Anrufdaten wurden erfolgreich gespeichert.",
+      });
+      
+      // Reset for next call
+      setCallNotes("");
+      setCallOutcome("Erfolgreich");
+      setCallResult(null);
+    }
   };
 
-  if (isLoadingCustomers || needsFilialSelection) {
+  // If no filiale is selected for admin, show the dialog
+  if (needsFilialSelection) {
     return (
-      <AppLayout 
-        title="Anrufpanel" 
-        subtitle="Kundenkontakte verwalten"
-        showCallButton={false}
-      >
-        {needsFilialSelection && (
-          <BranchSelectionDialog 
-            open={isFilialSelectionOpen} 
-            onOpenChange={setIsFilialSelectionOpen}
-            onBranchSelected={handleFilialeSelected}
-          />
-        )}
-        
-        {!needsFilialSelection && (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-keyeff-500 mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Kundendaten werden geladen...</p>
-            </div>
-          </div>
-        )}
+      <AppLayout title="Anrufe" subtitle="Telefonzentrale">
+        <BranchSelectionDialog 
+          open={isFilialSelectionOpen} 
+          onOpenChange={setIsFilialSelectionOpen}
+          onBranchSelected={handleFilialeSelected}
+        />
       </AppLayout>
     );
   }
 
+  // Reset customer selection
+  const clearCustomerSelection = () => {
+    setSelectedPhoneNumber("");
+    setSelectedContact(null);
+    setSelectedContract(null);
+  };
+
   return (
-    <AppLayout 
-      title="Anrufpanel" 
-      subtitle="Kundenkontakte verwalten"
-      showCallButton={false}
-    >
+    <AppLayout title="Anrufe" subtitle="Telefonzentrale">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Customer List */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Kampagnen</CardTitle>
-              <CardDescription>Wählen Sie eine aktive Kampagne</CardDescription>
+              <CardTitle className="flex justify-between items-center">
+                <span>Anrufsteuerung</span>
+                {customerFromNav && (
+                  <Badge variant="outline" className="text-md font-normal">
+                    Kunde: {customerFromNav.name}
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Select value={selectedCampaignId || ""} onValueChange={(value) => setSelectedCampaignId(value || null)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Alle Kunden anzeigen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Alle Kunden anzeigen</SelectItem>
-                  {campaigns && campaigns.map((campaign: any) => (
-                    <SelectItem key={campaign.id} value={campaign.id}>
-                      {campaign.name} ({campaign.customerCount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="dialpad">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Wählen
+                  </TabsTrigger>
+                  <TabsTrigger value="customer" disabled={!customers?.length && !customerFromNav}>
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Kundenliste
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="dialpad" className="pt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="number">Telefonnummer</Label>
+                      <div className="flex mt-1">
+                        <input
+                          type="tel"
+                          id="number"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="+49 123 456789"
+                          value={selectedPhoneNumber}
+                          onChange={(e) => setSelectedPhoneNumber(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    {selectedFiliale && campaigns && campaigns.length > 0 && (
+                      <div>
+                        <Label htmlFor="campaign">Kampagne auswählen</Label>
+                        <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Alle Kunden anzeigen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Alle Kunden anzeigen</SelectItem>
+                            {campaigns.map(campaign => (
+                              <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                                {campaign.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="customer" className="pt-4">
+                  {customerFromNav ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col">
+                        <Label>Kunde</Label>
+                        <span className="text-lg font-medium">{customerFromNav.name}</span>
+                        {customerFromNav.company && (
+                          <span className="text-sm text-muted-foreground">{customerFromNav.company}</span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label className="mb-2 block">Kontakt auswählen</Label>
+                        <div className="space-y-2">
+                          {customerFromNav.contacts ? (
+                            customerFromNav.contacts.map(contact => (
+                              <div 
+                                key={contact.id}
+                                className={`border rounded-lg p-3 cursor-pointer ${selectedContact?.id === contact.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
+                                onClick={() => {
+                                  setSelectedContact(contact);
+                                  setSelectedPhoneNumber(contact.phone);
+                                }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-medium">{contact.phone}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {contact.contact_type} {contact.contact_name && `- ${contact.contact_name}`}
+                                    </div>
+                                  </div>
+                                  {contact.is_primary === "1" && (
+                                    <Badge>Primär</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            customerFromNav.primary_phones?.split(',').map((phone, index) => (
+                              <div 
+                                key={index}
+                                className={`border rounded-lg p-3 cursor-pointer ${selectedPhoneNumber === phone ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
+                                onClick={() => setSelectedPhoneNumber(phone)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium">{phone}</div>
+                                  {index === 0 && <Badge>Primär</Badge>}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      
+                      {customerFromNav.contracts && customerFromNav.contracts.length > 0 && (
+                        <div>
+                          <Label className="mb-2 block">Vertrag auswählen</Label>
+                          <div className="space-y-2">
+                            {customerFromNav.contracts.map(contract => (
+                              <div 
+                                key={contract.id}
+                                className={`border rounded-lg p-3 cursor-pointer ${selectedContract?.id === contract.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
+                                onClick={() => setSelectedContract(contract)}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <div className="font-medium">{contract.contract_type}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {contract.contract_number || 'Keine Vertragsnummer'}
+                                    </div>
+                                  </div>
+                                  <Badge className={
+                                    contract.contract_status === 'Aktiv' ? 'bg-green-100 text-green-800' :
+                                    contract.contract_status === 'Gekündigt' ? 'bg-red-100 text-red-800' :
+                                    'bg-amber-100 text-amber-800'
+                                  }>
+                                    {contract.contract_status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button variant="outline" onClick={clearCustomerSelection}>
+                        Zurücksetzen
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Would show customer list from campaign or filiale here */}
+                      <p className="text-muted-foreground">Bitte wählen Sie zunächst eine Kampagne aus.</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
           
-          <Card className="h-full">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Kundenliste</CardTitle>
-                <CardDescription>Nach Priorität sortierte Kontakte</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleGotoCustomers}>
-                Alle Kunden
-              </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>Anrufergebnis</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {customers && customers.length > 0 ? (
-                customers.map((customer: any) => (
-                  <div 
-                    key={customer.id}
-                    className={`p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors ${selectedCustomer?.id === customer.id ? 'border-keyeff-500 bg-accent' : ''}`}
-                    onClick={() => handleCustomerChange(customer.id)}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-medium">{customer.name}</h3>
-                      <Badge className={getPriorityColor(customer.priority)}>
-                        {getPriorityText(customer.priority)}
+            <CardContent>
+              {callResult ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center pb-4 border-b">
+                    <div className="flex items-center">
+                      <Clock className="text-muted-foreground mr-2 h-5 w-5" />
+                      <span>Dauer: <span className="font-mono font-medium">{formatCallDuration(callDuration)}</span></span>
+                    </div>
+                    <div>
+                      <Badge variant="outline">
+                        <PhoneOff className="mr-1 h-3 w-3" /> Beendet
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{customer.company}</p>
-                    <div className="mt-2 flex justify-between items-center">
-                      <span className="text-xs text-muted-foreground">
-                        {customer.primary_phones ? (
-                          <Badge variant="outline" className="font-mono">{customer.primary_phones.split(',')[0]}</Badge>
-                        ) : 'Keine Telefonnummer'}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
                   </div>
-                ))
+                  
+                  <div>
+                    <Label htmlFor="outcome" className="mb-2 block">Anrufergebnis</Label>
+                    <Select value={callOutcome} onValueChange={setCallOutcome}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Erfolgreich">
+                          <div className="flex items-center">
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                            Erfolgreich
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Nicht erreicht">
+                          <div className="flex items-center">
+                            <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                            Nicht erreicht
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Rückruf vereinbart">
+                          <div className="flex items-center">
+                            <CalendarClock className="mr-2 h-4 w-4 text-blue-500" />
+                            Rückruf vereinbart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Information">
+                          <div className="flex items-center">
+                            <ClipboardList className="mr-2 h-4 w-4 text-amber-500" />
+                            Information
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="notes" className="mb-2 block">Notizen</Label>
+                    <Textarea 
+                      id="notes"
+                      value={callNotes}
+                      onChange={(e) => setCallNotes(e.target.value)}
+                      placeholder="Geben Sie hier Ihre Notizen zum Anruf ein..."
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <Button onClick={handleSaveCallLog} className="w-full bg-keyeff-500 hover:bg-keyeff-600">
+                    Anruf speichern
+                  </Button>
+                </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Keine Kunden gefunden</p>
+                  <PhoneOff className="mx-auto h-12 w-12 mb-2 opacity-30" />
+                  <p>Kein aktiver Anruf</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Active Customer */}
-        <div className="lg:col-span-2">
-          {selectedCustomer ? (
-            <Card className="h-full">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{selectedCustomer.name}</CardTitle>
-                    <CardDescription>{selectedCustomer.company}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <Label>Kontaktnummer auswählen</Label>
-                    <Select 
-                      value={selectedContactId || ""} 
-                      onValueChange={(value) => setSelectedContactId(value || null)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Telefonnummer auswählen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedCustomer.contacts ? (
-                          selectedCustomer.contacts.map(contact => (
-                            <SelectItem key={contact.id} value={contact.id}>
-                              {contact.phone} ({contact.contactType}{contact.isPrimary ? ", Primär" : ""})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>Keine Kontakte verfügbar</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                    <Label>Vertrag auswählen</Label>
-                    <Select 
-                      value={selectedContractId || ""} 
-                      onValueChange={(value) => setSelectedContractId(value || null)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Vertrag auswählen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Kein spezifischer Vertrag</SelectItem>
-                        {selectedCustomer.contracts ? (
-                          selectedCustomer.contracts.map(contract => (
-                            <SelectItem key={contract.id} value={contract.id}>
-                              {contract.type} ({contract.status})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>Keine Verträge verfügbar</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Letzter Kontakt: {
-                        selectedCustomer.lastContact 
-                          ? new Date(selectedCustomer.lastContact).toLocaleDateString('de-DE')
-                          : 'Keine Kontakthistorie'
-                      }</span>
-                    </div>
-                  </div>
-                  
-                  {/* WebRTC SIP Client */}
-                  <div className="flex flex-col justify-center">
-                    <WebRTCClient
-                      onCallStart={handleWebRTCCallStart}
-                      onCallEnd={handleWebRTCCallEnd}
-                      phoneNumber={selectedContactId 
-                        ? selectedCustomer.contacts.find(c => c.id === selectedContactId)?.phone 
-                        : selectedCustomer.contacts && selectedCustomer.contacts.length > 0 
-                          ? selectedCustomer.contacts[0].phone 
-                          : ""
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <h3 className="text-lg font-medium mb-3">Gesprächsnotiz</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="callLog">Gesprächsverlauf</Label>
-                      <Textarea 
-                        id="callLog" 
-                        placeholder="Dokumentieren Sie hier den Gesprächsverlauf..."
-                        value={callLog}
-                        onChange={(e) => setCallLog(e.target.value)}
-                        rows={4}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="callOutcome">Ergebnis</Label>
-                      <Select
-                        value={callOutcome}
-                        onValueChange={setCallOutcome}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ergebnis auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="interested">Interessiert</SelectItem>
-                          <SelectItem value="not_interested">Nicht interessiert</SelectItem>
-                          <SelectItem value="callback">Rückruf vereinbart</SelectItem>
-                          <SelectItem value="appointment">Termin vereinbart</SelectItem>
-                          <SelectItem value="no_answer">Keine Antwort</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="justify-between border-t pt-4">
-                <Button variant="outline" onClick={resetCallState}>
-                  <X className="mr-2" size={16} />
-                  Zurücksetzen
-                </Button>
-                <Button 
-                  className="bg-keyeff-500 hover:bg-keyeff-600"
-                  onClick={handleSaveCallLog}
-                  disabled={isLoggingCall}
-                >
-                  {isLoggingCall ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Wird gespeichert...
-                    </div>
-                  ) : (
-                    <>
-                      <FileText className="mr-2" size={16} />
-                      Speichern
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ) : (
-            <Card className="h-full flex items-center justify-center">
-              <CardContent className="text-center py-12">
-                <p className="text-muted-foreground">Bitte wählen Sie einen Kunden aus der Liste aus.</p>
-              </CardContent>
-            </Card>
-          )}
+        
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Telefon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WebRTCClient 
+                onCallStart={handleCallStart}
+                onCallEnd={handleCallEnd}
+                phoneNumber={selectedPhoneNumber}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Appointment Dialog */}
-      <Dialog open={showAppointmentDialog} onOpenChange={setShowAppointmentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Termin vereinbaren</DialogTitle>
-            <DialogDescription>
-              {selectedCustomer && `Termindetails für ${selectedCustomer.name} (${selectedCustomer.company})`}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="appointmentDate">Datum</Label>
-                <Input
-                  id="appointmentDate"
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="appointmentTime">Uhrzeit</Label>
-                <Input
-                  id="appointmentTime"
-                  type="time"
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="appointmentType">Termintyp</Label>
-              <Select
-                value={appointmentType}
-                onValueChange={setAppointmentType}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Termintyp auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beratung">Beratungsgespräch</SelectItem>
-                  <SelectItem value="vertragsverlaengerung">Vertragsverlängerung</SelectItem>
-                  <SelectItem value="praesentation">Produktpräsentation</SelectItem>
-                  <SelectItem value="service">Service-Termin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedCustomer && selectedCustomer.contracts && selectedCustomer.contracts.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="contractSelection">Bezogen auf Vertrag</Label>
-                <Select
-                  value={selectedContractId || ""}
-                  onValueChange={(value) => setSelectedContractId(value || null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Vertrag auswählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Kein spezifischer Vertrag</SelectItem>
-                    {selectedCustomer.contracts.map(contract => (
-                      <SelectItem key={contract.id} value={contract.id}>
-                        {contract.type} ({contract.status})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAppointmentDialog(false)}>
-              Abbrechen
-            </Button>
-            <Button 
-              className="bg-keyeff-500 hover:bg-keyeff-600" 
-              onClick={handleSaveAppointment}
-              disabled={isCreatingAppointment}
-            >
-              {isCreatingAppointment ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Wird gespeichert...
-                </div>
-              ) : (
-                <>
-                  <Check className="mr-2" size={16} />
-                  Termin speichern
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 };

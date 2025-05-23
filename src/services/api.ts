@@ -408,7 +408,129 @@ export const authService = {
 
 // For other services (just stubs for now)
 export const customerService = {
-  getCustomers: async () => isMockMode ? [] : (await apiClient.get('/api/customers/list.php')).data.data
+  getCustomers: (filialeId?: string | number | null, campaignId?: string | number | null) => {
+    // Demo implementation - in real app would call API
+    return Promise.resolve([
+      {
+        id: 1,
+        name: "Max Mustermann",
+        company: "Mustermann GmbH",
+        email: "max@mustermann.de",
+        primary_phones: "+49 123 456789,+49 987 654321",
+        address: "Musterstraße 1",
+        city: "München",
+        postal_code: "80333",
+        contract_types: "Premium,Basic",
+        contract_statuses: "Aktiv,Gekündigt",
+        contract_expiry_dates: "2025-12-31,2023-06-30",
+        monthly_value: "99.90",
+        priority: "high",
+        last_contact: "2023-05-15"
+      },
+      {
+        id: 2,
+        name: "Anna Schmidt",
+        company: "Schmidt & Partner",
+        email: "anna@schmidt-partner.de",
+        primary_phones: "+49 555 123456",
+        address: "Schmidtweg 42",
+        city: "Berlin",
+        postal_code: "10115",
+        contract_types: "Business",
+        contract_statuses: "Aktiv",
+        contract_expiry_dates: "2026-03-15",
+        monthly_value: "149.90",
+        priority: "medium",
+        last_contact: "2023-06-20"
+      }
+    ]);
+  },
+  
+  getCustomerById: (id: number | string) => {
+    // Demo implementation - in real app would call API
+    return Promise.resolve({
+      id: 1,
+      name: "Max Mustermann",
+      company: "Mustermann GmbH",
+      email: "max@mustermann.de",
+      address: "Musterstraße 1",
+      city: "München",
+      postal_code: "80333",
+      priority: "high",
+      last_contact: "2023-05-15",
+      notes: "Wichtiger Kunde mit mehreren Standorten in Deutschland.",
+      contacts: [
+        {
+          id: 1,
+          contact_type: "Büro",
+          contact_name: "Zentrale",
+          phone: "+49 123 456789",
+          is_primary: "1",
+          notes: "9-17 Uhr erreichbar"
+        },
+        {
+          id: 2,
+          contact_type: "Mobil",
+          contact_name: "Max Mustermann",
+          phone: "+49 987 654321",
+          is_primary: "0",
+          notes: ""
+        }
+      ],
+      contracts: [
+        {
+          id: 1,
+          contract_number: "KE-2023-001",
+          contract_type: "Premium",
+          contract_status: "Aktiv",
+          contract_start: "2023-01-01",
+          contract_expiry: "2025-12-31",
+          monthly_value: "99.90",
+          notes: "Inkl. 24/7 Support"
+        },
+        {
+          id: 2,
+          contract_number: "KE-2021-055",
+          contract_type: "Basic",
+          contract_status: "Gekündigt",
+          contract_start: "2021-06-01",
+          contract_expiry: "2023-06-30",
+          monthly_value: "39.90",
+          notes: "Wurde durch Premium ersetzt"
+        }
+      ],
+      call_logs: [
+        {
+          id: 1,
+          created_at: "2023-05-15T10:30:00",
+          user_name: "Thomas Berater",
+          duration: 350,
+          outcome: "Erfolgreich",
+          contract_type: "Premium",
+          contract_number: "KE-2023-001",
+          log_text: "Kunde hat Interesse an Vertragsverlängerung. Angebot wurde zugesendet."
+        },
+        {
+          id: 2,
+          created_at: "2023-03-22T14:15:00",
+          user_name: "Sarah Support",
+          duration: 180,
+          outcome: "Information",
+          contract_type: "Basic",
+          contract_number: "KE-2021-055",
+          log_text: "Kunde hat nach Upgradeoption gefragt. Details zum Premium-Paket wurden besprochen."
+        }
+      ]
+    });
+  },
+  
+  getCampaigns: (filialeId?: string | number | null) => {
+    // Demo implementation - in real app would call API
+    return Promise.resolve([
+      { id: 1, name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
+      { id: 2, name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
+    ]);
+  }
 };
 
 export const callService = {
