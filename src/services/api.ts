@@ -1,4 +1,3 @@
-
 import axios, { AxiosError } from 'axios';
 import { toast } from "sonner";
 
@@ -137,6 +136,68 @@ const handleMockResponse = (url, data) => {
     throw {
       success: false,
       message: 'Invalid reset code'
+    };
+  }
+  
+  // Connection test endpoints
+  if (url.includes('test-sip.php')) {
+    return {
+      success: true,
+      message: 'SIP connection successful',
+      data: {
+        connected: true,
+        server: data.settings.sip_server,
+        registrationTime: new Date().toISOString()
+      }
+    };
+  }
+
+  if (url.includes('test-vpn.php')) {
+    return {
+      success: true,
+      message: 'VPN connection successful',
+      data: {
+        connected: true,
+        server: data.settings.vpn_server,
+        ip: '10.0.0.1'
+      }
+    };
+  }
+
+  if (url.includes('test-fritzbox.php')) {
+    return {
+      success: true,
+      message: 'FRITZ!Box connection successful',
+      data: {
+        connected: true,
+        ip: data.settings.fritzbox_ip,
+        model: 'FRITZ!Box 7590',
+        firmware: '7.31'
+      }
+    };
+  }
+
+  if (url.includes('test-email.php')) {
+    return {
+      success: true,
+      message: 'Email connection successful',
+      data: {
+        connected: true,
+        server: data.settings.smtp_server,
+        sent: true
+      }
+    };
+  }
+
+  if (url.includes('test-keyeff-api.php')) {
+    return {
+      success: true,
+      message: 'KeyEff API connection successful',
+      data: {
+        connected: true,
+        api_version: '1.2.3',
+        endpoints: ['customers', 'contracts', 'orders']
+      }
     };
   }
   
@@ -360,17 +421,198 @@ export const appointmentService = {
 };
 
 export const filialeService = {
-  getFilialen: async () => isMockMode ? [] : (await apiClient.get('/api/filialen/list.php')).data.data
+  getFilialen: async () => {
+    if (isMockMode) {
+      return [
+        { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin", phoneNumber: "+49 30 1234567", email: "zentrale@keyeff.de" },
+        { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin", phoneNumber: "+49 30 9876543", email: "berlin@keyeff.de" },
+        { id: "3", name: "München", address: "Münchner Str. 25, 80333 München", phoneNumber: "+49 89 1234567", email: "muenchen@keyeff.de" },
+        { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg", phoneNumber: "+49 40 1234567", email: "hamburg@keyeff.de" },
+        { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln", phoneNumber: "+49 221 1234567", email: "koeln@keyeff.de" }
+      ];
+    } 
+    
+    return (await apiClient.get('/api/filialen/list.php')).data.data;
+  }
 };
 
 export const settingsService = {
-  getSettings: async (category, filialeId?) => isMockMode ? {} : (await apiClient.get(`/api/settings/get.php?category=${category}${filialeId ? `&filiale_id=${filialeId}` : ''}`)).data.data,
-  saveSettings: async (category, settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/save.php', { category, settings, filiale_id: filialeId })).data,
-  testSipConnection: async (settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-sip.php', { settings, filiale_id: filialeId })).data,
-  testVpnConnection: async (settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-vpn.php', { settings, filiale_id: filialeId })).data,
-  testFritzboxConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-fritzbox.php', { settings })).data,
-  testEmailConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-email.php', { settings })).data,
-  testKeyEffApiConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-keyeff-api.php', { settings })).data
+  getSettings: async (category, filialeId?) => {
+    if (isMockMode) {
+      // Return mock settings based on category
+      switch (category) {
+        case 'sip':
+          return {
+            sip_server: 'sip.example.com',
+            sip_port: '5060',
+            sip_username: 'sip_user',
+            sip_password: '********',
+            stun_server: 'stun.example.com',
+            turn_server: 'turn.example.com',
+            turn_username: 'turn_user',
+            turn_password: '********',
+            sip_enabled: '1'
+          };
+        case 'vpn':
+          return {
+            vpn_server: 'vpn.example.com',
+            vpn_port: '1194',
+            vpn_username: 'vpn_user',
+            vpn_password: '********',
+            vpn_enabled: '1'
+          };
+        case 'fritzbox':
+          return {
+            fritzbox_ip: '192.168.178.1',
+            fritzbox_port: '443',
+            fritzbox_username: 'admin',
+            fritzbox_password: '********',
+            fritzbox_enabled: '1'
+          };
+        case 'email':
+          return {
+            smtp_server: 'smtp.example.com',
+            smtp_port: '587',
+            smtp_username: 'info@keyeff.de',
+            smtp_password: '********',
+            smtp_encryption: 'tls',
+            smtp_from_email: 'info@keyeff.de',
+            smtp_from_name: 'KeyEff Call',
+            smtp_enabled: '1'
+          };
+        case 'keyeffApi':
+          return {
+            api_url: 'https://api.keyeff.de/v1',
+            api_key: 'demo_key_12345',
+            api_secret: '********',
+            api_timeout: '30',
+            api_enabled: '1'
+          };
+        default:
+          return {};
+      }
+    } 
+    
+    return (await apiClient.get(`/api/settings/get.php?category=${category}${filialeId ? `&filiale_id=${filialeId}` : ''}`)).data.data;
+  },
+  
+  saveSettings: async (category, settings, filialeId?) => isMockMode ? 
+    { success: true, message: 'Settings saved successfully (mock)', data: settings } : 
+    (await apiClient.post('/api/settings/save.php', { category, settings, filiale_id: filialeId })).data,
+  
+  testSipConnection: async (settings) => {
+    if (isMockMode) {
+      // Simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        success: true,
+        message: 'SIP connection successful (mock)',
+        data: {
+          connected: true,
+          server: settings.sip_server,
+          registrationTime: new Date().toISOString()
+        }
+      };
+    }
+    
+    return (await apiClient.post('/api/settings/test-sip.php', { settings })).data;
+  },
+  
+  testVpnConnection: async (settings) => {
+    if (isMockMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        success: true,
+        message: 'VPN connection successful (mock)',
+        data: {
+          connected: true,
+          server: settings.vpn_server,
+          ip: '10.0.0.1'
+        }
+      };
+    }
+    
+    return (await apiClient.post('/api/settings/test-vpn.php', { settings })).data;
+  },
+  
+  testFritzboxConnection: async (settings) => {
+    if (isMockMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        success: true,
+        message: 'FRITZ!Box connection successful (mock)',
+        data: {
+          connected: true,
+          ip: settings.fritzbox_ip,
+          model: 'FRITZ!Box 7590',
+          firmware: '7.31'
+        }
+      };
+    }
+    
+    return (await apiClient.post('/api/settings/test-fritzbox.php', { settings })).data;
+  },
+  
+  testEmailConnection: async (settings) => {
+    if (isMockMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // If missing critical settings, return error
+      if (!settings.smtp_server || !settings.smtp_username || !settings.smtp_password) {
+        return Promise.reject({
+          success: false,
+          message: 'Email settings incomplete',
+          data: {
+            connected: false
+          }
+        });
+      }
+      
+      return {
+        success: true,
+        message: 'Email connection successful (mock)',
+        data: {
+          connected: true,
+          server: settings.smtp_server,
+          sent: true
+        }
+      };
+    }
+    
+    return (await apiClient.post('/api/settings/test-email.php', { settings })).data;
+  },
+  
+  testKeyEffApiConnection: async (settings) => {
+    if (isMockMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // If missing critical settings, return error
+      if (!settings.api_url || !settings.api_key || !settings.api_secret) {
+        return Promise.reject({
+          success: false,
+          message: 'KeyEff API settings incomplete',
+          data: {
+            connected: false
+          }
+        });
+      }
+      
+      return {
+        success: true,
+        message: 'KeyEff API connection successful (mock)',
+        data: {
+          connected: true,
+          api_version: '1.2.3',
+          endpoints: ['customers', 'contracts', 'orders']
+        }
+      };
+    }
+    
+    return (await apiClient.post('/api/settings/test-keyeff-api.php', { settings })).data;
+  }
 };
 
 export const logsService = {

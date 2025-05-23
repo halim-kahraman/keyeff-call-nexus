@@ -16,11 +16,13 @@ import {
   BarChart,
   Database,
   Shield,
-  Mail
+  Mail,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { UserProfileDialog } from "@/components/user/UserProfileDialog";
 
 type NavItem = {
   icon: React.ElementType;
@@ -114,6 +116,14 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
   if (!user) return null;
 
   const isAdmin = user.role === 'admin';
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Administrator';
+      case 'filialleiter': return 'Filialleiter';
+      case 'telefonist': return 'Telefonist';
+      default: return role;
+    }
+  };
 
   return (
     <div
@@ -196,21 +206,25 @@ export const SideNav: React.FC<SideNavProps> = ({ collapsed, onToggle }) => {
         </nav>
 
         <div className="px-4 mt-auto">
-          <div className={cn(
-            "flex items-center space-x-3 mb-4",
-            collapsed && "flex-col space-x-0 space-y-2"
-          )}>
-            <Avatar>
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            {!collapsed && (
-              <div>
-                <p className="font-medium truncate-text">{user.name}</p>
-                <p className="text-xs opacity-70 truncate-text">{user.role}</p>
+          <UserProfileDialog 
+            trigger={
+              <div className={cn(
+                "flex items-center space-x-3 mb-4 cursor-pointer hover:bg-keyeff-600 rounded-md p-2 transition-colors",
+                collapsed && "flex-col space-x-0 space-y-2 items-center"
+              )}>
+                <Avatar>
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div>
+                    <p className="font-medium truncate-text">{user.name}</p>
+                    <p className="text-xs opacity-70 truncate-text">{getRoleDisplayName(user.role)}</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            } 
+          />
           <Button
             variant="ghost"
             size={collapsed ? "icon" : "default"}

@@ -2,9 +2,10 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { ReactNode } from "react";
+import { User } from "./types/auth.types";
 
 interface RequireAuthProps {
-  children: ReactNode;
+  children: ReactNode | ((props: { user: User }) => ReactNode);
   allowedRoles?: string[];
 }
 
@@ -21,6 +22,11 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedRoles }) => 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     // User doesn't have required role, redirect to unauthorized
     return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Render children with user data if children is a function
+  if (typeof children === 'function' && user) {
+    return <>{children({ user })}</>;
   }
 
   return <>{children}</>;

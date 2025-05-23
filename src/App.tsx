@@ -2,9 +2,11 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { useState } from "react";
 import RequireAuth from "@/context/RequireAuth";
+import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 
 // Pages
 import Login from "./pages/Login";
@@ -23,6 +25,36 @@ import UserManagement from "./pages/UserManagement";
 import Filialen from "./pages/Filialen";
 import Permissions from "./pages/Permissions";
 import Templates from "./pages/Templates";
+
+// Branch selection wrapper component
+interface AdminBranchSelectionProps {
+  children: React.ReactNode;
+}
+
+const AdminBranchSelection: React.FC<AdminBranchSelectionProps> = ({ children }) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(true);
+  const location = useLocation();
+  
+  // Check if a filiale is already selected in the URL
+  const searchParams = new URLSearchParams(location.search);
+  const hasFiliale = searchParams.has('filiale');
+  
+  // If admin already selected a branch, render children directly
+  if (hasFiliale) {
+    return <>{children}</>;
+  }
+  
+  return (
+    <>
+      <BranchSelectionDialog 
+        isOpen={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        targetPath={location.pathname}
+      />
+      {!isDialogOpen && <Navigate to="/" replace />}
+    </>
+  );
+};
 
 const queryClient = new QueryClient();
 
@@ -48,11 +80,20 @@ const App = () => (
               } 
             />
             
+            {/* Call Panel with branch selection for admin */}
             <Route 
               path="/call" 
               element={
-                <RequireAuth allowedRoles={["telefonist", "filialleiter"]}>
-                  <CallPanel />
+                <RequireAuth>
+                  {({ user }) => (
+                    user?.role === 'admin' ? (
+                      <AdminBranchSelection>
+                        <CallPanel />
+                      </AdminBranchSelection>
+                    ) : (
+                      <CallPanel />
+                    )
+                  )}
                 </RequireAuth>
               } 
             />
@@ -66,11 +107,20 @@ const App = () => (
               } 
             />
 
+            {/* Contacts with branch selection for admin */}
             <Route 
               path="/contacts" 
               element={
-                <RequireAuth allowedRoles={["telefonist", "filialleiter"]}>
-                  <Contacts />
+                <RequireAuth>
+                  {({ user }) => (
+                    user?.role === 'admin' ? (
+                      <AdminBranchSelection>
+                        <Contacts />
+                      </AdminBranchSelection>
+                    ) : (
+                      <Contacts />
+                    )
+                  )}
                 </RequireAuth>
               } 
             />

@@ -22,12 +22,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background w-full">
       <SideNav collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
 
       <main className={cn(
-        "flex flex-col flex-grow transition-all duration-300",
-        sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+        "flex flex-col flex-grow transition-all duration-300 w-full",
+        sidebarCollapsed ? "ml-0 lg:ml-16" : "ml-0 lg:ml-64"
       )}>
         <Header 
           title={title} 
@@ -36,7 +36,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onCallButtonClick={onCallButtonClick}
         />
 
-        <div className="p-6 flex-grow">{children}</div>
+        <div className="p-4 md:p-6 flex-grow">{children}</div>
       </main>
     </div>
   );

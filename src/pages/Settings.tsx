@@ -1,1046 +1,769 @@
-import { useState, useEffect } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/context/AuthContext";
-import { settingsService, filialeService } from "@/services/api";
-import WebRTCClient from "@/components/sip/WebRTCClient";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { settingsService, filialeService } from "@/services/api";
+import { connectionTester } from "@/utils/connectionTester";
+import { Save, Send, RefreshCw, Check } from "lucide-react";
 
-interface Filiale {
-  id: string;
-  name: string;
-  address: string;
-}
+// Common UI component for testing connections
+const TestConnectionButton = ({ 
+  onClick, 
+  isPending, 
+  testStatus 
+}: { 
+  onClick: () => void; 
+  isPending: boolean; 
+  testStatus: "idle" | "pending" | "success" | "error" 
+}) => {
+  const getIcon = () => {
+    if (isPending || testStatus === "pending") return <RefreshCw className="animate-spin" />;
+    if (testStatus === "success") return <Check className="text-green-500" />;
+    return <Send />;
+  };
+
+  return (
+    <Button 
+      type="button"
+      variant="outline" 
+      onClick={onClick}
+      disabled={isPending || testStatus === "pending"}
+      className={testStatus === "success" ? "border-green-500" : ""}
+    >
+      {getIcon()}
+      <span className="ml-2">Verbindung testen</span>
+    </Button>
+  );
+};
 
 const Settings = () => {
-  const [loading, setLoading] = useState(false);
-  const [selectedFilialeId, setSelectedFilialeId] = useState<string | undefined>(undefined);
   const { user } = useAuth();
-  
-  // Settings state
-  const [emailSettings, setEmailSettings] = useState({
-    smtpServer: "",
-    smtpPort: "",
-    smtpUser: "",
-    smtpPassword: "",
-    senderName: "",
-    senderEmail: "",
-  });
-  
-  const [sipSettings, setSipSettings] = useState({
-    sipServer: "",
-    sipPort: "",
-    sipUser: "",
-    sipPassword: "",
-    sipWebsocketUrl: "",
-    displayName: "",
-    outboundProxy: "",
-    transport: "wss",
-    enableWebRTC: true,
-    useSrtp: false,
-  });
-  
-  const [fritzboxSettings, setFritzboxSettings] = useState({
-    enableFritzBox: true,
-    fritzBoxIP: "",
-    fritzBoxUser: "",
-    fritzBoxPassword: "",
-    useFallback: true,
-  });
+  const [activeTab, setActiveTab] = useState("sip");
+  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
+  const [sipSettings, setSipSettings] = useState<Record<string, string>>({});
+  const [vpnSettings, setVpnSettings] = useState<Record<string, string>>({});
+  const [fritzboxSettings, setFritzboxSettings] = useState<Record<string, string>>({});
+  const [emailSettings, setEmailSettings] = useState<Record<string, string>>({});
+  const [keyeffApiSettings, setKeyeffApiSettings] = useState<Record<string, string>>({});
 
-  const [vpnSettings, setVpnSettings] = useState({
-    enableVpn: false,
-    vpnServer: "",
-    vpnPort: "",
-    vpnProtocol: "openvpn",
-    vpnUsername: "",
-    vpnPassword: "",
-    vpnCertificate: "",
-  });
+  const isAdmin = user?.role === "admin";
 
-  const [keyeffApiSettings, setKeyeffApiSettings] = useState({
-    apiUrl: "",
-    apiKey: "",
-    apiSecret: "",
-    enableSync: true,
-    syncInterval: "60",
-    syncLogs: true,
-  });
-  
-  // Fetch branch offices
-  const { data: filialen, isLoading: isLoadingFilialen } = useQuery({
+  // Track test status for each connection
+  const [testStatus, setTestStatus] = useState({
+    sip: "idle",
+    vpn: "idle",
+    fritzbox: "idle",
+    email: "idle",
+    keyeffApi: "idle",
+  } as Record<string, "idle" | "pending" | "success" | "error">);
+
+  // Fetch filiale data
+  const { data: filialen = [] } = useQuery({
     queryKey: ['filialen'],
     queryFn: filialeService.getFilialen,
   });
-  
-  // Fetch settings
-  const { data: emailSettingsData, isLoading: isLoadingEmailSettings, refetch: refetchEmailSettings } = useQuery({
-    queryKey: ['settings', 'email'],
-    queryFn: () => settingsService.getSettings('email'),
-    enabled: true,
-  });
-  
-  const { data: sipSettingsData, isLoading: isLoadingSipSettings, refetch: refetchSipSettings } = useQuery({
-    queryKey: ['settings', 'sip', selectedFilialeId],
-    queryFn: () => settingsService.getSettings('sip', selectedFilialeId),
-    enabled: true,
-  });
-  
-  const { data: fritzboxSettingsData, isLoading: isLoadingFritzboxSettings, refetch: refetchFritzboxSettings } = useQuery({
-    queryKey: ['settings', 'fritzbox'],
-    queryFn: () => settingsService.getSettings('fritzbox'),
-    enabled: true,
+
+  // For admin, use selected filiale or null; for others, use their assigned filiale
+  const effectiveFiliale = isAdmin ? selectedFiliale : user?.filiale;
+
+  // Fetch settings for the current tab
+  const { data: settings, isLoading: isLoadingSettings, refetch } = useQuery({
+    queryKey: ['settings', activeTab, effectiveFiliale],
+    queryFn: () => settingsService.getSettings(activeTab, effectiveFiliale),
+    enabled: !!activeTab,
   });
 
-  const { data: vpnSettingsData, isLoading: isLoadingVpnSettings, refetch: refetchVpnSettings } = useQuery({
-    queryKey: ['settings', 'vpn', selectedFilialeId],
-    queryFn: () => settingsService.getSettings('vpn', selectedFilialeId),
-    enabled: !!selectedFilialeId,
-  });
-
-  const { data: keyeffApiSettingsData, isLoading: isLoadingKeyeffApiSettings, refetch: refetchKeyeffApiSettings } = useQuery({
-    queryKey: ['settings', 'keyeff-api'],
-    queryFn: () => settingsService.getSettings('keyeff-api'),
-    enabled: user?.role === 'admin',
-  });
-
-  // Global settings
-  const { data: globalSettingsData, isLoading: isLoadingGlobalSettings, refetch: refetchGlobalSettings } = useQuery({
-    queryKey: ['settings', 'global'],
-    queryFn: () => settingsService.getSettings('global'),
-    enabled: user?.role === 'admin',
-  });
-  
-  // Save settings mutations
-  const { mutate: saveEmailSettingsMutation } = useMutation({
-    mutationFn: (settings: typeof emailSettings) => 
-      settingsService.saveSettings('email', settings),
+  // Save settings mutation
+  const { mutate: saveSettings, isPending: isSaving } = useMutation({
+    mutationFn: (data: { category: string; settings: Record<string, string>; filialeId?: string }) => 
+      settingsService.saveSettings(data.category, data.settings, data.filialeId),
     onSuccess: () => {
-      toast.success("Die E-Mail-Einstellungen wurden erfolgreich aktualisiert.");
-      refetchEmailSettings();
+      toast.success("Einstellungen erfolgreich gespeichert");
+      refetch(); // Refresh settings after save
     },
     onError: () => {
-      toast.error("Fehler beim Speichern der E-Mail-Einstellungen.");
-    }
-  });
-  
-  const { mutate: saveSipSettingsMutation } = useMutation({
-    mutationFn: (settings: Record<string, string>) => 
-      settingsService.saveSettings('sip', settings, selectedFilialeId),
-    onSuccess: () => {
-      toast.success("Die SIP-Einstellungen wurden erfolgreich aktualisiert.");
-      refetchSipSettings();
-    },
-    onError: () => {
-      toast.error("Fehler beim Speichern der SIP-Einstellungen.");
-    }
-  });
-  
-  const { mutate: saveFritzboxSettingsMutation } = useMutation({
-    mutationFn: (settings: Record<string, string>) => 
-      settingsService.saveSettings('fritzbox', settings),
-    onSuccess: () => {
-      toast.success("Die FRITZ!Box-Einstellungen wurden erfolgreich aktualisiert.");
-      refetchFritzboxSettings();
-    },
-    onError: () => {
-      toast.error("Fehler beim Speichern der FRITZ!Box-Einstellungen.");
+      toast.error("Fehler beim Speichern der Einstellungen");
     }
   });
 
-  const { mutate: saveVpnSettingsMutation } = useMutation({
-    mutationFn: (settings: Record<string, string>) => 
-      settingsService.saveSettings('vpn', settings, selectedFilialeId),
-    onSuccess: () => {
-      toast.success("Die VPN-Einstellungen wurden erfolgreich aktualisiert.");
-      refetchVpnSettings();
-    },
-    onError: () => {
-      toast.error("Fehler beim Speichern der VPN-Einstellungen.");
-    }
-  });
-
-  const { mutate: saveKeyeffApiSettingsMutation } = useMutation({
-    mutationFn: (settings: Record<string, string>) => 
-      settingsService.saveSettings('keyeff-api', settings),
-    onSuccess: () => {
-      toast.success("Die KeyEff API-Einstellungen wurden erfolgreich aktualisiert.");
-      refetchKeyeffApiSettings();
-    },
-    onError: () => {
-      toast.error("Fehler beim Speichern der KeyEff API-Einstellungen.");
-    }
-  });
-
-  const { mutate: saveGlobalSettingsMutation } = useMutation({
-    mutationFn: (settings: Record<string, string>) => 
-      settingsService.saveSettings('global', settings),
-    onSuccess: () => {
-      toast.success("Die globalen Einstellungen wurden erfolgreich aktualisiert.");
-      refetchGlobalSettings();
-    },
-    onError: () => {
-      toast.error("Fehler beim Speichern der globalen Einstellungen.");
-    }
-  });
-
-  // Test connections mutations
-  const { mutate: testSipConnectionMutation, isPending: isTestingSipConnection } = useMutation({
-    mutationFn: () => settingsService.testSipConnection({
-      sipServer: sipSettings.sipServer,
-      sipPort: sipSettings.sipPort,
-      sipUser: sipSettings.sipUser,
-      sipPassword: sipSettings.sipPassword,
-      outboundProxy: sipSettings.outboundProxy,
-      transport: sipSettings.transport,
-      useSrtp: sipSettings.useSrtp,
-    }, selectedFilialeId),
-    onSuccess: () => {
-      toast.success("SIP-Verbindung erfolgreich getestet.");
-    },
-    onError: () => {
-      toast.error("SIP-Verbindungstest fehlgeschlagen.");
-    }
-  });
-
-  const { mutate: testVpnConnectionMutation, isPending: isTestingVpnConnection } = useMutation({
-    mutationFn: () => settingsService.testVpnConnection({
-      vpnServer: vpnSettings.vpnServer,
-      vpnPort: vpnSettings.vpnPort,
-      vpnProtocol: vpnSettings.vpnProtocol,
-      vpnUsername: vpnSettings.vpnUsername,
-      vpnPassword: vpnSettings.vpnPassword,
-      vpnCertificate: vpnSettings.vpnCertificate,
-    }, selectedFilialeId),
-    onSuccess: () => {
-      toast.success("VPN-Verbindung erfolgreich getestet.");
-    },
-    onError: () => {
-      toast.error("VPN-Verbindungstest fehlgeschlagen.");
-    }
-  });
-
-  // New test mutations for FRITZ!Box and Email
-  const { mutate: testFritzboxConnectionMutation, isPending: isTestingFritzboxConnection } = useMutation({
-    mutationFn: () => settingsService.testFritzboxConnection({
-      fritzBoxIP: fritzboxSettings.fritzBoxIP,
-      fritzBoxUser: fritzboxSettings.fritzBoxUser,
-      fritzBoxPassword: fritzboxSettings.fritzBoxPassword,
-    }),
-    onSuccess: () => {
-      toast.success("FRITZ!Box-Verbindung erfolgreich getestet.");
-    },
-    onError: () => {
-      toast.error("FRITZ!Box-Verbindungstest fehlgeschlagen.");
-    }
-  });
-
-  const { mutate: testEmailConnectionMutation, isPending: isTestingEmailConnection } = useMutation({
-    mutationFn: () => settingsService.testEmailConnection({
-      smtpServer: emailSettings.smtpServer,
-      smtpPort: emailSettings.smtpPort,
-      smtpUser: emailSettings.smtpUser,
-      smtpPassword: emailSettings.smtpPassword,
-    }),
-    onSuccess: () => {
-      toast.success("E-Mail-Verbindung erfolgreich getestet.");
-    },
-    onError: () => {
-      toast.error("E-Mail-Verbindungstest fehlgeschlagen.");
-    }
-  });
-
-  const { mutate: testKeyEffApiConnectionMutation, isPending: isTestingKeyEffApiConnection } = useMutation({
-    mutationFn: () => settingsService.testKeyEffApiConnection({
-      apiUrl: keyeffApiSettings.apiUrl,
-      apiKey: keyeffApiSettings.apiKey,
-      apiSecret: keyeffApiSettings.apiSecret,
-    }),
-    onSuccess: () => {
-      toast.success("KeyEff API-Verbindung erfolgreich getestet.");
-    },
-    onError: () => {
-      toast.error("KeyEff API-Verbindungstest fehlgeschlagen.");
-    }
-  });
-  
-  // Update settings from fetched data
+  // Update local state when settings are loaded
   useEffect(() => {
-    if (emailSettingsData) {
-      setEmailSettings({
-        smtpServer: emailSettingsData.smtpServer || "",
-        smtpPort: emailSettingsData.smtpPort || "",
-        smtpUser: emailSettingsData.smtpUser || "",
-        smtpPassword: emailSettingsData.smtpPassword || "********",
-        senderName: emailSettingsData.senderName || "",
-        senderEmail: emailSettingsData.senderEmail || "",
-      });
+    if (!settings || isLoadingSettings) return;
+    
+    switch (activeTab) {
+      case 'sip':
+        setSipSettings(settings);
+        break;
+      case 'vpn':
+        setVpnSettings(settings);
+        break;
+      case 'fritzbox':
+        setFritzboxSettings(settings);
+        break;
+      case 'email':
+        setEmailSettings(settings);
+        break;
+      case 'keyeffApi':
+        setKeyeffApiSettings(settings);
+        break;
     }
-  }, [emailSettingsData]);
-  
-  useEffect(() => {
-    if (sipSettingsData) {
-      setSipSettings({
-        sipServer: sipSettingsData.sipServer || "",
-        sipPort: sipSettingsData.sipPort || "",
-        sipUser: sipSettingsData.sipUser || "",
-        sipPassword: sipSettingsData.sipPassword || "********",
-        sipWebsocketUrl: sipSettingsData.sipWebsocketUrl || "",
-        displayName: sipSettingsData.displayName || "",
-        outboundProxy: sipSettingsData.outboundProxy || "",
-        transport: sipSettingsData.transport || "wss",
-        enableWebRTC: sipSettingsData.enableWebRTC === "true",
-        useSrtp: sipSettingsData.useSrtp === "true",
-      });
+  }, [settings, isLoadingSettings, activeTab]);
+
+  // Handlers for settings changes
+  const handleSipChange = (key: string, value: string) => {
+    setSipSettings({ ...sipSettings, [key]: value });
+  };
+
+  const handleVpnChange = (key: string, value: string) => {
+    setVpnSettings({ ...vpnSettings, [key]: value });
+  };
+
+  const handleFritzboxChange = (key: string, value: string) => {
+    setFritzboxSettings({ ...fritzboxSettings, [key]: value });
+  };
+
+  const handleEmailChange = (key: string, value: string) => {
+    setEmailSettings({ ...emailSettings, [key]: value });
+  };
+
+  const handleKeyEffApiChange = (key: string, value: string) => {
+    setKeyeffApiSettings({ ...keyeffApiSettings, [key]: value });
+  };
+
+  // Form submission handlers
+  const handleSaveSettings = (category: string) => {
+    let settingsToSave: Record<string, string> = {};
+    
+    switch (category) {
+      case 'sip':
+        settingsToSave = sipSettings;
+        break;
+      case 'vpn':
+        settingsToSave = vpnSettings;
+        break;
+      case 'fritzbox':
+        settingsToSave = fritzboxSettings;
+        break;
+      case 'email':
+        settingsToSave = emailSettings;
+        break;
+      case 'keyeffApi':
+        settingsToSave = keyeffApiSettings;
+        break;
     }
-  }, [sipSettingsData]);
-  
-  useEffect(() => {
-    if (fritzboxSettingsData) {
-      setFritzboxSettings({
-        enableFritzBox: fritzboxSettingsData.enableFritzBox === "true",
-        fritzBoxIP: fritzboxSettingsData.fritzBoxIP || "",
-        fritzBoxUser: fritzboxSettingsData.fritzBoxUser || "",
-        fritzBoxPassword: fritzboxSettingsData.fritzBoxPassword || "********",
-        useFallback: fritzboxSettingsData.useFallback === "true",
-      });
-    }
-  }, [fritzboxSettingsData]);
-
-  useEffect(() => {
-    if (vpnSettingsData) {
-      setVpnSettings({
-        enableVpn: vpnSettingsData.enableVpn === "true",
-        vpnServer: vpnSettingsData.vpnServer || "",
-        vpnPort: vpnSettingsData.vpnPort || "",
-        vpnProtocol: vpnSettingsData.vpnProtocol || "openvpn",
-        vpnUsername: vpnSettingsData.vpnUsername || "",
-        vpnPassword: vpnSettingsData.vpnPassword || "********",
-        vpnCertificate: vpnSettingsData.vpnCertificate || "",
-      });
-    }
-  }, [vpnSettingsData]);
-
-  useEffect(() => {
-    if (keyeffApiSettingsData) {
-      setKeyeffApiSettings({
-        apiUrl: keyeffApiSettingsData.apiUrl || "",
-        apiKey: keyeffApiSettingsData.apiKey || "",
-        apiSecret: keyeffApiSettingsData.apiSecret || "********",
-        enableSync: keyeffApiSettingsData.enableSync === "true",
-        syncInterval: keyeffApiSettingsData.syncInterval || "60",
-        syncLogs: keyeffApiSettingsData.syncLogs === "true",
-      });
-    }
-  }, [keyeffApiSettingsData]);
-  
-  // Save handlers
-  const handleSaveEmailSettings = () => {
-    setLoading(true);
-    saveEmailSettingsMutation(emailSettings);
-    setLoading(false);
-  };
-  
-  const handleSaveSipSettings = () => {
-    setLoading(true);
-    // Convert boolean values to strings before saving
-    const sipSettingsToSave: Record<string, string> = {
-      sipServer: sipSettings.sipServer,
-      sipPort: sipSettings.sipPort,
-      sipUser: sipSettings.sipUser,
-      sipPassword: sipSettings.sipPassword,
-      sipWebsocketUrl: sipSettings.sipWebsocketUrl,
-      displayName: sipSettings.displayName,
-      outboundProxy: sipSettings.outboundProxy,
-      transport: sipSettings.transport,
-      enableWebRTC: sipSettings.enableWebRTC.toString(),
-      useSrtp: sipSettings.useSrtp.toString(),
-    };
-    saveSipSettingsMutation(sipSettingsToSave);
-    setLoading(false);
-  };
-  
-  const handleSaveFritzBoxSettings = () => {
-    setLoading(true);
-    // Convert boolean values to strings before saving
-    const fritzboxSettingsToSave: Record<string, string> = {
-      enableFritzBox: fritzboxSettings.enableFritzBox.toString(),
-      fritzBoxIP: fritzboxSettings.fritzBoxIP,
-      fritzBoxUser: fritzboxSettings.fritzBoxUser,
-      fritzBoxPassword: fritzboxSettings.fritzBoxPassword,
-      useFallback: fritzboxSettings.useFallback.toString(),
-    };
-    saveFritzboxSettingsMutation(fritzboxSettingsToSave);
-    setLoading(false);
+    
+    saveSettings({
+      category,
+      settings: settingsToSave,
+      filialeId: effectiveFiliale || undefined
+    });
   };
 
-  const handleSaveVpnSettings = () => {
-    setLoading(true);
-    // Convert boolean values to strings before saving
-    const vpnSettingsToSave: Record<string, string> = {
-      enableVpn: vpnSettings.enableVpn.toString(),
-      vpnServer: vpnSettings.vpnServer,
-      vpnPort: vpnSettings.vpnPort,
-      vpnProtocol: vpnSettings.vpnProtocol,
-      vpnUsername: vpnSettings.vpnUsername,
-      vpnPassword: vpnSettings.vpnPassword,
-      vpnCertificate: vpnSettings.vpnCertificate,
-    };
-    saveVpnSettingsMutation(vpnSettingsToSave);
-    setLoading(false);
+  // Connection test handlers
+  const handleTestSipConnection = async () => {
+    setTestStatus({ ...testStatus, sip: "pending" });
+    const result = await connectionTester.testSipConnection(sipSettings);
+    setTestStatus({ ...testStatus, sip: result.success ? "success" : "error" });
   };
 
-  const handleSaveKeyEffApiSettings = () => {
-    setLoading(true);
-    // Convert boolean values to strings before saving
-    const keyeffApiSettingsToSave: Record<string, string> = {
-      apiUrl: keyeffApiSettings.apiUrl,
-      apiKey: keyeffApiSettings.apiKey,
-      apiSecret: keyeffApiSettings.apiSecret,
-      enableSync: keyeffApiSettings.enableSync.toString(),
-      syncInterval: keyeffApiSettings.syncInterval,
-      syncLogs: keyeffApiSettings.syncLogs.toString(),
-    };
-    saveKeyeffApiSettingsMutation(keyeffApiSettingsToSave);
-    setLoading(false);
+  const handleTestVpnConnection = async () => {
+    setTestStatus({ ...testStatus, vpn: "pending" });
+    const result = await connectionTester.testVpnConnection(vpnSettings);
+    setTestStatus({ ...testStatus, vpn: result.success ? "success" : "error" });
   };
 
-  const handleTestSipConnection = () => {
-    testSipConnectionMutation();
+  const handleTestFritzboxConnection = async () => {
+    setTestStatus({ ...testStatus, fritzbox: "pending" });
+    const result = await connectionTester.testFritzboxConnection(fritzboxSettings);
+    setTestStatus({ ...testStatus, fritzbox: result.success ? "success" : "error" });
   };
 
-  const handleTestVpnConnection = () => {
-    testVpnConnectionMutation();
+  const handleTestEmailConnection = async () => {
+    setTestStatus({ ...testStatus, email: "pending" });
+    const result = await connectionTester.testEmailConnection(emailSettings);
+    setTestStatus({ ...testStatus, email: result.success ? "success" : "error" });
   };
 
-  const handleTestFritzboxConnection = () => {
-    testFritzboxConnectionMutation();
-  };
-
-  const handleTestEmailConnection = () => {
-    testEmailConnectionMutation();
-  };
-
-  const handleTestKeyEffApiConnection = () => {
-    testKeyEffApiConnectionMutation();
+  const handleTestKeyEffApiConnection = async () => {
+    setTestStatus({ ...testStatus, keyeffApi: "pending" });
+    const result = await connectionTester.testKeyEffApiConnection(keyeffApiSettings);
+    setTestStatus({ ...testStatus, keyeffApi: result.success ? "success" : "error" });
   };
 
   return (
     <AppLayout title="Einstellungen" subtitle="System- und Benutzereinstellungen verwalten">
-      {user?.role === 'admin' && (
-        <div className="mb-6">
-          <Label htmlFor="filiale-select" className="mb-2 block">Filiale auswählen</Label>
-          <Select
-            value={selectedFilialeId}
-            onValueChange={(value) => setSelectedFilialeId(value)}
-          >
-            <SelectTrigger id="filiale-select" className="max-w-sm">
-              <SelectValue placeholder="Zentrale Einstellungen" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={undefined}>Zentrale Einstellungen</SelectItem>
-              {!isLoadingFilialen && filialen?.map((filiale: Filiale) => (
-                <SelectItem key={filiale.id} value={filiale.id}>{filiale.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground mt-1">
-            {selectedFilialeId ? 'Filialspezifische Einstellungen werden angezeigt' : 'Zentrale Einstellungen werden angezeigt'}
-          </p>
-        </div>
-      )}
-      
-      <Tabs defaultValue="sip" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 w-full">
-          <TabsTrigger value="sip">SIP & WebRTC</TabsTrigger>
-          <TabsTrigger value="vpn">VPN</TabsTrigger>
-          <TabsTrigger value="fritzbox">FRITZ!Box</TabsTrigger>
-          <TabsTrigger value="email">E-Mail</TabsTrigger>
-          <TabsTrigger value="keyeff-api">KeyEff API</TabsTrigger>
-          <TabsTrigger value="global">Global</TabsTrigger>
-          <TabsTrigger value="test">Testclient</TabsTrigger>
-        </TabsList>
-
-        {/* SIP Tab */}
-        <TabsContent value="sip" className="space-y-4">
+      <div className="space-y-6">
+        {/* Filiale selection for admin */}
+        {isAdmin && (
           <Card>
             <CardHeader>
-              <CardTitle>SIP & WebRTC Einstellungen</CardTitle>
+              <CardTitle>Filiale auswählen</CardTitle>
               <CardDescription>
-                Konfigurieren Sie die SIP-Server Einstellungen für WebRTC Telefonie.
-                {selectedFilialeId && (
-                  <span className="block mt-1 text-keyeff-500">
-                    Diese Einstellungen gelten nur für die ausgewählte Filiale.
-                  </span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="col-span-2 flex items-center space-x-2 mb-6">
-                <Switch 
-                  id="enableWebRTC" 
-                  checked={sipSettings.enableWebRTC}
-                  onCheckedChange={(checked) => setSipSettings({...sipSettings, enableWebRTC: checked})}
-                />
-                <Label htmlFor="enableWebRTC">WebRTC für Telefonie aktivieren</Label>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sipServer">SIP Server</Label>
-                  <Input 
-                    id="sipServer" 
-                    value={sipSettings.sipServer} 
-                    onChange={(e) => setSipSettings({...sipSettings, sipServer: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sipPort">SIP Port</Label>
-                  <Input 
-                    id="sipPort" 
-                    value={sipSettings.sipPort} 
-                    onChange={(e) => setSipSettings({...sipSettings, sipPort: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sipUser">SIP Benutzername</Label>
-                  <Input 
-                    id="sipUser" 
-                    value={sipSettings.sipUser} 
-                    onChange={(e) => setSipSettings({...sipSettings, sipUser: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sipPassword">SIP Passwort</Label>
-                  <Input 
-                    id="sipPassword" 
-                    type="password" 
-                    value={sipSettings.sipPassword} 
-                    onChange={(e) => setSipSettings({...sipSettings, sipPassword: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sipWebsocketUrl">WebSocket URL</Label>
-                  <Input 
-                    id="sipWebsocketUrl" 
-                    value={sipSettings.sipWebsocketUrl}
-                    onChange={(e) => setSipSettings({...sipSettings, sipWebsocketUrl: e.target.value})}
-                    placeholder="wss://sip.example.com:8089/ws"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Anzeigename</Label>
-                  <Input 
-                    id="displayName" 
-                    value={sipSettings.displayName}
-                    onChange={(e) => setSipSettings({...sipSettings, displayName: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="outboundProxy">Outbound Proxy (optional)</Label>
-                  <Input 
-                    id="outboundProxy" 
-                    value={sipSettings.outboundProxy}
-                    onChange={(e) => setSipSettings({...sipSettings, outboundProxy: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="transport">Transport Protokoll</Label>
-                  <Select
-                    value={sipSettings.transport}
-                    onValueChange={(value) => setSipSettings({...sipSettings, transport: value})}
-                  >
-                    <SelectTrigger id="transport">
-                      <SelectValue placeholder="Transport wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ws">WebSocket (ws)</SelectItem>
-                      <SelectItem value="wss">Secure WebSocket (wss)</SelectItem>
-                      <SelectItem value="udp">UDP</SelectItem>
-                      <SelectItem value="tcp">TCP</SelectItem>
-                      <SelectItem value="tls">TLS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 flex items-center space-x-2">
-                  <Switch 
-                    id="useSrtp" 
-                    checked={sipSettings.useSrtp}
-                    onCheckedChange={(checked) => setSipSettings({...sipSettings, useSrtp: checked})}
-                  />
-                  <Label htmlFor="useSrtp">Verschlüsselte Medien (SRTP) verwenden</Label>
-                </div>
-              </div>
-              
-              <div className="flex gap-4 mt-6">
-                <Button onClick={handleSaveSipSettings} disabled={loading}>
-                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestSipConnection}
-                  disabled={isTestingSipConnection}
-                >
-                  {isTestingSipConnection ? "Teste Verbindung..." : "Verbindung testen"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* VPN Tab */}
-        <TabsContent value="vpn" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>VPN Einstellungen</CardTitle>
-              <CardDescription>
-                Konfigurieren Sie die VPN-Verbindung für die sichere Kommunikation mit dem SIP-Server.
-                {selectedFilialeId && (
-                  <span className="block mt-1 text-keyeff-500">
-                    Diese Einstellungen gelten nur für die ausgewählte Filiale.
-                  </span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="col-span-2 flex items-center space-x-2 mb-6">
-                <Switch 
-                  id="enableVpn" 
-                  checked={vpnSettings.enableVpn}
-                  onCheckedChange={(checked) => setVpnSettings({...vpnSettings, enableVpn: checked})}
-                />
-                <Label htmlFor="enableVpn">VPN für diese Filiale aktivieren</Label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="vpnProtocol">VPN Protokoll</Label>
-                  <Select
-                    value={vpnSettings.vpnProtocol}
-                    onValueChange={(value) => setVpnSettings({...vpnSettings, vpnProtocol: value})}
-                    disabled={!vpnSettings.enableVpn}
-                  >
-                    <SelectTrigger id="vpnProtocol">
-                      <SelectValue placeholder="Protokoll wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openvpn">OpenVPN</SelectItem>
-                      <SelectItem value="wireguard">WireGuard</SelectItem>
-                      <SelectItem value="ipsec">IPsec</SelectItem>
-                      <SelectItem value="pptp">PPTP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vpnServer">VPN Server</Label>
-                  <Input 
-                    id="vpnServer" 
-                    value={vpnSettings.vpnServer} 
-                    onChange={(e) => setVpnSettings({...vpnSettings, vpnServer: e.target.value})}
-                    disabled={!vpnSettings.enableVpn}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vpnPort">VPN Port</Label>
-                  <Input 
-                    id="vpnPort" 
-                    value={vpnSettings.vpnPort} 
-                    onChange={(e) => setVpnSettings({...vpnSettings, vpnPort: e.target.value})}
-                    disabled={!vpnSettings.enableVpn}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vpnUsername">VPN Benutzername</Label>
-                  <Input 
-                    id="vpnUsername" 
-                    value={vpnSettings.vpnUsername} 
-                    onChange={(e) => setVpnSettings({...vpnSettings, vpnUsername: e.target.value})}
-                    disabled={!vpnSettings.enableVpn}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vpnPassword">VPN Passwort</Label>
-                  <Input 
-                    id="vpnPassword" 
-                    type="password" 
-                    value={vpnSettings.vpnPassword} 
-                    onChange={(e) => setVpnSettings({...vpnSettings, vpnPassword: e.target.value})}
-                    disabled={!vpnSettings.enableVpn}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2 mt-4">
-                <Label htmlFor="vpnCertificate">VPN Zertifikat / Konfigurationsdatei</Label>
-                <textarea
-                  id="vpnCertificate"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={vpnSettings.vpnCertificate}
-                  onChange={(e) => setVpnSettings({...vpnSettings, vpnCertificate: e.target.value})}
-                  disabled={!vpnSettings.enableVpn}
-                  placeholder={vpnSettings.enableVpn ? "Fügen Sie hier das VPN-Zertifikat oder die Konfigurationsdatei ein" : "Aktivieren Sie zuerst VPN"}
-                />
-              </div>
-
-              <div className="flex gap-4 mt-6">
-                <Button 
-                  onClick={handleSaveVpnSettings} 
-                  disabled={loading || (user?.role !== 'admin' && !selectedFilialeId)}
-                >
-                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestVpnConnection}
-                  disabled={isTestingVpnConnection || !vpnSettings.enableVpn || (user?.role !== 'admin' && !selectedFilialeId)}
-                >
-                  {isTestingVpnConnection ? "Teste Verbindung..." : "Verbindung testen"}
-                </Button>
-              </div>
-              {user?.role === 'admin' && !selectedFilialeId && (
-                <p className="text-sm text-amber-500">
-                  VPN-Einstellungen können nur für eine spezifische Filiale konfiguriert werden. 
-                  Bitte wählen Sie oben eine Filiale aus.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* FRITZ!Box Tab */}
-        <TabsContent value="fritzbox" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>FRITZ!Box Einstellungen</CardTitle>
-              <CardDescription>
-                Konfigurieren Sie die FRITZ!Box TR-064 Integration für Telefonie.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-2 flex items-center space-x-2">
-                  <Switch 
-                    id="enableFritzBox" 
-                    checked={fritzboxSettings.enableFritzBox}
-                    onCheckedChange={(checked) => setFritzboxSettings({...fritzboxSettings, enableFritzBox: checked})}
-                  />
-                  <Label htmlFor="enableFritzBox">FRITZ!Box Integration aktivieren</Label>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fritzBoxIP">FRITZ!Box IP-Adresse</Label>
-                  <Input 
-                    id="fritzBoxIP" 
-                    value={fritzboxSettings.fritzBoxIP} 
-                    onChange={(e) => setFritzboxSettings({...fritzboxSettings, fritzBoxIP: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fritzBoxUser">FRITZ!Box Benutzername</Label>
-                  <Input 
-                    id="fritzBoxUser" 
-                    value={fritzboxSettings.fritzBoxUser} 
-                    onChange={(e) => setFritzboxSettings({...fritzboxSettings, fritzBoxUser: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fritzBoxPassword">FRITZ!Box Passwort</Label>
-                  <Input 
-                    id="fritzBoxPassword" 
-                    type="password" 
-                    value={fritzboxSettings.fritzBoxPassword} 
-                    onChange={(e) => setFritzboxSettings({...fritzboxSettings, fritzBoxPassword: e.target.value})}
-                  />
-                </div>
-                <div className="col-span-2 flex items-center space-x-2">
-                  <Switch 
-                    id="useFallback" 
-                    checked={fritzboxSettings.useFallback}
-                    onCheckedChange={(checked) => setFritzboxSettings({...fritzboxSettings, useFallback: checked})}
-                  />
-                  <Label htmlFor="useFallback">Als Fallback für WebRTC nutzen</Label>
-                </div>
-              </div>
-              <div className="flex gap-4 mt-6">
-                <Button onClick={handleSaveFritzBoxSettings} disabled={loading}>
-                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestFritzboxConnection}
-                  disabled={isTestingFritzboxConnection || !fritzboxSettings.enableFritzBox}
-                >
-                  {isTestingFritzboxConnection ? "Teste Verbindung..." : "Verbindung testen"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Email Tab */}
-        <TabsContent value="email" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>SMTP-Einstellungen</CardTitle>
-              <CardDescription>
-                Konfigurieren Sie die SMTP-Einstellungen für das Versenden von E-Mails (OTP, Benachrichtigungen).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="smtpServer">SMTP Server</Label>
-                  <Input 
-                    id="smtpServer" 
-                    value={emailSettings.smtpServer} 
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpServer: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPort">SMTP Port</Label>
-                  <Input 
-                    id="smtpPort" 
-                    value={emailSettings.smtpPort} 
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpPort: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpUser">SMTP Benutzername</Label>
-                  <Input 
-                    id="smtpUser" 
-                    value={emailSettings.smtpUser} 
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpUser: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPassword">SMTP Passwort</Label>
-                  <Input 
-                    id="smtpPassword" 
-                    type="password" 
-                    value={emailSettings.smtpPassword} 
-                    onChange={(e) => setEmailSettings({...emailSettings, smtpPassword: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senderName">Absender Name</Label>
-                  <Input 
-                    id="senderName" 
-                    value={emailSettings.senderName} 
-                    onChange={(e) => setEmailSettings({...emailSettings, senderName: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senderEmail">Absender E-Mail</Label>
-                  <Input 
-                    id="senderEmail" 
-                    value={emailSettings.senderEmail} 
-                    onChange={(e) => setEmailSettings({...emailSettings, senderEmail: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-4 mt-6">
-                <Button onClick={handleSaveEmailSettings} disabled={loading}>
-                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleTestEmailConnection}
-                  disabled={isTestingEmailConnection}
-                >
-                  {isTestingEmailConnection ? "Teste Verbindung..." : "Verbindung testen"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* KeyEff API Tab */}
-        <TabsContent value="keyeff-api" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>KeyEff API Einstellungen</CardTitle>
-              <CardDescription>
-                Konfigurieren Sie die Verbindung zur KeyEff API für Datenaustausch und Synchronisation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {user?.role === 'admin' ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="col-span-2 flex items-center space-x-2 mb-4">
-                      <Switch 
-                        id="enableSync" 
-                        checked={keyeffApiSettings.enableSync}
-                        onCheckedChange={(checked) => setKeyeffApiSettings({...keyeffApiSettings, enableSync: checked})}
-                      />
-                      <Label htmlFor="enableSync">API-Synchronisation aktivieren</Label>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiUrl">API URL</Label>
-                      <Input 
-                        id="apiUrl" 
-                        value={keyeffApiSettings.apiUrl} 
-                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiUrl: e.target.value})}
-                        placeholder="https://api.keyeff.de/v1"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiKey">API Key</Label>
-                      <Input 
-                        id="apiKey" 
-                        value={keyeffApiSettings.apiKey} 
-                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiKey: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiSecret">API Secret</Label>
-                      <Input 
-                        id="apiSecret" 
-                        type="password" 
-                        value={keyeffApiSettings.apiSecret} 
-                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiSecret: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="syncInterval">Synchronisationsintervall (Minuten)</Label>
-                      <Input 
-                        id="syncInterval" 
-                        type="number" 
-                        value={keyeffApiSettings.syncInterval} 
-                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, syncInterval: e.target.value})}
-                        min="5"
-                        max="1440"
-                      />
-                    </div>
-                    <div className="col-span-2 flex items-center space-x-2 mt-4">
-                      <Switch 
-                        id="syncLogs" 
-                        checked={keyeffApiSettings.syncLogs}
-                        onCheckedChange={(checked) => setKeyeffApiSettings({...keyeffApiSettings, syncLogs: checked})}
-                      />
-                      <Label htmlFor="syncLogs">Logs synchronisieren</Label>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 mt-6">
-                    <Button onClick={handleSaveKeyEffApiSettings} disabled={loading}>
-                      {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleTestKeyEffApiConnection}
-                      disabled={isTestingKeyEffApiConnection || !keyeffApiSettings.apiUrl || !keyeffApiSettings.apiKey}
-                    >
-                      {isTestingKeyEffApiConnection ? "Teste Verbindung..." : "Verbindung testen"}
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-amber-500">
-                  Die KeyEff API-Einstellungen können nur von Administratoren eingesehen und bearbeitet werden.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Global Settings Tab (Admin Only) */}
-        <TabsContent value="global" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Globale Einstellungen</CardTitle>
-              <CardDescription>
-                Systemweite Konfigurationseinstellungen, die für alle Filialen gelten.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {user?.role === 'admin' ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="systemName">Systemname</Label>
-                      <Input 
-                        id="systemName" 
-                        placeholder="KeyEff Call Panel" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="systemVersion">Systemversion</Label>
-                      <Input 
-                        id="systemVersion" 
-                        placeholder="1.0.0" 
-                      />
-                    </div>
-                    <div className="col-span-2 flex items-center space-x-2">
-                      <Switch id="enableDebugMode" />
-                      <Label htmlFor="enableDebugMode">Debug-Modus aktivieren</Label>
-                    </div>
-                    <div className="col-span-2 flex items-center space-x-2">
-                      <Switch id="enableDataBackup" />
-                      <Label htmlFor="enableDataBackup">Automatische Datensicherung aktivieren</Label>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="backupInterval">Backup-Intervall (Tage)</Label>
-                      <Input 
-                        id="backupInterval" 
-                        type="number" 
-                        placeholder="7" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sessionTimeout">Sitzungstimeout (Minuten)</Label>
-                      <Input 
-                        id="sessionTimeout" 
-                        type="number" 
-                        placeholder="30" 
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="backupPath">Backup Pfad</Label>
-                      <Input 
-                        id="backupPath" 
-                        placeholder="/var/backups/keyeff" 
-                      />
-                    </div>
-                  </div>
-                  <Button>
-                    Globale Einstellungen speichern
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-amber-500">
-                  Die globalen Einstellungen können nur von Administratoren eingesehen und bearbeitet werden.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Testclient Tab */}
-        <TabsContent value="test" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>WebRTC SIP Testclient</CardTitle>
-              <CardDescription>
-                Testen Sie die WebRTC SIP-Verbindung mit diesem integrierten Client.
-                {selectedFilialeId && (
-                  <span className="block mt-1 text-keyeff-500">
-                    Der Client verwendet die Einstellungen der ausgewählten Filiale.
-                  </span>
-                )}
+                Als Administrator können Sie Einstellungen für alle Filialen anpassen.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WebRTCClient filialeId={selectedFilialeId} />
+              <Select value={selectedFiliale || ''} onValueChange={setSelectedFiliale}>
+                <SelectTrigger className="w-full md:w-[300px]">
+                  <SelectValue placeholder="Zentrale Einstellungen" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Zentrale Einstellungen</SelectItem>
+                  {filialen.map((filiale: any) => (
+                    <SelectItem key={filiale.id} value={filiale.id}>
+                      {filiale.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+
+        {/* Settings tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-5 mb-8">
+            <TabsTrigger value="sip">SIP & WebRTC</TabsTrigger>
+            <TabsTrigger value="vpn">VPN</TabsTrigger>
+            <TabsTrigger value="fritzbox">FRITZ!Box</TabsTrigger>
+            <TabsTrigger value="email">E-Mail</TabsTrigger>
+            <TabsTrigger value="keyeffApi">KeyEff API</TabsTrigger>
+          </TabsList>
+          
+          {/* SIP Settings */}
+          <TabsContent value="sip">
+            <Card>
+              <CardHeader>
+                <CardTitle>SIP & WebRTC Einstellungen</CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die SIP-Server für die Telefonie.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sip_server">SIP-Server</Label>
+                      <Input 
+                        id="sip_server" 
+                        value={sipSettings.sip_server || ''} 
+                        onChange={(e) => handleSipChange('sip_server', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sip_port">SIP-Port</Label>
+                      <Input 
+                        id="sip_port" 
+                        value={sipSettings.sip_port || ''} 
+                        onChange={(e) => handleSipChange('sip_port', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sip_username">SIP-Benutzername</Label>
+                      <Input 
+                        id="sip_username" 
+                        value={sipSettings.sip_username || ''} 
+                        onChange={(e) => handleSipChange('sip_username', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sip_password">SIP-Passwort</Label>
+                      <Input 
+                        id="sip_password" 
+                        type="password" 
+                        value={sipSettings.sip_password || ''} 
+                        onChange={(e) => handleSipChange('sip_password', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="stun_server">STUN-Server</Label>
+                      <Input 
+                        id="stun_server" 
+                        value={sipSettings.stun_server || ''} 
+                        onChange={(e) => handleSipChange('stun_server', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="turn_server">TURN-Server</Label>
+                      <Input 
+                        id="turn_server" 
+                        value={sipSettings.turn_server || ''} 
+                        onChange={(e) => handleSipChange('turn_server', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="turn_username">TURN-Benutzername</Label>
+                      <Input 
+                        id="turn_username" 
+                        value={sipSettings.turn_username || ''} 
+                        onChange={(e) => handleSipChange('turn_username', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="turn_password">TURN-Passwort</Label>
+                      <Input 
+                        id="turn_password" 
+                        type="password" 
+                        value={sipSettings.turn_password || ''} 
+                        onChange={(e) => handleSipChange('turn_password', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sip_enabled">SIP aktiviert</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="sip_enabled" 
+                      checked={sipSettings.sip_enabled === '1'} 
+                      onCheckedChange={(checked) => handleSipChange('sip_enabled', checked ? '1' : '0')}
+                    />
+                    <span>{sipSettings.sip_enabled === '1' ? 'Aktiviert' : 'Deaktiviert'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <TestConnectionButton 
+                    onClick={handleTestSipConnection}
+                    isPending={isSaving}
+                    testStatus={testStatus.sip}
+                  />
+                  <Button 
+                    onClick={() => handleSaveSettings('sip')} 
+                    disabled={isSaving}
+                    className="ml-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Speichern...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Einstellungen speichern
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* VPN Settings */}
+          <TabsContent value="vpn">
+            <Card>
+              <CardHeader>
+                <CardTitle>VPN Einstellungen</CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die VPN-Verbindung für sichere Kommunikation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="vpn_server">VPN-Server</Label>
+                      <Input 
+                        id="vpn_server" 
+                        value={vpnSettings.vpn_server || ''} 
+                        onChange={(e) => handleVpnChange('vpn_server', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vpn_port">VPN-Port</Label>
+                      <Input 
+                        id="vpn_port" 
+                        value={vpnSettings.vpn_port || ''} 
+                        onChange={(e) => handleVpnChange('vpn_port', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="vpn_username">VPN-Benutzername</Label>
+                      <Input 
+                        id="vpn_username" 
+                        value={vpnSettings.vpn_username || ''} 
+                        onChange={(e) => handleVpnChange('vpn_username', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vpn_password">VPN-Passwort</Label>
+                      <Input 
+                        id="vpn_password" 
+                        type="password" 
+                        value={vpnSettings.vpn_password || ''} 
+                        onChange={(e) => handleVpnChange('vpn_password', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vpn_enabled">VPN aktiviert</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="vpn_enabled" 
+                      checked={vpnSettings.vpn_enabled === '1'} 
+                      onCheckedChange={(checked) => handleVpnChange('vpn_enabled', checked ? '1' : '0')}
+                    />
+                    <span>{vpnSettings.vpn_enabled === '1' ? 'Aktiviert' : 'Deaktiviert'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <TestConnectionButton 
+                    onClick={handleTestVpnConnection}
+                    isPending={isSaving}
+                    testStatus={testStatus.vpn}
+                  />
+                  <Button 
+                    onClick={() => handleSaveSettings('vpn')} 
+                    disabled={isSaving}
+                    className="ml-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Speichern...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Einstellungen speichern
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* FRITZ!Box Settings */}
+          <TabsContent value="fritzbox">
+            <Card>
+              <CardHeader>
+                <CardTitle>FRITZ!Box Einstellungen</CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die Verbindung zur FRITZ!Box für die Telefonie.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fritzbox_ip">FRITZ!Box IP-Adresse</Label>
+                      <Input 
+                        id="fritzbox_ip" 
+                        value={fritzboxSettings.fritzbox_ip || ''} 
+                        onChange={(e) => handleFritzboxChange('fritzbox_ip', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fritzbox_port">FRITZ!Box Port</Label>
+                      <Input 
+                        id="fritzbox_port" 
+                        value={fritzboxSettings.fritzbox_port || ''} 
+                        onChange={(e) => handleFritzboxChange('fritzbox_port', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fritzbox_username">FRITZ!Box Benutzername</Label>
+                      <Input 
+                        id="fritzbox_username" 
+                        value={fritzboxSettings.fritzbox_username || ''} 
+                        onChange={(e) => handleFritzboxChange('fritzbox_username', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fritzbox_password">FRITZ!Box Passwort</Label>
+                      <Input 
+                        id="fritzbox_password" 
+                        type="password" 
+                        value={fritzboxSettings.fritzbox_password || ''} 
+                        onChange={(e) => handleFritzboxChange('fritzbox_password', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fritzbox_enabled">FRITZ!Box aktiviert</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="fritzbox_enabled" 
+                      checked={fritzboxSettings.fritzbox_enabled === '1'} 
+                      onCheckedChange={(checked) => handleFritzboxChange('fritzbox_enabled', checked ? '1' : '0')}
+                    />
+                    <span>{fritzboxSettings.fritzbox_enabled === '1' ? 'Aktiviert' : 'Deaktiviert'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <TestConnectionButton 
+                    onClick={handleTestFritzboxConnection}
+                    isPending={isSaving}
+                    testStatus={testStatus.fritzbox}
+                  />
+                  <Button 
+                    onClick={() => handleSaveSettings('fritzbox')} 
+                    disabled={isSaving}
+                    className="ml-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Speichern...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Einstellungen speichern
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Email Settings */}
+          <TabsContent value="email">
+            <Card>
+              <CardHeader>
+                <CardTitle>E-Mail Einstellungen</CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die SMTP-Einstellungen für das Versenden von E-Mails.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_server">SMTP-Server</Label>
+                      <Input 
+                        id="smtp_server" 
+                        value={emailSettings.smtp_server || ''} 
+                        onChange={(e) => handleEmailChange('smtp_server', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_port">SMTP-Port</Label>
+                      <Input 
+                        id="smtp_port" 
+                        value={emailSettings.smtp_port || ''} 
+                        onChange={(e) => handleEmailChange('smtp_port', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_username">SMTP-Benutzername</Label>
+                      <Input 
+                        id="smtp_username" 
+                        value={emailSettings.smtp_username || ''} 
+                        onChange={(e) => handleEmailChange('smtp_username', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_password">SMTP-Passwort</Label>
+                      <Input 
+                        id="smtp_password" 
+                        type="password" 
+                        value={emailSettings.smtp_password || ''} 
+                        onChange={(e) => handleEmailChange('smtp_password', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_encryption">Verschlüsselung</Label>
+                      <Select 
+                        value={emailSettings.smtp_encryption || 'tls'} 
+                        onValueChange={(value) => handleEmailChange('smtp_encryption', value)}
+                      >
+                        <SelectTrigger id="smtp_encryption">
+                          <SelectValue placeholder="Verschlüsselungstyp wählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tls">TLS</SelectItem>
+                          <SelectItem value="ssl">SSL</SelectItem>
+                          <SelectItem value="none">Keine</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_from_email">Absender E-Mail</Label>
+                      <Input 
+                        id="smtp_from_email" 
+                        type="email" 
+                        value={emailSettings.smtp_from_email || ''} 
+                        onChange={(e) => handleEmailChange('smtp_from_email', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp_from_name">Absender Name</Label>
+                      <Input 
+                        id="smtp_from_name" 
+                        value={emailSettings.smtp_from_name || ''} 
+                        onChange={(e) => handleEmailChange('smtp_from_name', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="smtp_enabled">E-Mail aktiviert</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="smtp_enabled" 
+                      checked={emailSettings.smtp_enabled === '1'} 
+                      onCheckedChange={(checked) => handleEmailChange('smtp_enabled', checked ? '1' : '0')}
+                    />
+                    <span>{emailSettings.smtp_enabled === '1' ? 'Aktiviert' : 'Deaktiviert'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <TestConnectionButton 
+                    onClick={handleTestEmailConnection}
+                    isPending={isSaving}
+                    testStatus={testStatus.email}
+                  />
+                  <Button 
+                    onClick={() => handleSaveSettings('email')} 
+                    disabled={isSaving}
+                    className="ml-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Speichern...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Einstellungen speichern
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* KeyEff API Settings */}
+          <TabsContent value="keyeffApi">
+            <Card>
+              <CardHeader>
+                <CardTitle>KeyEff API Einstellungen</CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die Verbindung zur KeyEff API.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="api_url">API URL</Label>
+                      <Input 
+                        id="api_url" 
+                        value={keyeffApiSettings.api_url || ''} 
+                        onChange={(e) => handleKeyEffApiChange('api_url', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="api_key">API Schlüssel</Label>
+                      <Input 
+                        id="api_key" 
+                        value={keyeffApiSettings.api_key || ''} 
+                        onChange={(e) => handleKeyEffApiChange('api_key', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="api_secret">API Secret</Label>
+                      <Input 
+                        id="api_secret" 
+                        type="password" 
+                        value={keyeffApiSettings.api_secret || ''} 
+                        onChange={(e) => handleKeyEffApiChange('api_secret', e.target.value)}
+                        placeholder="********"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="api_timeout">API Timeout (Sekunden)</Label>
+                      <Input 
+                        id="api_timeout" 
+                        type="number" 
+                        value={keyeffApiSettings.api_timeout || '30'} 
+                        onChange={(e) => handleKeyEffApiChange('api_timeout', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="api_enabled">API aktiviert</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="api_enabled" 
+                      checked={keyeffApiSettings.api_enabled === '1'} 
+                      onCheckedChange={(checked) => handleKeyEffApiChange('api_enabled', checked ? '1' : '0')}
+                    />
+                    <span>{keyeffApiSettings.api_enabled === '1' ? 'Aktiviert' : 'Deaktiviert'}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-4">
+                  <TestConnectionButton 
+                    onClick={handleTestKeyEffApiConnection}
+                    isPending={isSaving}
+                    testStatus={testStatus.keyeffApi}
+                  />
+                  <Button 
+                    onClick={() => handleSaveSettings('keyeffApi')} 
+                    disabled={isSaving}
+                    className="ml-auto"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Speichern...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Einstellungen speichern
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </AppLayout>
   );
 };
