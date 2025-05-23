@@ -40,7 +40,7 @@ export function SideNav() {
   };
 
   return (
-    <div className={`flex flex-col h-full ${isMobile ? 'w-full' : 'w-64'} border-r bg-secondary`}>
+    <div className="flex flex-col h-full bg-secondary w-64 border-r fixed left-0 top-0 bottom-0 overflow-y-auto">
       <div className="px-6 py-4">
         <Link to="/dashboard">
           <h1 className="font-bold text-2xl">KeyEff CallPanel</h1>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { SideNav } from "./SideNav";
 import { Header } from "./Header";
 import { cn } from "@/lib/utils";
@@ -19,20 +19,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   showCallButton,
   onCallButtonClick
 }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
   return (
     <div className="flex min-h-screen bg-background w-full">
       <SideNav />
 
-      <main className={cn(
-        "flex flex-col flex-grow transition-all duration-300 w-full",
-        sidebarCollapsed ? "ml-0 lg:ml-16" : "ml-0 lg:ml-64"
-      )}>
+      <main className="flex flex-col flex-grow transition-all duration-300 w-full ml-64">
         <Header 
           title={title} 
           subtitle={subtitle} 

@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
-import { User, AuthContextType, PasswordResetResponse } from "../types/auth.types";
+import { User, AuthContextType, PasswordResetResponse, UserRole } from "../types/auth.types";
 
 // Create context with undefined initial value
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,9 +86,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.verify2FA(pendingUserId, code);
       
       if (response.success) {
+        // Ensure the user data has the correct UserRole type
+        const userData = {
+          ...response.data.user,
+          role: response.data.user.role as UserRole
+        };
+        
         // Store user data in state and local storage
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
         }
@@ -97,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPendingUserId(null);
         
         toast.success("Anmeldung erfolgreich", {
-          description: `Willkommen zurück, ${response.data.user.name}!`
+          description: `Willkommen zurück, ${userData.name}!`
         });
       }
     } catch (error) {
