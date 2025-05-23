@@ -5,83 +5,58 @@
 
 @layer base {
   :root {
-    --background: 210 50% 98%;
-    --foreground: 222 47% 20%;
-
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 20%;
-
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 20%;
-
-    --primary: 210 80% 45%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 20%;
-
+    --secondary-foreground: 222.2 84% 4.9%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
-    --accent: 210 80% 97%;
-    --accent-foreground: 222 47% 20%;
-
-    --destructive: 0 84% 60%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 210 80% 45%;
-
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-
-    --sidebar-background: 210 80% 45%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 210 60% 98%;
-    --sidebar-primary-foreground: 210 80% 45%;
-    --sidebar-accent: 210 80% 40%;
-    --sidebar-accent-foreground: 210 60% 98%;
-    --sidebar-border: 210 80% 40%;
-    --sidebar-ring: 217 92% 60%;
   }
 
   .dark {
-    --background: 222 47% 10%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
-    --card: 222 47% 12%;
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 12%;
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 210 80% 50%;
-    --primary-foreground: 222 47% 10%;
-
-    --secondary: 217 32% 18%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 32% 18%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 32% 18%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
-    --border: 217 32% 18%;
-    --input: 217 32% 18%;
-    --ring: 212 27% 84%;
-
-    --sidebar-background: 222 47% 10%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 80% 50%;
-    --sidebar-primary-foreground: 222 47% 10%;
-    --sidebar-accent: 210 80% 40%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 210 80% 40%;
-    --sidebar-ring: 217 92% 60%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -89,94 +64,38 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
 }
 
-.call-button {
-  @apply relative inline-flex items-center justify-center;
-}
-
-.call-button::after {
-  content: '';
-  @apply absolute w-full h-full rounded-full animate-pulse-ring bg-keyeff-500/50;
-}
-
-/* Add animation for pulse ring */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
+@layer utilities {
+  /* Hide scrollbar for webkit browsers */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
-  50% {
-    transform: scale(1);
-    opacity: 0.4;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
   }
-  100% {
-    transform: scale(0.95);
-    opacity: 0.7;
+  
+  /* Ensure tabs container doesn't overflow the viewport */
+  .tabs-container {
+    @apply w-full max-w-full overflow-hidden;
   }
-}
-
-.animate-pulse-ring {
-  animation: pulse-ring 1.5s infinite;
-}
-
-.truncate-text {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-/* Call panel specific styles */
-.call-panel-container {
-  @apply p-6 bg-white shadow-md rounded-lg;
-}
-
-.call-control-button {
-  @apply flex flex-col items-center justify-center gap-2 p-4 rounded-lg transition-colors;
-}
-
-.call-control-button:hover {
-  @apply bg-muted;
-}
-
-.telephony-section {
-  @apply bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 shadow-sm;
-}
-
-.customer-section {
-  @apply bg-gradient-to-r from-slate-50 to-slate-100 p-6 rounded-lg border border-slate-200 shadow-sm;
-}
-
-.call-actions {
-  @apply grid grid-cols-2 md:grid-cols-4 gap-4 my-6;
-}
-
-.call-button {
-  @apply bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-md hover:shadow-lg;
-}
-
-/* Override dropdown contents to ensure they're visible */
-.bg-popover {
-  @apply bg-white;
-}
-
-[data-state=open] > .select-content {
-  @apply bg-white;
-}
-
-.select-content {
-  @apply bg-white;
-}
-
-[data-radix-popper-content-wrapper] {
-  @apply z-50;
-}
-
-/* Make sure dropdowns have correct z-index */
-.select-content, 
-.dropdown-menu-content,
-.popover-content {
-  @apply z-50;
+  
+  /* Mobile-specific tab list styling */
+  @media (max-width: 640px) {
+    .tabs-list-mobile {
+      @apply flex w-full overflow-x-auto overflow-y-hidden;
+      @apply snap-x snap-mandatory;
+      @apply px-1;
+      scroll-behavior: smooth;
+    }
+    
+    .tabs-trigger-mobile {
+      @apply snap-start flex-shrink-0;
+      @apply min-w-max px-4;
+    }
+  }
 }
