@@ -7,12 +7,33 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter 
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Pen, Save, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Pen, Save, Plus, Trash2, Info } from "lucide-react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+interface PlaceholderInfo {
+  key: string;
+  description: string;
+  example: string;
+}
 
 interface Template {
   id: string;
@@ -21,7 +42,17 @@ interface Template {
 }
 
 const WhatsAppTemplates = () => {
-  const { toast } = useToast();
+  const placeholders: PlaceholderInfo[] = [
+    { key: "{{name}}", description: "Name des Kunden", example: "Max Mustermann" },
+    { key: "{{phoneNumber}}", description: "Telefonnummer", example: "0123456789" },
+    { key: "{{date}}", description: "Datum", example: "01.06.2025" },
+    { key: "{{time}}", description: "Uhrzeit", example: "14:00" },
+    { key: "{{tarifinformation}}", description: "Tarifdetails", example: "Premium Tarif Plus" },
+    { key: "{{betrag}}", description: "Geldbetrag", example: "49,99€" },
+    { key: "{{mitarbeiter}}", description: "Name des Mitarbeiters", example: "Anna Schmidt" },
+    { key: "{{filiale}}", description: "Filialname oder -standort", example: "Berlin-Mitte" }
+  ];
+
   const [templates, setTemplates] = useState<Template[]>([
     {
       id: "1",
@@ -43,6 +74,7 @@ const WhatsAppTemplates = () => {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [showPlaceholders, setShowPlaceholders] = useState(false);
   
   // Handle template edit
   const handleEdit = (template: Template) => {
@@ -58,8 +90,7 @@ const WhatsAppTemplates = () => {
     if (isAdding) {
       // Add new template
       setTemplates([...templates, {...editingTemplate, id: Date.now().toString()}]);
-      toast({
-        title: "Vorlage erstellt",
+      toast.success("Vorlage erstellt", {
         description: "Die WhatsApp-Vorlage wurde erfolgreich erstellt."
       });
     } else {
@@ -68,8 +99,7 @@ const WhatsAppTemplates = () => {
         t.id === editingTemplate.id ? editingTemplate : t
       );
       setTemplates(updatedTemplates);
-      toast({
-        title: "Vorlage aktualisiert",
+      toast.success("Vorlage aktualisiert", {
         description: "Die WhatsApp-Vorlage wurde erfolgreich aktualisiert."
       });
     }
@@ -82,8 +112,7 @@ const WhatsAppTemplates = () => {
   // Handle template delete
   const handleDelete = (id: string) => {
     setTemplates(templates.filter(t => t.id !== id));
-    toast({
-      title: "Vorlage gelöscht",
+    toast.success("Vorlage gelöscht", {
       description: "Die WhatsApp-Vorlage wurde erfolgreich gelöscht."
     });
   };
@@ -113,10 +142,13 @@ const WhatsAppTemplates = () => {
     
     // Replace placeholders with test values and create WhatsApp link
     let message = template.content
-      .replace("{{name}}", "Max Mustermann")
-      .replace("{{date}}", "01.06.2025")
-      .replace("{{time}}", "14:00")
-      .replace("{{tarifinformation}}", "Premium Tarif Plus");
+      .replace(/{{name}}/g, "Max Mustermann")
+      .replace(/{{date}}/g, "01.06.2025")
+      .replace(/{{time}}/g, "14:00")
+      .replace(/{{tarifinformation}}/g, "Premium Tarif Plus")
+      .replace(/{{betrag}}/g, "49,99€")
+      .replace(/{{mitarbeiter}}/g, "Anna Schmidt")
+      .replace(/{{filiale}}/g, "Berlin-Mitte");
     
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
@@ -124,10 +156,36 @@ const WhatsAppTemplates = () => {
     // Open WhatsApp link in a new window
     window.open(whatsappUrl, "_blank");
     
-    toast({
-      title: "Test-Nachricht vorbereitet",
+    toast.success("Test-Nachricht vorbereitet", {
       description: "WhatsApp wird geöffnet mit der vorbereiteten Nachricht."
     });
+  };
+  
+  // Insert placeholder at cursor position
+  const insertPlaceholder = (placeholder: string) => {
+    if (!editingTemplate) return;
+    
+    const textarea = document.getElementById('template-content') as HTMLTextAreaElement;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    const contentBefore = editingTemplate.content.substring(0, start);
+    const contentAfter = editingTemplate.content.substring(end);
+    
+    const newContent = contentBefore + placeholder + contentAfter;
+    
+    setEditingTemplate({
+      ...editingTemplate,
+      content: newContent
+    });
+    
+    // Focus back on textarea and set cursor position after the inserted placeholder
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+    }, 0);
   };
   
   return (
@@ -139,11 +197,51 @@ const WhatsAppTemplates = () => {
             Erstellen und bearbeiten Sie Vorlagen für WhatsApp-Nachrichten an Kunden
           </p>
         </div>
-        <Button onClick={handleAddNew} className="flex items-center">
-          <Plus className="mr-2 h-4 w-4" />
-          Neue Vorlage
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowPlaceholders(!showPlaceholders)}
+          >
+            <Info className="mr-2 h-4 w-4" />
+            Platzhalter {showPlaceholders ? "ausblenden" : "anzeigen"}
+          </Button>
+          <Button onClick={handleAddNew} className="flex items-center">
+            <Plus className="mr-2 h-4 w-4" />
+            Neue Vorlage
+          </Button>
+        </div>
       </div>
+      
+      {showPlaceholders && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle>Verfügbare Platzhalter</CardTitle>
+            <CardDescription>
+              Verwenden Sie diese Platzhalter in Ihren Vorlagen, um dynamische Inhalte einzufügen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Platzhalter</TableHead>
+                  <TableHead>Beschreibung</TableHead>
+                  <TableHead>Beispiel</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {placeholders.map((ph) => (
+                  <TableRow key={ph.key}>
+                    <TableCell className="font-mono">{ph.key}</TableCell>
+                    <TableCell>{ph.description}</TableCell>
+                    <TableCell>{ph.example}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {templates.map(template => (
@@ -158,14 +256,26 @@ const WhatsAppTemplates = () => {
               </div>
               
               <div className="text-xs text-muted-foreground mb-4">
-                <p>Verfügbare Variablen:</p>
-                <ul className="list-disc pl-5 mt-1">
-                  <li>{"{{name}}"}</li>
-                  <li>{"{{phoneNumber}}"}</li>
-                  <li>{"{{date}}"}</li>
-                  <li>{"{{time}}"}</li>
-                  <li>{"{{tarifinformation}}"}</li>
-                </ul>
+                <p>Enthaltene Platzhalter:</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {placeholders.filter(ph => 
+                    template.content.includes(ph.key)
+                  ).map(ph => (
+                    <TooltipProvider key={ph.key}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            {ph.key}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{ph.description}</p>
+                          <p className="text-xs text-muted-foreground">Beispiel: {ph.example}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                </div>
               </div>
               
               <div className="flex space-x-2">
@@ -222,41 +332,51 @@ const WhatsAppTemplates = () => {
                 </div>
                 
                 <div>
-                  <label htmlFor="content" className="block text-sm font-medium mb-1">Vorlage Inhalt</label>
+                  <label htmlFor="template-content" className="block text-sm font-medium mb-1">Vorlage Inhalt</label>
                   <Textarea 
-                    id="content" 
+                    id="template-content" 
                     value={editingTemplate.content}
                     onChange={(e) => setEditingTemplate({...editingTemplate, content: e.target.value})}
                     placeholder="Hallo {{name}}, wir freuen uns..."
                     rows={6}
                   />
-                  
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <p>Verfügbare Variablen:</p>
-                    <p className="mt-1">
-                      <code>{"{{name}} {{phoneNumber}} {{date}} {{time}} {{tarifinformation}}"}</code>
-                    </p>
-                  </div>
                 </div>
                 
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsEditing(false);
-                      setIsAdding(false);
-                      setEditingTemplate(null);
-                    }}
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button onClick={handleSave} className="flex items-center">
-                    <Save className="mr-2 h-4 w-4" />
-                    Speichern
-                  </Button>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Platzhalter einfügen</label>
+                  <div className="flex flex-wrap gap-2">
+                    {placeholders.map((ph) => (
+                      <Button 
+                        key={ph.key}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => insertPlaceholder(ph.key)}
+                        className="text-xs"
+                      >
+                        {ph.key}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditing(false);
+                  setIsAdding(false);
+                  setEditingTemplate(null);
+                }}
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSave} className="flex items-center">
+                <Save className="mr-2 h-4 w-4" />
+                Speichern
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       )}

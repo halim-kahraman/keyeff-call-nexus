@@ -22,7 +22,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <div className="flex min-h-screen bg-background">
       <SideNav />
 
-      <main className="flex flex-col flex-grow transition-all duration-300 w-full ml-64">
+      <main className="flex flex-col flex-grow w-full ml-64">
         <Header 
           title={title} 
           subtitle={subtitle} 

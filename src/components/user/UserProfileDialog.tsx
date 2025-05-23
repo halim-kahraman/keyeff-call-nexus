@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +8,32 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Define validation schemas
+const profileFormSchema = z.object({
+  name: z.string().min(2, "Name muss mindestens 2 Zeichen lang sein"),
+  email: z.string().email("Gültige E-Mail-Adresse erforderlich"),
+  role: z.string().optional(),
+  filiale: z.string().optional().nullable(),
+});
+
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, "Aktuelles Passwort ist erforderlich"),
+  newPassword: z.string().min(8, "Passwort muss mindestens 8 Zeichen lang sein"),
+  confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Die Passwörter stimmen nicht überein",
+  path: ["confirmPassword"],
+});
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export function UserProfileDialog({
   open,
@@ -16,13 +42,66 @@ export function UserProfileDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { user } = useAuth();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { user, updateUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<string>("profile");
 
-  const { mutate: changePassword, isPending } = useMutation({
-    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+  // Profile form
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: user?.name || "",
+      email: user?.email || "",
+      role: user?.role || "",
+      filiale: user?.filiale || null,
+    }
+  });
+
+  // Password form
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }
+  });
+
+  // Update profile form values when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || "",
+        filiale: user.filiale || null,
+      });
+    }
+  }, [user, profileForm.reset]);
+
+  // Profile update mutation
+  const { mutate: updateProfile, isPending: isProfileUpdating } = useMutation({
+    mutationFn: async (data: ProfileFormValues) => {
+      // This would be a real API call in production
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true, user: { ...user, ...data } });
+        }, 1000);
+      });
+    },
+    onSuccess: (data: any) => {
+      if (updateUser && user) {
+        updateUser({ ...user, ...data.user });
+      }
+      toast.success("Profil erfolgreich aktualisiert");
+    },
+    onError: () => {
+      toast.error("Fehler beim Aktualisieren des Profils");
+    }
+  });
+
+  // Password change mutation
+  const { mutate: changePassword, isPending: isPasswordUpdating } = useMutation({
+    mutationFn: async (data: PasswordFormValues) => {
       // This would be a real API call in production
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -32,29 +111,19 @@ export function UserProfileDialog({
     },
     onSuccess: () => {
       toast.success("Passwort erfolgreich geändert");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      passwordForm.reset();
     },
     onError: () => {
       toast.error("Fehler beim Ändern des Passworts");
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword !== confirmPassword) {
-      toast.error("Die neuen Passwörter stimmen nicht überein");
-      return;
-    }
-    
-    if (newPassword.length < 8) {
-      toast.error("Das neue Passwort muss mindestens 8 Zeichen lang sein");
-      return;
-    }
-    
-    changePassword({ currentPassword, newPassword });
+  const handleProfileSubmit = (values: ProfileFormValues) => {
+    updateProfile(values);
+  };
+
+  const handlePasswordSubmit = (values: PasswordFormValues) => {
+    changePassword(values);
   };
   
   const getUserInitials = () => {
@@ -70,7 +139,7 @@ export function UserProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Benutzerprofil</DialogTitle>
           <DialogDescription>
@@ -78,69 +147,145 @@ export function UserProfileDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col items-center py-4">
+        <div className="flex flex-col items-center py-4 mb-2">
           <Avatar className="h-24 w-24 mb-4">
+            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} />
             <AvatarFallback className="text-xl bg-blue-600 text-white">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>
-          
-          <h3 className="text-lg font-medium">{user?.name}</h3>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
-          <div className="mt-1 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-            {user?.role === "admin" ? "Administrator" : 
-             user?.role === "filialleiter" ? "Filialleiter" : "Telefonist"}
-          </div>
-          
-          {user?.filiale && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Filiale: {user.filiale}
-            </p>
-          )}
         </div>
         
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Aktuelles Passwort</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-password">Neues Passwort</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Passwort bestätigen</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="profile">Profil</TabsTrigger>
+            <TabsTrigger value="password">Passwort</TabsTrigger>
+          </TabsList>
           
-          <DialogFooter className="mt-6">
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Speichern..." : "Passwort ändern"}
-            </Button>
-          </DialogFooter>
-        </form>
+          <TabsContent value="profile">
+            <Form {...profileForm}>
+              <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-4">
+                <FormField
+                  control={profileForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={profileForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-Mail</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={profileForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rolle</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {user?.filiale && (
+                  <FormField
+                    control={profileForm.control}
+                    name="filiale"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Filiale</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ''} disabled />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                <DialogFooter>
+                  <Button type="submit" disabled={isProfileUpdating}>
+                    {isProfileUpdating ? "Speichern..." : "Profil speichern"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </TabsContent>
+          
+          <TabsContent value="password">
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Aktuelles Passwort</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Neues Passwort</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Passwort bestätigen</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="submit" disabled={isPasswordUpdating}>
+                    {isPasswordUpdating ? "Speichern..." : "Passwort ändern"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

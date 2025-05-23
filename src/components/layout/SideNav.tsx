@@ -14,7 +14,6 @@ import {
   FileText,
   LogOut,
   User,
-  Grid,
   Building2,
   Clock,
   Cog
@@ -137,7 +136,7 @@ export const SideNav = () => {
         </div>
       </div>
 
-      <div className="p-4 border-t border-blue-700">
+      <div className="p-4 border-t border-blue-700 mt-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="bg-blue-700 rounded-full w-10 h-10 flex items-center justify-center mr-2">
