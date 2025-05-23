@@ -19,7 +19,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onCallButtonClick
 }) => {
   return (
-    <div className="flex min-h-screen bg-background w-full">
+    <div className="flex min-h-screen bg-background">
       <SideNav />
 
       <main className="flex flex-col flex-grow transition-all duration-300 w-full ml-64">

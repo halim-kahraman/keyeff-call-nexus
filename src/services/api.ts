@@ -1,6 +1,11 @@
 
 // API Services for the application
 
+// Helper function to format dates as YYYY-MM-DD
+const formatDate = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
 // Auth Service
 export const authService = {
   login: async (email: string, password: string) => {
@@ -488,22 +493,33 @@ export const statisticsService = {
       const thirtyDaysAgo = new Date(today);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      // Format dates as YYYY-MM-DD
-      const formatDate = (date: Date) => {
-        return date.toISOString().split('T')[0];
-      };
+      // Format dates properly
+      const defaultStartDate = formatDate(thirtyDaysAgo);
+      const defaultEndDate = formatDate(today);
       
-      // Mock data for development
+      // Mock data for development with fixed totals
+      const mockTopCallers = [
+        { id: '1', name: 'Max Mustermann', total_calls: 85, total_duration: 25500, avg_duration: 300 },
+        { id: '2', name: 'Anna Schmidt', total_calls: 68, total_duration: 19500, avg_duration: 287 },
+        { id: '3', name: 'Thomas Weber', total_calls: 45, total_duration: 13500, avg_duration: 300 },
+        { id: '4', name: 'Laura Meyer', total_calls: 35, total_duration: 10500, avg_duration: 300 },
+        { id: '5', name: 'Michael Fischer', total_calls: 26, total_duration: 7800, avg_duration: 300 }
+      ];
+      
+      // Calculate total calls from top_callers
+      const totalCalls = mockTopCallers.reduce((sum, caller) => sum + caller.total_calls, 0);
+      const totalDuration = mockTopCallers.reduce((sum, caller) => sum + caller.total_duration, 0);
+      
       return {
         success: true,
         data: {
           summary: {
-            total_calls: 256,
+            total_calls: totalCalls,
             total_appointments: 48,
             total_customers_contacted: 180,
             period: {
-              start: startDate || formatDate(thirtyDaysAgo),
-              end: endDate || formatDate(today)
+              start: startDate || defaultStartDate,
+              end: endDate || defaultEndDate
             }
           },
           calls_by_day: [
@@ -522,13 +538,7 @@ export const statisticsService = {
             { outcome: 'not_interested', count: 40 },
             { outcome: 'appointment', count: 27 }
           ],
-          top_callers: [
-            { id: '1', name: 'Max Mustermann', total_calls: 85, total_duration: 25500, avg_duration: 300 },
-            { id: '2', name: 'Anna Schmidt', total_calls: 65, total_duration: 19500, avg_duration: 300 },
-            { id: '3', name: 'Thomas Weber', total_calls: 45, total_duration: 13500, avg_duration: 300 },
-            { id: '4', name: 'Laura Meyer', total_calls: 35, total_duration: 10500, avg_duration: 300 },
-            { id: '5', name: 'Michael Fischer', total_calls: 26, total_duration: 7800, avg_duration: 300 }
-          ],
+          top_callers: mockTopCallers,
           appointments_by_type: [
             { type: 'Beratung', count: 20 },
             { type: 'Verkauf', count: 15 },

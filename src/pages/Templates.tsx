@@ -3,11 +3,78 @@ import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, Phone, FileSpreadsheet } from "lucide-react";
+import { MessageSquare, Mail, Phone, FileSpreadsheet, Plus, Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Templates = () => {
+  // Mock data for templates in each category
+  const emailTemplates = [
+    { id: "1", name: "Terminbestätigung", subject: "Bestätigung Ihres Termins", createdAt: "2023-05-10" },
+    { id: "2", name: "Erinnerung", subject: "Erinnerung an Ihren Termin", createdAt: "2023-05-12" },
+    { id: "3", name: "Nachfassaktion", subject: "Wie war unser Gespräch?", createdAt: "2023-06-01" },
+    { id: "4", name: "Vertragsverlängerung", subject: "Ihr Vertrag läuft bald aus", createdAt: "2023-06-15" }
+  ];
+
+  const smsTemplates = [
+    { id: "1", name: "Terminerinnerung kurz", content: "Erinnerung: Termin morgen um {{time}}", createdAt: "2023-05-18" },
+    { id: "2", name: "Bestätigung", content: "Ihr Termin am {{date}} wurde bestätigt", createdAt: "2023-05-19" },
+    { id: "3", name: "Serviceinfo", content: "Wartungsarbeiten am {{date}}, Ihr Team", createdAt: "2023-06-22" }
+  ];
+
+  const whatsappTemplates = [
+    { id: "1", name: "Willkommensnachricht", content: "Willkommen {{name}}! Wir freuen uns...", createdAt: "2023-04-05" },
+    { id: "2", name: "Support-Anfrage", content: "Hallo {{name}}, danke für Ihre Anfrage...", createdAt: "2023-04-15" }
+  ];
+
+  const callScripts = [
+    { id: "1", name: "Erstgespräch", category: "Neukunden", createdAt: "2023-03-10" },
+    { id: "2", name: "Bestandskundenanruf", category: "Bestandskunden", createdAt: "2023-03-15" },
+    { id: "3", name: "Beschwerdebehandlung", category: "Support", createdAt: "2023-04-20" },
+    { id: "4", name: "Vertragsabschluss", category: "Vertrieb", createdAt: "2023-05-05" }
+  ];
+
+  const reportTemplates = [
+    { id: "1", name: "Monatliche Übersicht", format: "Excel", createdAt: "2023-02-10" },
+    { id: "2", name: "Kundenübersicht", format: "PDF", createdAt: "2023-02-15" },
+    { id: "3", name: "Vertriebsreport", format: "Excel", createdAt: "2023-03-20" }
+  ];
+
+  const renderTemplateTable = (templates: any[], columns: { key: string, label: string }[]) => (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((col) => (
+              <TableHead key={col.key}>{col.label}</TableHead>
+            ))}
+            <TableHead className="w-[100px]">Aktionen</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {templates.map((template) => (
+            <TableRow key={template.id}>
+              {columns.map((col) => (
+                <TableCell key={`${template.id}-${col.key}`}>{template[col.key]}</TableCell>
+              ))}
+              <TableCell>
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="icon" title="Bearbeiten">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" title="Löschen">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
     <AppLayout title="Vorlagen" subtitle="Vorlagen für verschiedene Kommunikationskanäle">
       <Tabs defaultValue="email" className="w-full">
@@ -21,119 +88,106 @@ const Templates = () => {
         
         <TabsContent value="email">
           <Card>
-            <CardHeader>
-              <CardTitle>E-Mail Vorlagen</CardTitle>
-              <CardDescription>Standardisierte E-Mail-Texte für verschiedene Anlässe</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>E-Mail Vorlagen</CardTitle>
+                <CardDescription>Standardisierte E-Mail-Texte für verschiedene Anlässe</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Neue Vorlage
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-20 w-20 rounded-full bg-blue-100 mx-auto mb-4">
-                <Mail className="h-10 w-10 text-blue-600" />
-              </div>
-              <p className="text-center text-muted-foreground">
-                Erstellen und bearbeiten Sie E-Mail-Vorlagen für Terminbestätigungen, Erinnerungen und mehr.
-              </p>
+              {renderTemplateTable(emailTemplates, [
+                { key: 'name', label: 'Name' },
+                { key: 'subject', label: 'Betreff' },
+                { key: 'createdAt', label: 'Erstellt am' }
+              ])}
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button variant="default">Verwalten</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
         <TabsContent value="sms">
           <Card>
-            <CardHeader>
-              <CardTitle>SMS Vorlagen</CardTitle>
-              <CardDescription>Kurze Texte für SMS-Benachrichtigungen</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>SMS Vorlagen</CardTitle>
+                <CardDescription>Kurze Texte für SMS-Benachrichtigungen</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Neue Vorlage
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mx-auto mb-4">
-                <MessageSquare className="h-10 w-10 text-green-600" />
-              </div>
-              <p className="text-center text-muted-foreground">
-                Kurze und prägnante Texte für SMS-Benachrichtigungen an Ihre Kunden.
-              </p>
+              {renderTemplateTable(smsTemplates, [
+                { key: 'name', label: 'Name' },
+                { key: 'content', label: 'Inhalt' },
+                { key: 'createdAt', label: 'Erstellt am' }
+              ])}
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button variant="default">Verwalten</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
         <TabsContent value="whatsapp">
           <Card>
-            <CardHeader>
-              <CardTitle>WhatsApp Vorlagen</CardTitle>
-              <CardDescription>Nachrichtenvorlagen für WhatsApp Kommunikation</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>WhatsApp Vorlagen</CardTitle>
+                <CardDescription>Nachrichtenvorlagen für WhatsApp Kommunikation</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Neue Vorlage
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-20 w-20 rounded-full bg-emerald-100 mx-auto mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="#25D366"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-emerald-600"
-                >
-                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
-                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
-                  <path d="M14 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
-                  <path d="M9.5 13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4a.5.5 0 0 0-.5.5Z" />
-                </svg>
-              </div>
-              <p className="text-center text-muted-foreground">
-                Erstellen Sie Vorlagen für WhatsApp-Nachrichten an Kunden mit dynamischen Platzhaltern.
-              </p>
+              {renderTemplateTable(whatsappTemplates, [
+                { key: 'name', label: 'Name' },
+                { key: 'content', label: 'Inhalt' },
+                { key: 'createdAt', label: 'Erstellt am' }
+              ])}
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button>
-                <Link to="/whatsapp-templates" className="text-white">Verwalten</Link>
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
         <TabsContent value="calls">
           <Card>
-            <CardHeader>
-              <CardTitle>Anrufskripte</CardTitle>
-              <CardDescription>Leitfäden für Telefongespräche</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Anrufskripte</CardTitle>
+                <CardDescription>Leitfäden für Telefongespräche</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Neues Skript
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-20 w-20 rounded-full bg-purple-100 mx-auto mb-4">
-                <Phone className="h-10 w-10 text-purple-600" />
-              </div>
-              <p className="text-center text-muted-foreground">
-                Gesprächsleitfäden für unterschiedliche Anrufszenarien und Kampagnen.
-              </p>
+              {renderTemplateTable(callScripts, [
+                { key: 'name', label: 'Name' },
+                { key: 'category', label: 'Kategorie' },
+                { key: 'createdAt', label: 'Erstellt am' }
+              ])}
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button variant="default">Verwalten</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
         <TabsContent value="reports">
           <Card>
-            <CardHeader>
-              <CardTitle>Berichtsvorlagen</CardTitle>
-              <CardDescription>Exportvorlagen für Berichte und Analysen</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Berichtsvorlagen</CardTitle>
+                <CardDescription>Exportvorlagen für Berichte und Analysen</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Neue Vorlage
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-20 w-20 rounded-full bg-yellow-100 mx-auto mb-4">
-                <FileSpreadsheet className="h-10 w-10 text-yellow-600" />
-              </div>
-              <p className="text-center text-muted-foreground">
-                Anpassen von Exportvorlagen für Statistiken und Datenauswertungen.
-              </p>
+              {renderTemplateTable(reportTemplates, [
+                { key: 'name', label: 'Name' },
+                { key: 'format', label: 'Format' },
+                { key: 'createdAt', label: 'Erstellt am' }
+              ])}
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button variant="default">Verwalten</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
