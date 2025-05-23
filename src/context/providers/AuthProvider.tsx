@@ -12,7 +12,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
-  const [loginAttemptCount, setLoginAttemptCount] = useState(0);
   const [isProcessingLogin, setIsProcessingLogin] = useState(false);
 
   useEffect(() => {
@@ -36,10 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    // Prevent duplicate login attempts
-    setLoginAttemptCount(prev => prev + 1);
-    const currentAttempt = loginAttemptCount + 1;
-    
     setIsProcessingLogin(true);
     setIsLoading(true);
     
@@ -48,41 +43,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.login(email, password);
       console.log('Login response:', response);
       
-      // Only process if this is still the latest login attempt
-      if (currentAttempt === loginAttemptCount) {
-        if (response.success && response.data.needs_verification) {
-          setNeedsVerification(true);
-          setPendingUserId(response.data.user_id);
-          
-          // Show only one toast for successful OTP sending
-          toast.success("2FA-Code gesendet", {
-            description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
+      if (response.success && response.data.needs_verification) {
+        setNeedsVerification(true);
+        setPendingUserId(response.data.user_id);
+        
+        // Only show one toast for successful OTP sending
+        toast.success("2FA-Code gesendet", {
+          description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
+        });
+        
+        // For demo purposes, show the OTP
+        if (response.data.otp) {
+          console.log('Demo OTP for login:', response.data.otp);
+          toast.info(`Demo OTP: ${response.data.otp}`, {
+            description: "Nur für Demozwecke!"
           });
-          
-          // For demo purposes, show the OTP
-          if (response.data.otp) {
-            console.log('Demo OTP for login:', response.data.otp);
-            toast.info(`Demo OTP: ${response.data.otp}`, {
-              description: "Nur für Demozwecke!"
-            });
-          }
         }
       }
-    } catch (error) {
-      // Only show error if this is still the latest login attempt
-      if (currentAttempt === loginAttemptCount) {
-        console.error('Login error:', error);
-        
-        // Show only one toast for failed login
-        toast.error("Anmeldung fehlgeschlagen", {
-          description: "Bitte überprüfen Sie Ihre Anmeldedaten"
-        });
-      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Only show one toast notification for the error
+      toast.error("Anmeldung fehlgeschlagen", {
+        description: "Bitte überprüfen Sie Ihre Anmeldedaten"
+      });
     } finally {
-      // Only update loading state if this is still the latest login attempt
-      if (currentAttempt === loginAttemptCount) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
       setIsProcessingLogin(false);
     }
   };
@@ -100,7 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.verify2FA(pendingUserId, code);
       
       if (response.success) {
+        // Store user data in state and local storage
         setUser(response.data.user);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+        }
+        
         setNeedsVerification(false);
         setPendingUserId(null);
         
@@ -180,6 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Logout error", error);
     } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setUser(null);
       setIsLoading(false);
       toast.success("Abgemeldet", {

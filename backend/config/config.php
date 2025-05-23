@@ -50,27 +50,27 @@ function setCorsHeaders() {
         if ($is_preview) {
             // For Lovable preview, allow Lovable domains
             $allowed_origins = ['https://lovable.dev', 'https://lovable.app'];
+            
+            // Check if origin is allowed
+            if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+                header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
+            } else {
+                header("Access-Control-Allow-Origin: *");
+            }
         } else {
-            // For local development
-            $allowed_origins = ['http://localhost:8080', 'http://localhost:5173', 'http://localhost'];
+            // For local development, allow all origins (simpler for testing)
+            header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
         }
         
-        // Check if origin is allowed
-        if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-            header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
-            header('Access-Control-Allow-Credentials: true');
-        } else {
-            // Fallback for unknown origins - wildcard
-            header("Access-Control-Allow-Origin: *");
-        }
+        // Always set these headers
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+        header('Access-Control-Max-Age: 1728000');
     } else {
         // Fallback for requests without origin
         header("Access-Control-Allow-Origin: *");
     }
-    
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-    header('Access-Control-Max-Age: 1728000');
 }
 
 // Handle preflight OPTIONS requests BEFORE ANY output
