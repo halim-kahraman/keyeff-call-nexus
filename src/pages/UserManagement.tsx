@@ -43,10 +43,13 @@ const UserManagement = () => {
   });
 
   // Fetch branches
-  const { data: filialen = mockFilialen } = useQuery({
+  const { data: filialenData } = useQuery({
     queryKey: ['filialen'],
     queryFn: () => Promise.resolve(mockFilialen),
   });
+
+  // Ensure filialen is always an array, even if the API response structure changes
+  const filialen = Array.isArray(filialenData) ? filialenData : mockFilialen;
 
   // Add user mutation
   const { mutate: addUser } = useMutation({

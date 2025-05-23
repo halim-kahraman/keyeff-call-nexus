@@ -1,7 +1,7 @@
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 /**
  * Exports data to a PDF file
@@ -12,35 +12,33 @@ import { toast } from '@/hooks/use-toast';
 export const exportToPdf = async (data: any[], filename: string, title: string) => {
   try {
     // Since we don't have a direct PDF generation library, we'll use an alternative approach
-    // Here we'll show a notification that this feature is in development
-    toast({
-      title: "PDF Export",
-      description: "Diese Funktion wird gerade implementiert. Bitte versuchen Sie es später erneut."
-    });
+    // Here we'll simulate PDF export temporarily until properly implemented
     
-    // In a real implementation, you would use a library like jsPDF or pdfmake
-    // Example with jsPDF would be:
-    /*
-    import { jsPDF } from 'jspdf';
-    import 'jspdf-autotable';
+    // Create a temporary text representation of the data
+    let textContent = `${title}\n\n`;
     
-    const doc = new jsPDF();
-    doc.text(title, 14, 22);
-    doc.autoTable({
-      head: [Object.keys(data[0])],
-      body: data.map(item => Object.values(item)),
-      startY: 30,
-    });
+    // Add headers
+    if (data.length > 0) {
+      textContent += Object.keys(data[0]).join('\t') + '\n';
+      
+      // Add data rows
+      data.forEach(row => {
+        textContent += Object.values(row).join('\t') + '\n';
+      });
+    }
     
-    doc.save(`${filename}.pdf`);
-    */
+    // Create a blob from the text content
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    
+    // Save the file
+    saveAs(blob, `${filename}.txt`);
+    
+    toast.success("Daten wurden exportiert. PDF-Funktionalität wird in Kürze vollständig implementiert.");
+    
+    // In a real implementation, you would use jsPDF or another PDF library
   } catch (error) {
     console.error("PDF Export error:", error);
-    toast({
-      title: "Export Fehler",
-      description: "Beim Exportieren der Daten ist ein Fehler aufgetreten.",
-      variant: "destructive"
-    });
+    toast.error("Beim Exportieren der Daten ist ein Fehler aufgetreten.");
   }
 };
 
@@ -63,17 +61,10 @@ export const exportToExcel = (data: any[], filename: string, sheetName: string =
     // Save the file
     saveAs(blob, `${filename}.xlsx`);
     
-    toast({
-      title: "Export erfolgreich",
-      description: `Die Daten wurden erfolgreich als Excel-Datei exportiert.`
-    });
+    toast.success("Die Daten wurden erfolgreich als Excel-Datei exportiert.");
   } catch (error) {
     console.error("Excel Export error:", error);
-    toast({
-      title: "Export Fehler",
-      description: "Beim Exportieren der Daten ist ein Fehler aufgetreten.",
-      variant: "destructive"
-    });
+    toast.error("Beim Exportieren der Daten ist ein Fehler aufgetreten.");
   }
 };
 
@@ -86,41 +77,43 @@ export const exportToExcel = (data: any[], filename: string, sheetName: string =
  */
 export const sendDataByEmail = async (data: any[], emailAddress: string, subject: string, message: string) => {
   try {
-    // Here we would typically call a backend API to send the email with the data
-    // Since we don't have that implemented, we'll show a notification
-    toast({
-      title: "E-Mail wird gesendet",
-      description: "Diese Funktion wird gerade implementiert. Bitte versuchen Sie es später erneut."
-    });
+    // For demonstration purposes, we'll show a success message
+    // In a real implementation, this would send the data to a backend API
     
-    // In a real implementation, you would call your API endpoint:
-    /*
-    const response = await fetch('/api/sendEmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: emailAddress,
-        subject,
-        message,
-        data
-      })
-    });
+    // Create a temporary Excel file in memory
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daten");
     
-    if (!response.ok) {
-      throw new Error('Email sending failed');
-    }
+    // Show a success message
+    toast.success(`Daten würden an ${emailAddress} gesendet werden. Diese Funktion wird in Kürze implementiert.`);
     
-    toast({
-      title: "E-Mail gesendet",
-      description: `Die Daten wurden erfolgreich an ${emailAddress} gesendet.`
-    });
-    */
+    // In a real implementation, you would call your API endpoint to send the email
   } catch (error) {
     console.error("Email sending error:", error);
-    toast({
-      title: "Fehler beim E-Mail-Versand",
-      description: "Beim Versenden der E-Mail ist ein Fehler aufgetreten.",
-      variant: "destructive"
-    });
+    toast.error("Beim Versenden der E-Mail ist ein Fehler aufgetreten.");
+  }
+};
+
+/**
+ * Formats time duration in hours, minutes, and seconds
+ * @param seconds Total duration in seconds
+ * @returns Formatted time string
+ */
+export const formatDuration = (seconds: number): string => {
+  if (isNaN(seconds) || seconds < 0) {
+    return '0 Sek.';
+  }
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours} h ${minutes} Min. ${remainingSeconds} Sek.`;
+  } else if (minutes > 0) {
+    return `${minutes} Min. ${remainingSeconds} Sek.`;
+  } else {
+    return `${remainingSeconds} Sek.`;
   }
 };
