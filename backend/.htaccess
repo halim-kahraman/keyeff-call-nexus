@@ -1,11 +1,15 @@
 
 # Enable CORS for all routes
 <IfModule mod_headers.c>
-    # Allow requests from all origins in development
-    Header always set Access-Control-Allow-Origin "*"
+    # Specific origin handling will be done in PHP
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header always set Access-Control-Max-Age "1728000"
+    
+    # Fix for OPTIONS requests
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
 </IfModule>
 
 # PHP settings
@@ -18,11 +22,6 @@
     php_flag display_errors On
     php_value error_reporting E_ALL
 </IfModule>
-
-# Handle OPTIONS preflight requests
-RewriteEngine On
-RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ $1 [R=200,L]
 
 # Handle direct access to PHP files (useful for testing)
 <Files ~ "\.php$">

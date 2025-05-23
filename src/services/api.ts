@@ -12,13 +12,8 @@ const API_URL = (() => {
     port: currentPort
   });
   
-  // For local development on any port (both on localhost)
-  if (currentHost === 'localhost') {
-    return '/keyeff_callpanel/backend'; // Use relative path since both frontend and backend are on localhost
-  }
-  
-  // For any other environment (production or different hosts)
-  return 'http://' + currentHost + '/keyeff_callpanel/backend';
+  // Always use relative paths for easier development
+  return '/keyeff_callpanel/backend';
 })();
 
 console.log('API URL configured as:', API_URL);
@@ -29,7 +24,9 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // Must be false for cross-origin requests with "*" for Access-Control-Allow-Origin
+  // Set withCredentials to false since we're using Bearer token auth
+  // and our CORS is configured to work with any origin
+  withCredentials: false,
 });
 
 // Add request interceptor to add token to requests
@@ -72,7 +69,7 @@ apiClient.interceptors.response.use(
       });
       
       toast.error('Netzwerkfehler', {
-        description: 'Es gibt ein Problem mit der Verbindung zum Server.',
+        description: 'Bitte überprüfen Sie Ihre PHP-Servereinstellungen und Internetverbindung.',
         duration: 6000
       });
     }

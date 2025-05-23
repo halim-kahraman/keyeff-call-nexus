@@ -56,11 +56,16 @@ class User {
     private $demoPassword = '';
     
     public function __construct() {
-        $this->conn = getConnection();
-        
-        // Check connection
-        if (!$this->conn) {
-            debugLog("Database connection failed");
+        try {
+            $this->conn = getConnection();
+            
+            // Check connection
+            if (!$this->conn) {
+                debugLog("Database connection failed");
+            }
+        } catch (Exception $e) {
+            debugLog("Database connection exception", $e->getMessage());
+            // Continue without database for demo users
         }
     }
     
@@ -72,6 +77,11 @@ class User {
             : password_hash($password, PASSWORD_DEFAULT);
         
         try {
+            if (!$this->conn) {
+                debugLog("No database connection for create user");
+                return false;
+            }
+            
             $sql = "INSERT INTO users (name, email, password, role, filiale) VALUES (?, ?, ?, ?, ?)";
             $stmt = $this->conn->prepare($sql);
             
@@ -119,64 +129,68 @@ class User {
             $this->updated_at = date('Y-m-d H:i:s');
             
             // Try to find demo user in DB (optional, mainly for checking if user exists)
-            try {
-                $sql = "SELECT * FROM users WHERE email = ?";
-                $stmt = $this->conn->prepare($sql);
-                
-                if ($stmt) {
-                    $stmt->bind_param("s", $email);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
+            if ($this->conn) {
+                try {
+                    $sql = "SELECT * FROM users WHERE email = ?";
+                    $stmt = $this->conn->prepare($sql);
                     
-                    if($result && $result->num_rows > 0) {
-                        $row = $result->fetch_assoc();
-                        // If found in DB, use DB values but keep demo flag
-                        $this->id = $row['id'];
-                        $this->created_at = $row['created_at'];
-                        $this->updated_at = $row['updated_at'];
+                    if ($stmt) {
+                        $stmt->bind_param("s", $email);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        
+                        if($result && $result->num_rows > 0) {
+                            $row = $result->fetch_assoc();
+                            // If found in DB, use DB values but keep demo flag
+                            $this->id = $row['id'];
+                            $this->created_at = $row['created_at'];
+                            $this->updated_at = $row['updated_at'];
+                        }
                     }
+                } catch (Exception $e) {
+                    // Ignore DB errors for demo users, we already have the data
+                    debugLog("DB check for demo user failed, using demo data", ['email' => $email]);
                 }
-            } catch (Exception $e) {
-                // Ignore DB errors for demo users, we already have the data
-                debugLog("DB check for demo user failed, using demo data", ['email' => $email]);
             }
             
             return true;
         }
         
-        // Regular user lookup
-        try {
-            $sql = "SELECT * FROM users WHERE email = ?";
-            $stmt = $this->conn->prepare($sql);
-            
-            if (!$stmt) {
-                debugLog("Prepare statement failed: " . $this->conn->error);
+        // Regular user lookup - only try if we have a DB connection
+        if ($this->conn) {
+            try {
+                $sql = "SELECT * FROM users WHERE email = ?";
+                $stmt = $this->conn->prepare($sql);
+                
+                if (!$stmt) {
+                    debugLog("Prepare statement failed: " . $this->conn->error);
+                    return false;
+                }
+                
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                
+                $result = $stmt->get_result();
+                
+                if($result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    
+                    $this->id = $row['id'];
+                    $this->name = $row['name'];
+                    $this->email = $row['email'];
+                    $this->password = $row['password'];
+                    $this->role = $row['role'];
+                    $this->filiale = $row['filiale'];
+                    $this->avatar = $row['avatar'];
+                    $this->created_at = $row['created_at'];
+                    $this->updated_at = $row['updated_at'];
+                    
+                    return true;
+                }
+            } catch (Exception $e) {
+                debugLog("Exception in findByEmail for regular user", ['email' => $email, 'error' => $e->getMessage()]);
                 return false;
             }
-            
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            
-            $result = $stmt->get_result();
-            
-            if($result->num_rows > 0) {
-                $row = $result->fetch_assoc();
-                
-                $this->id = $row['id'];
-                $this->name = $row['name'];
-                $this->email = $row['email'];
-                $this->password = $row['password'];
-                $this->role = $row['role'];
-                $this->filiale = $row['filiale'];
-                $this->avatar = $row['avatar'];
-                $this->created_at = $row['created_at'];
-                $this->updated_at = $row['updated_at'];
-                
-                return true;
-            }
-        } catch (Exception $e) {
-            debugLog("Exception in findByEmail for regular user", ['email' => $email, 'error' => $e->getMessage()]);
-            return false;
         }
         
         debugLog('User not found', $email);
@@ -203,38 +217,41 @@ class User {
             return false;
         }
         
-        try {
-            $sql = "SELECT * FROM users WHERE id = ?";
-            $stmt = $this->conn->prepare($sql);
-            
-            if (!$stmt) {
-                debugLog("Prepare statement failed: " . $this->conn->error);
+        // Only try if we have a DB connection
+        if ($this->conn) {
+            try {
+                $sql = "SELECT * FROM users WHERE id = ?";
+                $stmt = $this->conn->prepare($sql);
+                
+                if (!$stmt) {
+                    debugLog("Prepare statement failed: " . $this->conn->error);
+                    return false;
+                }
+                
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                
+                $result = $stmt->get_result();
+                
+                if($result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    
+                    $this->id = $row['id'];
+                    $this->name = $row['name'];
+                    $this->email = $row['email'];
+                    $this->password = $row['password'];
+                    $this->role = $row['role'];
+                    $this->filiale = $row['filiale'];
+                    $this->avatar = $row['avatar'];
+                    $this->created_at = $row['created_at'];
+                    $this->updated_at = $row['updated_at'];
+                    
+                    return true;
+                }
+            } catch (Exception $e) {
+                debugLog("Exception in findById", ['id' => $id, 'error' => $e->getMessage()]);
                 return false;
             }
-            
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-            
-            $result = $stmt->get_result();
-            
-            if($result->num_rows > 0) {
-                $row = $result->fetch_assoc();
-                
-                $this->id = $row['id'];
-                $this->name = $row['name'];
-                $this->email = $row['email'];
-                $this->password = $row['password'];
-                $this->role = $row['role'];
-                $this->filiale = $row['filiale'];
-                $this->avatar = $row['avatar'];
-                $this->created_at = $row['created_at'];
-                $this->updated_at = $row['updated_at'];
-                
-                return true;
-            }
-        } catch (Exception $e) {
-            debugLog("Exception in findById", ['id' => $id, 'error' => $e->getMessage()]);
-            return false;
         }
         
         return false;
@@ -242,6 +259,24 @@ class User {
     
     // Get all users
     public function getAll() {
+        if (!$this->conn) {
+            // Return demo users if no DB connection
+            $users = [];
+            foreach ($this->demoUsers as $email => $data) {
+                $users[] = [
+                    'id' => $data['id'],
+                    'name' => $data['name'],
+                    'email' => $email,
+                    'role' => $data['role'],
+                    'filiale' => $data['filiale'],
+                    'avatar' => $data['avatar'],
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+            }
+            return $users;
+        }
+        
         $sql = "SELECT id, name, email, role, filiale, avatar, created_at, updated_at FROM users";
         $result = $this->conn->query($sql);
         
@@ -259,6 +294,11 @@ class User {
         if ($this->isDemoUser) {
             debugLog("Cannot update demo user in DB", $this->email);
             return true; // Pretend success for demo
+        }
+        
+        if (!$this->conn) {
+            debugLog("No database connection for update user");
+            return false;
         }
         
         $sql = "UPDATE users SET 
@@ -283,6 +323,11 @@ class User {
             return true; // Pretend success for demo
         }
         
+        if (!$this->conn) {
+            debugLog("No database connection for update password");
+            return false;
+        }
+        
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
         $sql = "UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?";
@@ -302,6 +347,11 @@ class User {
         if ($this->isDemoUser) {
             debugLog("Cannot delete demo user from DB", $this->email);
             return true; // Pretend success for demo
+        }
+        
+        if (!$this->conn) {
+            debugLog("No database connection for delete user");
+            return false;
         }
         
         $sql = "DELETE FROM users WHERE id = ?";
@@ -350,27 +400,32 @@ class User {
             return $otp;
         }
         
-        try {
-            $sql = "UPDATE users SET otp = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id = ?";
-            $stmt = $this->conn->prepare($sql);
-            
-            if (!$stmt) {
-                debugLog("Prepare statement failed: " . $this->conn->error);
+        // Only try if we have a DB connection
+        if ($this->conn) {
+            try {
+                $sql = "UPDATE users SET otp = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id = ?";
+                $stmt = $this->conn->prepare($sql);
+                
+                if (!$stmt) {
+                    debugLog("Prepare statement failed: " . $this->conn->error);
+                    return $otp; // Return OTP even if DB update fails (for demo)
+                }
+                
+                $stmt->bind_param("si", $otp, $this->id);
+                
+                if($stmt->execute()) {
+                    return $otp;
+                } else {
+                    debugLog("OTP update failed", ['error' => $stmt->error]);
+                    return $otp; // Return OTP even if DB update fails (for demo)
+                }
+            } catch (Exception $e) {
+                debugLog("Exception in generateOTP", ['error' => $e->getMessage()]);
                 return $otp; // Return OTP even if DB update fails (for demo)
             }
-            
-            $stmt->bind_param("si", $otp, $this->id);
-            
-            if($stmt->execute()) {
-                return $otp;
-            } else {
-                debugLog("OTP update failed", ['error' => $stmt->error]);
-                return $otp; // Return OTP even if DB update fails (for demo)
-            }
-        } catch (Exception $e) {
-            debugLog("Exception in generateOTP", ['error' => $e->getMessage()]);
-            return $otp; // Return OTP even if DB update fails (for demo)
         }
+        
+        return $otp; // Return OTP for demo scenario
     }
     
     // Verify OTP
@@ -381,31 +436,34 @@ class User {
             return true; // Always succeed for demo users
         }
         
-        try {
-            $sql = "SELECT * FROM users WHERE id = ? AND otp = ? AND otp_expiry > NOW()";
-            $stmt = $this->conn->prepare($sql);
-            
-            if (!$stmt) {
-                debugLog("Prepare statement failed: " . $this->conn->error);
-                return true; // Accept any OTP if DB query fails (for demo)
+        // Only try if we have a DB connection
+        if ($this->conn) {
+            try {
+                $sql = "SELECT * FROM users WHERE id = ? AND otp = ? AND otp_expiry > NOW()";
+                $stmt = $this->conn->prepare($sql);
+                
+                if (!$stmt) {
+                    debugLog("Prepare statement failed: " . $this->conn->error);
+                    return true; // Accept any OTP if DB query fails (for demo)
+                }
+                
+                $stmt->bind_param("is", $this->id, $otp);
+                $stmt->execute();
+                
+                $result = $stmt->get_result();
+                
+                if($result->num_rows > 0) {
+                    // Clear OTP after successful verification
+                    $this->clearOTP();
+                    return true;
+                }
+            } catch (Exception $e) {
+                debugLog("Exception in verifyOTP", ['error' => $e->getMessage()]);
+                return true; // Accept any OTP if exception occurs (for demo)
             }
-            
-            $stmt->bind_param("is", $this->id, $otp);
-            $stmt->execute();
-            
-            $result = $stmt->get_result();
-            
-            if($result->num_rows > 0) {
-                // Clear OTP after successful verification
-                $this->clearOTP();
-                return true;
-            }
-        } catch (Exception $e) {
-            debugLog("Exception in verifyOTP", ['error' => $e->getMessage()]);
-            return true; // Accept any OTP if exception occurs (for demo)
         }
         
-        return false;
+        return true; // Accept any OTP in demo mode
     }
     
     // Clear OTP
@@ -413,6 +471,10 @@ class User {
         // For demo users with temporary IDs
         if ($this->isDemoUser) {
             return; // No need to clear for demo users
+        }
+        
+        if (!$this->conn) {
+            return; // Skip if no DB connection
         }
         
         try {

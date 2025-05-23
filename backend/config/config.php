@@ -24,21 +24,26 @@ define('MAIL_ENCRYPTION', 'tls');
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Simplified CORS Headers for same-site setup
+// Improved CORS Headers for same-site setup
 function setCorsHeaders() {
-    // Allow requests from anywhere in development - we'll restrict in production
-    header("Access-Control-Allow-Origin: *");
+    // Check if the request has an origin header
+    if (isset($_SERVER['HTTP_ORIGIN'])) {
+        $allowed_origins = ['http://localhost:8080', 'http://localhost:5173', 'http://localhost'];
+        if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+            header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
+            header('Access-Control-Allow-Credentials: true');
+        }
+    } else {
+        // Fallback for requests without origin
+        header("Access-Control-Allow-Origin: *");
+    }
+    
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
     header('Access-Control-Max-Age: 1728000');
 }
 
-// Set CORS headers for all requests
+// Set CORS headers before any output
 setCorsHeaders();
 
 // Handle preflight OPTIONS requests
@@ -50,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 // Default content type for API responses
 header('Content-Type: application/json; charset=UTF-8');
 
+// Start session after setting all headers
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Error reporting for development
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -57,7 +67,20 @@ error_reporting(E_ALL);
 
 // Function to generate JSON response
 function jsonResponse($success = true, $message = '', $data = null, $status = 200) {
+    // Set status code
     http_response_code($status);
+    
+    // Re-apply CORS headers to ensure they're present
+    if (isset($_SERVER['HTTP_ORIGIN'])) {
+        $allowed_origins = ['http://localhost:8080', 'http://localhost:5173', 'http://localhost'];
+        if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+            header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
+            header('Access-Control-Allow-Credentials: true');
+        }
+    } else {
+        // Fallback for requests without origin
+        header("Access-Control-Allow-Origin: *");
+    }
     
     // Ensure JSON content type
     header('Content-Type: application/json; charset=UTF-8');
