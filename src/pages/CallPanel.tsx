@@ -56,7 +56,8 @@ const CallPanel = () => {
   // Fetch campaigns for the selected filiale
   const { data: campaigns } = useQuery({
     queryKey: ['campaigns', selectedFiliale],
-    queryFn: () => campaignService.getCampaigns(selectedFiliale),
+    // Fixed: Removed the parameter as it's not expected by the API function
+    queryFn: () => campaignService.getCampaigns(),
     enabled: !!selectedFiliale,
   });
 

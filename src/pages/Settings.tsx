@@ -16,6 +16,13 @@ import { settingsService, filialeService } from "@/services/api";
 import { connectionTester } from "@/utils/connectionTester";
 import { Save, Send, RefreshCw, Check } from "lucide-react";
 
+// Define types for filialen
+interface Filiale {
+  id: string;
+  name: string;
+  address: string;
+}
+
 // Common UI component for testing connections
 const TestConnectionButton = ({ 
   onClick, 
@@ -46,6 +53,15 @@ const TestConnectionButton = ({
   );
 };
 
+// Mock filialen for testing in case the API fails
+const mockFilialen: Filiale[] = [
+  { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin" },
+  { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin" },
+  { id: "3", name: "München", address: "Münchner Str. 25, 80333 München" },
+  { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
+  { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln" }
+];
+
 const Settings = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("sip");
@@ -68,26 +84,15 @@ const Settings = () => {
   } as Record<string, "idle" | "pending" | "success" | "error">);
 
   // Fetch filiale data
-  const { data: filialenResponse = { data: [] } } = useQuery({
+  const { data: filialenResponse } = useQuery({
     queryKey: ['filialen'],
     queryFn: filialeService.getFilialen,
   });
 
   // Ensure filialen is always an array
-  const filialen = Array.isArray(filialenResponse) 
+  const filialen: Filiale[] = Array.isArray(filialenResponse) 
     ? filialenResponse 
-    : (Array.isArray(filialenResponse.data) 
-      ? filialenResponse.data 
-      : mockFilialen);
-
-  // Mock filialen for testing in case the API fails
-  const mockFilialen = [
-    { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin" },
-    { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin" },
-    { id: "3", name: "München", address: "Münchner Str. 25, 80333 München" },
-    { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
-    { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln" }
-  ];
+    : mockFilialen;
 
   // For admin, use selected filiale or null; for others, use their assigned filiale
   const effectiveFiliale = isAdmin ? selectedFiliale : user?.filiale;

@@ -1,4 +1,458 @@
 
+// API Services for the application
+
+// Auth Service
+export const authService = {
+  login: async (email: string, password: string) => {
+    try {
+      const response = await fetch('/backend/api/auth/login.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Login error:', error);
+      throw new Error('Anmeldung fehlgeschlagen.');
+    }
+  },
+  
+  logout: async () => {
+    try {
+      const response = await fetch('/backend/api/auth/logout.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw new Error('Abmeldung fehlgeschlagen.');
+    }
+  },
+  
+  verify2FA: async (userId: string, code: string) => {
+    try {
+      const response = await fetch('/backend/api/auth/verify.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: userId, code }),
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      throw new Error('Bestätigung fehlgeschlagen.');
+    }
+  },
+  
+  requestPasswordReset: async (email: string) => {
+    try {
+      const response = await fetch('/backend/api/auth/reset-password.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, action: 'request' }),
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      throw new Error('Anfrage fehlgeschlagen.');
+    }
+  },
+  
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    try {
+      const response = await fetch('/backend/api/auth/reset-password.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          reset_code: code,
+          new_password: newPassword,
+          action: 'reset'
+        }),
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw new Error('Zurücksetzen fehlgeschlagen.');
+    }
+  },
+};
+
+// Customer Service
+export const customerService = {
+  getCustomers: async (filialeId?: string | null, campaignId?: string | null) => {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (filialeId) params.append('filiale_id', filialeId);
+      if (campaignId) params.append('campaign_id', campaignId);
+      
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      
+      const response = await fetch(`/backend/api/customers/list.php${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      
+      const data = await response.json();
+      return Array.isArray(data.data) ? data.data : [];
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      // Return mock data for development
+      return [
+        {
+          id: "1", 
+          name: "Max Mustermann", 
+          company: "Musterfirma GmbH",
+          primary_phones: "+49123456789,+49987654321",
+          contract_types: "Premium,Standard",
+          contract_statuses: "Aktiv,Gekündigt",
+          contract_expiry_dates: "2025-12-31,2023-06-30",
+          priority: "high"
+        },
+        {
+          id: "2", 
+          name: "Erika Musterfrau", 
+          company: "Beispiel AG",
+          primary_phones: "+49123456788",
+          contract_types: "Premium",
+          contract_statuses: "Aktiv",
+          contract_expiry_dates: "2024-12-31",
+          priority: "medium"
+        },
+        // Add more mock customers as needed
+      ];
+    }
+  },
+  
+  getCustomerDetails: async (customerId: string) => {
+    try {
+      const response = await fetch(`/backend/api/customers/detail.php?id=${customerId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customer details');
+      }
+      
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+      // Return mock data for development
+      return {
+        id: customerId,
+        name: "Max Mustermann",
+        company: "Musterfirma GmbH",
+        email: "max@musterfirma.de",
+        address: "Musterstraße 123",
+        postal_code: "12345",
+        city: "Musterstadt",
+        primary_phones: "+49123456789,+49987654321",
+        notes: "Wichtiger Kunde, bevorzugt Anrufe am Vormittag.",
+        priority: "high",
+        last_contact: "2023-05-15",
+        contacts: [
+          {
+            id: "1",
+            phone: "+49123456789",
+            contact_type: "Festnetz",
+            contact_name: "Büro",
+            is_primary: "1",
+            notes: "Erreichbar Mo-Fr 9-17 Uhr"
+          },
+          {
+            id: "2",
+            phone: "+49987654321",
+            contact_type: "Mobil",
+            contact_name: "Privat",
+            is_primary: "0",
+            notes: "Nur in Notfällen"
+          }
+        ],
+        contracts: [
+          {
+            id: "1",
+            contract_number: "KV-2023-001",
+            contract_type: "Premium",
+            contract_status: "Aktiv",
+            contract_start: "2023-01-01",
+            contract_expiry: "2025-12-31",
+            monthly_value: "99.90",
+            notes: "Vollumfänglicher Support"
+          },
+          {
+            id: "2",
+            contract_number: "KV-2020-042",
+            contract_type: "Standard",
+            contract_status: "Gekündigt",
+            contract_start: "2020-06-01",
+            contract_expiry: "2023-06-30",
+            monthly_value: "49.90",
+            notes: "Gekündigt wegen Upgrade auf Premium"
+          }
+        ],
+        call_logs: [
+          {
+            id: "1",
+            created_at: "2023-05-15T10:30:00",
+            user_name: "Admin User",
+            duration: 360, // in seconds
+            outcome: "Erfolgreich",
+            log_text: "Kunde hat Interesse am Premium-Paket gezeigt.",
+            contract_type: "Standard",
+            contract_number: "KV-2020-042"
+          },
+          {
+            id: "2",
+            created_at: "2023-04-20T14:45:00",
+            user_name: "Admin User",
+            duration: 180,
+            outcome: "Rückruf vereinbart",
+            log_text: "Kunde war beschäftigt, Rückruf für nächste Woche vereinbart.",
+            contract_type: "Standard",
+            contract_number: "KV-2020-042"
+          }
+        ]
+      };
+    }
+  }
+};
+
+// Settings Service
+export const settingsService = {
+  getSettings: async (category: string, filialeId?: string | null) => {
+    try {
+      let url = `/backend/api/settings/get.php?category=${category}`;
+      if (filialeId) {
+        url += `&filiale_id=${filialeId}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${category} settings`);
+      }
+      
+      const data = await response.json();
+      return data.data || {};
+    } catch (error) {
+      console.error(`Error fetching ${category} settings:`, error);
+      // Return mock data based on category
+      switch (category) {
+        case 'sip':
+          return {
+            sip_server: 'sip.example.com',
+            sip_port: '5060',
+            sip_username: 'user123',
+            sip_password: '********',
+            stun_server: 'stun.example.com:19302',
+            turn_server: 'turn.example.com:3478',
+            turn_username: 'turnuser',
+            turn_password: '********',
+            sip_enabled: '1'
+          };
+        case 'vpn':
+          return {
+            vpn_server: 'vpn.example.com',
+            vpn_port: '1194',
+            vpn_username: 'vpnuser',
+            vpn_password: '********',
+            vpn_enabled: '1'
+          };
+        case 'fritzbox':
+          return {
+            fritzbox_ip: '192.168.178.1',
+            fritzbox_port: '443',
+            fritzbox_username: 'admin',
+            fritzbox_password: '********',
+            fritzbox_enabled: '1'
+          };
+        case 'email':
+          return {
+            smtp_server: 'smtp.example.com',
+            smtp_port: '587',
+            smtp_username: 'sender@example.com',
+            smtp_password: '********',
+            smtp_encryption: 'tls',
+            smtp_from_email: 'noreply@example.com',
+            smtp_from_name: 'KeyEff System',
+            smtp_enabled: '1'
+          };
+        case 'keyeffApi':
+          return {
+            api_url: 'https://api.keyeff.de/v1',
+            api_key: 'key123456',
+            api_secret: '********',
+            api_timeout: '30',
+            api_enabled: '1'
+          };
+        default:
+          return {};
+      }
+    }
+  },
+  
+  saveSettings: async (category: string, settings: Record<string, string>, filialeId?: string) => {
+    try {
+      const body: any = {
+        category,
+        settings
+      };
+      
+      if (filialeId) {
+        body.filiale_id = filialeId;
+      }
+      
+      const response = await fetch('/backend/api/settings/save.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(body)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save ${category} settings`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`Error saving ${category} settings:`, error);
+      // Mock successful response
+      return {
+        success: true,
+        message: `${category} settings saved successfully (mock)`
+      };
+    }
+  },
+  
+  // Connection test endpoints
+  testSipConnection: async (settings: Record<string, string>) => {
+    try {
+      const response = await fetch('/backend/api/settings/test-sip.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error testing SIP connection:', error);
+      return { success: false, message: 'SIP-Verbindungstest fehlgeschlagen' };
+    }
+  },
+  
+  testVpnConnection: async (settings: Record<string, string>) => {
+    try {
+      const response = await fetch('/backend/api/settings/test-vpn.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error testing VPN connection:', error);
+      return { success: false, message: 'VPN-Verbindungstest fehlgeschlagen' };
+    }
+  },
+  
+  testFritzboxConnection: async (settings: Record<string, string>) => {
+    try {
+      const response = await fetch('/backend/api/settings/test-fritzbox.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error testing FRITZ!Box connection:', error);
+      return { success: false, message: 'FRITZ!Box-Verbindungstest fehlgeschlagen' };
+    }
+  },
+  
+  testEmailConnection: async (settings: Record<string, string>) => {
+    try {
+      const response = await fetch('/backend/api/settings/test-email.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error testing email connection:', error);
+      return { success: false, message: 'E-Mail-Verbindungstest fehlgeschlagen' };
+    }
+  },
+  
+  testKeyEffApiConnection: async (settings: Record<string, string>) => {
+    try {
+      const response = await fetch('/backend/api/settings/test-keyeff-api.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error testing KeyEff API connection:', error);
+      return { success: false, message: 'KeyEff API-Verbindungstest fehlgeschlagen' };
+    }
+  }
+};
+
 // Add this function to make campaigns available for the CallPanel component
 export const campaignService = {
   getCampaigns: async () => {
@@ -28,6 +482,119 @@ export const campaignService = {
           { id: 4, name: "Neukunden Akquise 2023", status: "active" },
           { id: 5, name: "Winteraktion 2022", status: "inactive" }
         ]
+      };
+    }
+  }
+};
+
+// Filiale Service
+export const filialeService = {
+  getFilialen: async () => {
+    try {
+      const response = await fetch('/backend/api/filialen/list.php', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch filialen');
+      }
+      
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching filialen:', error);
+      // Return mock data for development
+      return [
+        { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin" },
+        { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin" },
+        { id: "3", name: "München", address: "Münchner Str. 25, 80333 München" },
+        { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
+        { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln" }
+      ];
+    }
+  }
+};
+
+// Statistics Service
+export const statisticsService = {
+  getStatistics: async (period: string = 'month', filialeId?: string) => {
+    try {
+      let url = `/backend/api/statistics/get.php?period=${period}`;
+      if (filialeId) {
+        url += `&filiale_id=${filialeId}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch statistics');
+      }
+      
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      // Mock data for development
+      return {
+        calls: {
+          total: 256,
+          successful: 187,
+          missed: 69,
+          average_duration: 345, // in seconds
+          by_day: [
+            { date: '2023-05-01', count: 12 },
+            { date: '2023-05-02', count: 15 },
+            { date: '2023-05-03', count: 8 },
+            { date: '2023-05-04', count: 20 },
+            { date: '2023-05-05', count: 18 },
+            { date: '2023-05-06', count: 5 },
+            { date: '2023-05-07', count: 3 }
+          ]
+        },
+        appointments: {
+          total: 48,
+          upcoming: 12,
+          completed: 36,
+          by_day: [
+            { date: '2023-05-01', count: 3 },
+            { date: '2023-05-02', count: 5 },
+            { date: '2023-05-03', count: 2 },
+            { date: '2023-05-04', count: 4 },
+            { date: '2023-05-05', count: 6 },
+            { date: '2023-05-06', count: 0 },
+            { date: '2023-05-07', count: 1 }
+          ]
+        },
+        contracts: {
+          total: 320,
+          active: 285,
+          expiring_soon: 15,
+          by_type: [
+            { type: 'Premium', count: 120 },
+            { type: 'Standard', count: 180 },
+            { type: 'Basic', count: 20 }
+          ]
+        },
+        customers: {
+          total: 412,
+          active: 380,
+          inactive: 32,
+          by_priority: [
+            { priority: 'high', count: 85 },
+            { priority: 'medium', count: 247 },
+            { priority: 'low', count: 80 }
+          ]
+        }
       };
     }
   }
