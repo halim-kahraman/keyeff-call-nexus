@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -71,7 +70,7 @@ export const SideNav = () => {
   const isFilialleiter = user?.role === "filialleiter";
 
   return (
-    <div className="bg-blue-600 text-white h-screen w-64 fixed left-0 top-0 flex flex-col z-50">
+    <div className="bg-blue-600 text-white h-screen w-64 fixed left-0 top-0 flex-col z-50 hidden md:flex">
       <div className="p-4 border-b border-blue-700">
         <h1 className="text-xl font-bold">KeyEff CallPanel</h1>
       </div>
