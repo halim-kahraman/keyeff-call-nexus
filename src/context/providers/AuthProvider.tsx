@@ -12,6 +12,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [loginAttemptCount, setLoginAttemptCount] = useState(0);
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -27,33 +28,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Prevent duplicate login attempts
+    setLoginAttemptCount(prev => prev + 1);
+    const currentAttempt = loginAttemptCount + 1;
+    
     setIsLoading(true);
     try {
       console.log('Login attempt for:', email);
       const response = await authService.login(email, password);
       console.log('Login response:', response);
       
-      if (response.success && response.data.needs_verification) {
-        setNeedsVerification(true);
-        setPendingUserId(response.data.user_id);
-        
-        toast.success("2FA-Code gesendet", {
-          description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
-        });
-        
-        // For demo purposes, show the OTP
-        console.log('Demo OTP for login:', response.data.otp);
-        toast.info(`Demo OTP: ${response.data.otp}`, {
-          description: "Nur für Demozwecke!"
-        });
+      // Only process if this is still the latest login attempt
+      if (currentAttempt === loginAttemptCount) {
+        if (response.success && response.data.needs_verification) {
+          setNeedsVerification(true);
+          setPendingUserId(response.data.user_id);
+          
+          // Show only one toast for successful OTP sending
+          toast.success("2FA-Code gesendet", {
+            description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
+          });
+          
+          // For demo purposes, show the OTP
+          console.log('Demo OTP for login:', response.data.otp);
+          toast.info(`Demo OTP: ${response.data.otp}`, {
+            description: "Nur für Demozwecke!"
+          });
+        }
       }
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error("Anmeldung fehlgeschlagen", {
-        description: "Bitte überprüfen Sie Ihre Anmeldedaten"
-      });
+      // Only show error if this is still the latest login attempt
+      if (currentAttempt === loginAttemptCount) {
+        console.error('Login error:', error);
+        // Show only one toast for failed login
+        toast.error("Anmeldung fehlgeschlagen", {
+          description: "Bitte überprüfen Sie Ihre Anmeldedaten"
+        });
+      }
     } finally {
-      setIsLoading(false);
+      // Only update loading state if this is still the latest login attempt
+      if (currentAttempt === loginAttemptCount) {
+        setIsLoading(false);
+      }
     }
   };
 

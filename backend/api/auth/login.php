@@ -13,13 +13,6 @@ debugLog('Login request received', [
     'raw_post' => file_get_contents('php://input')
 ]);
 
-// Handle OPTIONS preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    debugLog('OPTIONS request received - responding with 200');
-    http_response_code(200);
-    exit;
-}
-
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     debugLog('Invalid request method', $_SERVER['REQUEST_METHOD']);

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 // Get current URL components for better environment detection
 const currentHost = window.location.hostname;
 const currentPort = window.location.port;
-const isLovablePreview = currentHost.includes('lovableproject.com');
+const isLovablePreview = currentHost.includes('lovable');
 
 // API configuration - optimized for both local development and Lovable preview
 const API_URL = (() => {
@@ -21,7 +21,7 @@ const API_URL = (() => {
   }
   
   // For local development
-  return '/keyeff_callpanel/backend';
+  return 'http://localhost/keyeff_callpanel/backend';
 })();
 
 console.log('API URL configured as:', API_URL);
@@ -32,8 +32,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Set withCredentials to match our CORS configuration
-  withCredentials: false,
+  // Set withCredentials to allow cookies across domains for proper authentication
+  withCredentials: true,
 });
 
 // Flag to detect if we're in mock mode (Lovable preview)
@@ -125,7 +125,7 @@ apiClient.interceptors.response.use(
           'demo_filialleiter': { id: 'demo_filialleiter', name: 'Filialleiter User', role: 'filialleiter', email: 'filialleiter@keyeff.de' }
         };
         
-        // In mock mode, accept any OTP
+        // In mock mode, accept any valid demo user ID
         if (demoUsers[user_id]) {
           // Generate a demo token
           const token = `demo_token_${Math.random().toString(36).substring(2)}`;
@@ -152,9 +152,6 @@ apiClient.interceptors.response.use(
         }
       });
     }
-    
-    // Don't show toast here, let components handle their own error messages
-    // This prevents duplicate error messages
     
     return Promise.reject(error);
   }
