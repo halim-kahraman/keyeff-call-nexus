@@ -29,10 +29,10 @@ const mockLogs = [
 
 // Mock data for users
 const mockUsers = [
-  { id: 1, name: "Administrator", email: "admin@keyeff.de" },
-  { id: 2, name: "Telefonist 1", email: "telefonist1@keyeff.de" },
-  { id: 3, name: "Telefonist 2", email: "telefonist2@keyeff.de" },
-  { id: 4, name: "Filialleiter", email: "filialleiter@keyeff.de" },
+  { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" },
+  { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" },
+  { id: 3, name: "Thomas Müller", email: "telefonist2@keyeff.de" },
+  { id: 4, name: "Laura Weber", email: "filialleiter@keyeff.de" },
 ];
 
 const Logs = () => {

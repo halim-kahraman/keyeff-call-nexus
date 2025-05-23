@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +12,13 @@ import { useQuery } from "@tanstack/react-query";
 import { format, sub } from "date-fns";
 import { de } from "date-fns/locale";
 import { statisticsService } from "@/services/api";
-import { exportToPdf, exportToExcel, formatStatisticsForExport } from "@/utils/exportUtils";
+import { 
+  exportToPdf, 
+  exportToExcel, 
+  formatStatisticsForExport, 
+  exportStatisticsToPdf,
+  captureChartsForExport
+} from "@/utils/exportUtils";
 
 // Types for statistics data
 interface StatisticsData {
@@ -67,6 +72,9 @@ const Statistics = () => {
     startDate: format(sub(new Date(), { days: 7 }), "yyyy-MM-dd"),
     endDate: format(new Date(), "yyyy-MM-dd"),
   });
+  
+  // Chart refs for export
+  const chartsContainerRef = useRef<HTMLDivElement>(null);
   
   // Update date range based on time range selection
   useEffect(() => {
@@ -159,14 +167,32 @@ const Statistics = () => {
       return;
     }
 
-    const period = `${format(new Date(dateRange.startDate), "dd.MM.yyyy", { locale: de })} - ${format(new Date(dateRange.endDate), "dd.MM.yyyy", { locale: de })}`;
-    const exportData = formatStatisticsForExport(statsData, period);
-    
-    await exportToPdf(
-      exportData,
-      `Statistik_${format(new Date(), "yyyy-MM-dd")}`,
-      `Statistikbericht ${period}`
-    );
+    // Show loading toast
+    toast({
+      title: "Exportiere...",
+      description: "Die Diagramme werden vorbereitet und exportiert.",
+    });
+
+    try {
+      // Capture chart images
+      const chartImages = await captureChartsForExport();
+      
+      const period = `${format(new Date(dateRange.startDate), "dd.MM.yyyy", { locale: de })} - ${format(new Date(dateRange.endDate), "dd.MM.yyyy", { locale: de })}`;
+      
+      await exportStatisticsToPdf(
+        statsData,
+        `Statistik_${format(new Date(), "yyyy-MM-dd")}`,
+        `Statistikbericht ${period}`,
+        chartImages
+      );
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Export fehlgeschlagen",
+        description: "Beim Exportieren ist ein Fehler aufgetreten.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Handle Excel export
@@ -323,29 +349,93 @@ const Statistics = () => {
         </Card>
       </div>
       
-      <Tabs defaultValue="calls" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="calls">Anrufstatistiken</TabsTrigger>
-          <TabsTrigger value="appointments">Terminstatistiken</TabsTrigger>
-          <TabsTrigger value="users">Telefonisten Performance</TabsTrigger>
-          {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
-            <TabsTrigger value="filialen">Filialstatistiken</TabsTrigger>
-          )}
-        </TabsList>
-        
-        <TabsContent value="calls" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div ref={chartsContainerRef}>
+        <Tabs defaultValue="calls" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="calls">Anrufstatistiken</TabsTrigger>
+            <TabsTrigger value="appointments">Terminstatistiken</TabsTrigger>
+            <TabsTrigger value="users">Telefonisten Performance</TabsTrigger>
+            {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
+              <TabsTrigger value="filialen">Filialstatistiken</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="calls" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Anrufe pro Tag</CardTitle>
+                  <CardDescription>
+                    {filterUser !== "all" 
+                      ? "Anrufe des ausgewählten Mitarbeiters"
+                      : "Vergleich zwischen getätigten Anrufen"
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {statsData?.calls_by_day && statsData.calls_by_day.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={prepareCallsByDay()}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total_calls" name="Getätigte Anrufe" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">Keine Daten verfügbar</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Anrufergebnisse</CardTitle>
+                  <CardDescription>Verteilung der Gesprächsergebnisse</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {statsData?.calls_by_outcome && statsData.calls_by_outcome.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={prepareCallOutcomeData()}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {prepareCallOutcomeData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">Keine Daten verfügbar</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
             <Card>
               <CardHeader>
-                <CardTitle>Anrufe pro Tag</CardTitle>
-                <CardDescription>
-                  {filterUser !== "all" 
-                    ? "Anrufe des ausgewählten Mitarbeiters"
-                    : "Vergleich zwischen getätigten Anrufen"
-                  }
-                </CardDescription>
+                <CardTitle>Durchschnittliche Gesprächsdauer</CardTitle>
+                <CardDescription>Angegeben in Minuten</CardDescription>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-60">
                 {statsData?.calls_by_day && statsData.calls_by_day.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -357,7 +447,7 @@ const Statistics = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="total_calls" name="Getätigte Anrufe" fill="#8884d8" />
+                      <Bar dataKey="avg_duration" name="Ø Dauer (Sek.)" fill="#1EAEDB" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -367,237 +457,51 @@ const Statistics = () => {
                 )}
               </CardContent>
             </Card>
-            
+          </TabsContent>
+          
+          <TabsContent value="appointments" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Anrufergebnisse</CardTitle>
-                <CardDescription>Verteilung der Gesprächsergebnisse</CardDescription>
+                <CardTitle>Termine nach Typ</CardTitle>
+                <CardDescription>Verteilung der vereinbarten Termine</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                {statsData?.calls_by_outcome && statsData.calls_by_outcome.length > 0 ? (
+                {statsData?.appointments_by_type && statsData.appointments_by_type.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={prepareCallOutcomeData()}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {prepareCallOutcomeData().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
+                    <BarChart
+                      data={statsData.appointments_by_type}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="type" />
+                      <YAxis />
                       <Tooltip />
-                    </PieChart>
+                      <Legend />
+                      <Bar dataKey="count" name="Anzahl Termine" fill="#4CAF50">
+                        {statsData.appointments_by_type.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={generateColors(statsData.appointments_by_type.length)[index]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Keine Daten verfügbar</p>
+                    <p className="text-muted-foreground">Keine Terminstatistiken verfügbar</p>
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Durchschnittliche Gesprächsdauer</CardTitle>
-              <CardDescription>Angegeben in Minuten</CardDescription>
-            </CardHeader>
-            <CardContent className="h-60">
-              {statsData?.calls_by_day && statsData.calls_by_day.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={prepareCallsByDay()}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="avg_duration" name="Ø Dauer (Sek.)" fill="#1EAEDB" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Keine Daten verfügbar</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="appointments" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Termine nach Typ</CardTitle>
-              <CardDescription>Verteilung der vereinbarten Termine</CardDescription>
-            </CardHeader>
-            <CardContent className="h-80">
-              {statsData?.appointments_by_type && statsData.appointments_by_type.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={statsData.appointments_by_type}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="type" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" name="Anzahl Termine" fill="#4CAF50">
-                      {statsData.appointments_by_type.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={generateColors(statsData.appointments_by_type.length)[index]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Keine Terminstatistiken verfügbar</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Termine pro Mitarbeiter</CardTitle>
-              <CardDescription>Verteilung der Termine nach Mitarbeiter</CardDescription>
-            </CardHeader>
-            <CardContent className="h-80">
-              {statsData?.top_callers && statsData.top_callers.some(caller => caller.total_calls > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={statsData.top_callers.filter(caller => caller.total_calls > 0)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="total_calls" name="Anrufe" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Keine Terminstatistiken verfügbar</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Telefonisten Performance</CardTitle>
-              <CardDescription>Leistungsvergleich zwischen Mitarbeitern</CardDescription>
-            </CardHeader>
-            <CardContent className="h-80">
-              {statsData?.top_callers && statsData.top_callers.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={statsData.top_callers}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="total_calls" name="Anrufe" fill="#8884d8" />
-                    <Bar dataKey="avg_duration" name="Ø Dauer (Sek.)" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Keine Mitarbeiterstatistiken verfügbar</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {filterUser !== "all" && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Individuelle Performance</CardTitle>
-                  <CardDescription>
-                    Details zur individuellen Leistung
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => {
-                  // Send individual report via email
-                  toast({
-                    title: "Report wird generiert",
-                    description: "Der individuelle Leistungsbericht wird erstellt...",
-                  });
-                  
-                  setTimeout(() => {
-                    toast({
-                      title: "Report versendet",
-                      description: "Der Leistungsbericht wurde erfolgreich per E-Mail versendet.",
-                    });
-                  }, 2000);
-                }}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  An Mitarbeiter senden
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-background border rounded-md p-4">
-                      <div className="text-muted-foreground text-sm">Erfolgsquote</div>
-                      <div className="text-2xl font-bold mt-1">
-                        {statsData?.calls_by_outcome && statsData.calls_by_outcome.length > 0
-                          ? `${Math.round((statsData.calls_by_outcome.find(o => o.outcome === "interested" || o.outcome === "appointment")?.count || 0) / 
-                             statsData.calls_by_outcome.reduce((sum, item) => sum + item.count, 0) * 100)}%`
-                          : "0%"}
-                      </div>
-                    </div>
-                    <div className="bg-background border rounded-md p-4">
-                      <div className="text-muted-foreground text-sm">Anrufe pro Tag</div>
-                      <div className="text-2xl font-bold mt-1">
-                        {statsData?.calls_by_day && statsData.calls_by_day.length > 0
-                          ? (statsData.summary.total_calls / statsData.calls_by_day.length).toFixed(1)
-                          : "0"}
-                      </div>
-                    </div>
-                    <div className="bg-background border rounded-md p-4">
-                      <div className="text-muted-foreground text-sm">Termine pro Anruf</div>
-                      <div className="text-2xl font-bold mt-1">
-                        {statsData?.summary && statsData.summary.total_calls > 0
-                          ? (statsData.summary.total_appointments / statsData.summary.total_calls).toFixed(2)
-                          : "0"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
-          <TabsContent value="filialen" className="space-y-4">
+            
             <Card>
               <CardHeader>
-                <CardTitle>Filialstatistiken</CardTitle>
-                <CardDescription>Leistungsvergleich zwischen Filialen</CardDescription>
+                <CardTitle>Termine pro Mitarbeiter</CardTitle>
+                <CardDescription>Verteilung der Termine nach Mitarbeiter</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                {statsData?.filiale_stats && statsData.filiale_stats.length > 0 ? (
+                {statsData?.top_callers && statsData.top_callers.some(caller => caller.total_calls > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={statsData.filiale_stats}
+                      data={statsData.top_callers.filter(caller => caller.total_calls > 0)}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -606,60 +510,184 @@ const Statistics = () => {
                       <Tooltip />
                       <Legend />
                       <Bar dataKey="total_calls" name="Anrufe" fill="#8884d8" />
-                      <Bar dataKey="total_appointments" name="Termine" fill="#82ca9d" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Keine Filialstatistiken verfügbar</p>
+                    <p className="text-muted-foreground">Keine Terminstatistiken verfügbar</p>
                   </div>
                 )}
               </CardContent>
             </Card>
-            
+          </TabsContent>
+          
+          <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Filiale Detailübersicht</CardTitle>
-                <CardDescription>Detaillierte Kennzahlen je Filiale</CardDescription>
+                <CardTitle>Telefonisten Performance</CardTitle>
+                <CardDescription>Leistungsvergleich zwischen Mitarbeitern</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Filiale</th>
-                        <th className="text-center p-2">Mitarbeiter</th>
-                        <th className="text-center p-2">Anrufe</th>
-                        <th className="text-center p-2">Termine</th>
-                        <th className="text-center p-2">Erfolgsrate</th>
-                        <th className="text-center p-2">Ø Gesprächsdauer</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {statsData?.filiale_stats?.map(filiale => (
-                        <tr key={filiale.id} className="border-b hover:bg-muted/50">
-                          <td className="p-2 font-medium">{filiale.name}</td>
-                          <td className="text-center p-2">{filiale.total_users}</td>
-                          <td className="text-center p-2">{filiale.total_calls}</td>
-                          <td className="text-center p-2">{filiale.total_appointments}</td>
-                          <td className="text-center p-2">
-                            {filiale.total_calls > 0 
-                              ? `${Math.round((filiale.total_appointments / filiale.total_calls) * 100)}%` 
-                              : '0%'}
-                          </td>
-                          <td className="text-center p-2">
-                            {formatDuration(filiale.avg_call_duration)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <CardContent className="h-80">
+                {statsData?.top_callers && statsData.top_callers.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={statsData.top_callers}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="total_calls" name="Anrufe" fill="#8884d8" />
+                      <Bar dataKey="avg_duration" name="Ø Dauer (Sek.)" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Keine Mitarbeiterstatistiken verfügbar</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {filterUser !== "all" && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Individuelle Performance</CardTitle>
+                    <CardDescription>
+                      Details zur individuellen Leistung
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    // Send individual report via email
+                    toast({
+                      title: "Report wird generiert",
+                      description: "Der individuelle Leistungsbericht wird erstellt...",
+                    });
+                    
+                    setTimeout(() => {
+                      toast({
+                        title: "Report versendet",
+                        description: "Der Leistungsbericht wurde erfolgreich per E-Mail versendet.",
+                      });
+                    }, 2000);
+                  }}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    An Mitarbeiter senden
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-background border rounded-md p-4">
+                        <div className="text-muted-foreground text-sm">Erfolgsquote</div>
+                        <div className="text-2xl font-bold mt-1">
+                          {statsData?.calls_by_outcome && statsData.calls_by_outcome.length > 0
+                            ? `${Math.round((statsData.calls_by_outcome.find(o => o.outcome === "interested" || o.outcome === "appointment")?.count || 0) / 
+                               statsData.calls_by_outcome.reduce((sum, item) => sum + item.count, 0) * 100)}%`
+                            : "0%"}
+                        </div>
+                      </div>
+                      <div className="bg-background border rounded-md p-4">
+                        <div className="text-muted-foreground text-sm">Anrufe pro Tag</div>
+                        <div className="text-2xl font-bold mt-1">
+                          {statsData?.calls_by_day && statsData.calls_by_day.length > 0
+                            ? (statsData.summary.total_calls / statsData.calls_by_day.length).toFixed(1)
+                            : "0"}
+                        </div>
+                      </div>
+                      <div className="bg-background border rounded-md p-4">
+                        <div className="text-muted-foreground text-sm">Termine pro Anruf</div>
+                        <div className="text-2xl font-bold mt-1">
+                          {statsData?.summary && statsData.summary.total_calls > 0
+                            ? (statsData.summary.total_appointments / statsData.summary.total_calls).toFixed(2)
+                            : "0"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
-        )}
-      </Tabs>
+          
+          {(user?.role === "admin" || user?.role === "filialleiter") && filterUser === "all" && (
+            <TabsContent value="filialen" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Filialstatistiken</CardTitle>
+                  <CardDescription>Leistungsvergleich zwischen Filialen</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {statsData?.filiale_stats && statsData.filiale_stats.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={statsData.filiale_stats}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total_calls" name="Anrufe" fill="#8884d8" />
+                        <Bar dataKey="total_appointments" name="Termine" fill="#82ca9d" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-muted-foreground">Keine Filialstatistiken verfügbar</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Filiale Detailübersicht</CardTitle>
+                  <CardDescription>Detaillierte Kennzahlen je Filiale</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Filiale</th>
+                          <th className="text-center p-2">Mitarbeiter</th>
+                          <th className="text-center p-2">Anrufe</th>
+                          <th className="text-center p-2">Termine</th>
+                          <th className="text-center p-2">Erfolgsrate</th>
+                          <th className="text-center p-2">Ø Gesprächsdauer</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statsData?.filiale_stats?.map(filiale => (
+                          <tr key={filiale.id} className="border-b hover:bg-muted/50">
+                            <td className="p-2 font-medium">{filiale.name}</td>
+                            <td className="text-center p-2">{filiale.total_users}</td>
+                            <td className="text-center p-2">{filiale.total_calls}</td>
+                            <td className="text-center p-2">{filiale.total_appointments}</td>
+                            <td className="text-center p-2">
+                              {filiale.total_calls > 0 
+                                ? `${Math.round((filiale.total_appointments / filiale.total_calls) * 100)}%` 
+                                : '0%'}
+                            </td>
+                            <td className="text-center p-2">
+                              {formatDuration(filiale.avg_call_duration)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
     </AppLayout>
   );
 };

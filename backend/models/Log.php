@@ -36,7 +36,7 @@ class Log {
     
     // Get all logs with filtering options
     public function getAll($filters = []) {
-        $sql = "SELECT l.*, u.name as user_name, u.role as user_role
+        $sql = "SELECT l.*, u.name as user_name, u.email as user_email, u.role as user_role
                 FROM logs l 
                 LEFT JOIN users u ON l.user_id = u.id 
                 WHERE 1=1";
