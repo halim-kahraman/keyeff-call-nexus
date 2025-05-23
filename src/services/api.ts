@@ -1,3 +1,4 @@
+
 // API Services for the application
 
 // Auth Service
@@ -482,6 +483,16 @@ export const statisticsService = {
       return data;
     } catch (error) {
       console.error('Error fetching statistics:', error);
+      // Generate default dates for mock data (last 30 days)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Format dates as YYYY-MM-DD
+      const formatDate = (date: Date) => {
+        return date.toISOString().split('T')[0];
+      };
+      
       // Mock data for development
       return {
         success: true,
@@ -491,8 +502,8 @@ export const statisticsService = {
             total_appointments: 48,
             total_customers_contacted: 180,
             period: {
-              start: startDate || date('Y-m-d', strtotime('-30 days')),
-              end: endDate || date('Y-m-d')
+              start: startDate || formatDate(thirtyDaysAgo),
+              end: endDate || formatDate(today)
             }
           },
           calls_by_day: [
