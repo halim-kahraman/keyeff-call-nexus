@@ -40,7 +40,7 @@ function App() {
               <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Protected Routes */}
-              <Route element={<RequireAuth>{({ user }) => <></>}</RequireAuth>}>
+              <Route element={<RequireAuth>{() => <></>}</RequireAuth>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/call" element={<CallPanel />} />
@@ -49,7 +49,7 @@ function App() {
                 <Route path="/statistics" element={<Statistics />} />
                 
                 {/* Admin Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin']}>{({ user }) => <></>}</RequireAuth>}>
+                <Route element={<RequireAuth allowedRoles={['admin']}>{() => <></>}</RequireAuth>}>
                   <Route path="/admin/tools" element={<AdminTools />} />
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/filialen" element={<Filialen />} />
@@ -57,7 +57,7 @@ function App() {
                 </Route>
                 
                 {/* Admin or Filialleiter Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']}>{({ user }) => <></>}</RequireAuth>}>
+                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']}>{() => <></>}</RequireAuth>}>
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
                 </Route>

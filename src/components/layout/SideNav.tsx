@@ -1,3 +1,4 @@
+
 import {
   HomeIcon,
   LayoutDashboard,
@@ -49,7 +50,7 @@ export function SideNav() {
       <div className="flex flex-col flex-1">
         <nav className="flex-1 space-y-1 p-2">
           <Button
-            variant={pathname === "/dashboard" ? "secondary" : "ghost"}
+            variant={pathname === "/" || pathname === "/dashboard" ? "secondary" : "ghost"}
             className="w-full justify-start"
             asChild
           >
