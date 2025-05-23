@@ -1,4 +1,3 @@
-
 // API Services for the application
 
 // Helper function to format dates as YYYY-MM-DD
@@ -247,6 +246,42 @@ export const customerService = {
           }
         ]
       };
+    }
+  },
+  
+  // Add the createCustomer method
+  createCustomer: async (customerData: {
+    name: string;
+    company: string;
+    email: string;
+    phone: string;
+    mobile_phone: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    notes: string;
+    priority: string;
+    filiale_id?: string;
+    campaign_id?: string;
+  }) => {
+    try {
+      const response = await fetch('/backend/api/customers/create.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(customerData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create customer');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
     }
   }
 };

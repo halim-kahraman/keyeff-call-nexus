@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../config/database.php';
 
@@ -63,7 +62,7 @@ class Customer {
         return $customers;
     }
     
-    // Get customers by campaign
+    // Get customers by filiale
     public function getByFiliale($filiale_id) {
         return $this->getAll($filiale_id);
     }
@@ -229,6 +228,70 @@ class Customer {
         }
         
         return $logs;
+    }
+    
+    // Create new customer
+    public function createCustomer($data) {
+        $sql = "INSERT INTO customers (
+                    name, 
+                    company, 
+                    email, 
+                    address, 
+                    city, 
+                    postal_code, 
+                    notes, 
+                    priority, 
+                    filiale_id, 
+                    campaign_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("ssssssssis", 
+            $data['name'], 
+            $data['company'], 
+            $data['email'], 
+            $data['address'], 
+            $data['city'], 
+            $data['postal_code'], 
+            $data['notes'], 
+            $data['priority'], 
+            $data['filiale_id'], 
+            $data['campaign_id']
+        );
+        
+        if ($stmt->execute()) {
+            $customer_id = $this->conn->insert_id;
+            
+            // Add phone number if provided
+            if (!empty($data['phone'])) {
+                $phone_sql = "INSERT INTO customer_contacts (customer_id, phone, contact_type, is_primary) 
+                            VALUES (?, ?, 'Hauptnummer', 1)";
+                $phone_stmt = $this->conn->prepare($phone_sql);
+                $phone_stmt->bind_param("is", $customer_id, $data['phone']);
+                $phone_stmt->execute();
+            }
+            
+            // Add mobile phone if provided
+            if (!empty($data['mobile_phone'])) {
+                $mobile_sql = "INSERT INTO customer_contacts (customer_id, phone, contact_type, is_primary) 
+                            VALUES (?, ?, 'Mobil', 0)";
+                $mobile_stmt = $this->conn->prepare($mobile_sql);
+                $mobile_stmt->bind_param("is", $customer_id, $data['mobile_phone']);
+                $mobile_stmt->execute();
+            }
+            
+            // Link to campaign if campaign_id provided
+            if (!empty($data['campaign_id'])) {
+                $campaign_sql = "INSERT INTO campaign_customers (campaign_id, customer_id) VALUES (?, ?)";
+                $campaign_stmt = $this->conn->prepare($campaign_sql);
+                $campaign_stmt->bind_param("ii", $data['campaign_id'], $customer_id);
+                $campaign_stmt->execute();
+            }
+            
+            return $customer_id;
+        }
+        
+        return false;
     }
     
     // Import customers from CSV or Excel
