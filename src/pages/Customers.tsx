@@ -448,11 +448,11 @@ const Customers = () => {
                     </TableCell>
                     <TableCell>
                       {contractStatuses.map((status, index) => (
-                        <Badge key={index} className={getStatusBadge(status)} className="mb-1 block w-fit">
+                        <Badge key={index} className={`mb-1 block w-fit ${getStatusBadge(status)}`}>
                           {status}
                         </Badge>
                       ))}
-                      <Badge className={getPriorityBadge(customer.priority)} className="mt-2 block w-fit">
+                      <Badge className={`mt-2 block w-fit ${getPriorityBadge(customer.priority)}`}>
                         {getPriorityText(customer.priority)}
                       </Badge>
                     </TableCell>
