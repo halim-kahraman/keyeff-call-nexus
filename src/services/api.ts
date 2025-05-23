@@ -367,7 +367,10 @@ export const settingsService = {
   getSettings: async (category, filialeId?) => isMockMode ? {} : (await apiClient.get(`/api/settings/get.php?category=${category}${filialeId ? `&filiale_id=${filialeId}` : ''}`)).data.data,
   saveSettings: async (category, settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/save.php', { category, settings, filiale_id: filialeId })).data,
   testSipConnection: async (settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-sip.php', { settings, filiale_id: filialeId })).data,
-  testVpnConnection: async (settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-vpn.php', { settings, filiale_id: filialeId })).data
+  testVpnConnection: async (settings, filialeId?) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-vpn.php', { settings, filiale_id: filialeId })).data,
+  testFritzboxConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-fritzbox.php', { settings })).data,
+  testEmailConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-email.php', { settings })).data,
+  testKeyEffApiConnection: async (settings) => isMockMode ? { success: true } : (await apiClient.post('/api/settings/test-keyeff-api.php', { settings })).data
 };
 
 export const logsService = {

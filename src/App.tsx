@@ -1,3 +1,4 @@
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +17,12 @@ import Contacts from "./pages/Contacts";
 import Statistics from "./pages/Statistics";
 import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
+
+// Admin Pages
+import UserManagement from "./pages/UserManagement";
+import Filialen from "./pages/Filialen";
+import Permissions from "./pages/Permissions";
+import Templates from "./pages/Templates";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +98,43 @@ const App = () => (
               element={
                 <RequireAuth allowedRoles={["admin", "filialleiter"]}>
                   <Settings />
+                </RequireAuth>
+              } 
+            />
+
+            {/* Admin Pages */}
+            <Route 
+              path="/users" 
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <UserManagement />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/filialen" 
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <Filialen />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/permissions" 
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <Permissions />
+                </RequireAuth>
+              } 
+            />
+
+            <Route 
+              path="/templates" 
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <Templates />
                 </RequireAuth>
               } 
             />

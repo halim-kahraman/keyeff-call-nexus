@@ -64,6 +64,15 @@ const Settings = () => {
     vpnPassword: "",
     vpnCertificate: "",
   });
+
+  const [keyeffApiSettings, setKeyeffApiSettings] = useState({
+    apiUrl: "",
+    apiKey: "",
+    apiSecret: "",
+    enableSync: true,
+    syncInterval: "60",
+    syncLogs: true,
+  });
   
   // Fetch branch offices
   const { data: filialen, isLoading: isLoadingFilialen } = useQuery({
@@ -94,6 +103,12 @@ const Settings = () => {
     queryKey: ['settings', 'vpn', selectedFilialeId],
     queryFn: () => settingsService.getSettings('vpn', selectedFilialeId),
     enabled: !!selectedFilialeId,
+  });
+
+  const { data: keyeffApiSettingsData, isLoading: isLoadingKeyeffApiSettings, refetch: refetchKeyeffApiSettings } = useQuery({
+    queryKey: ['settings', 'keyeff-api'],
+    queryFn: () => settingsService.getSettings('keyeff-api'),
+    enabled: user?.role === 'admin',
   });
 
   // Global settings
@@ -152,6 +167,18 @@ const Settings = () => {
     }
   });
 
+  const { mutate: saveKeyeffApiSettingsMutation } = useMutation({
+    mutationFn: (settings: Record<string, string>) => 
+      settingsService.saveSettings('keyeff-api', settings),
+    onSuccess: () => {
+      toast.success("Die KeyEff API-Einstellungen wurden erfolgreich aktualisiert.");
+      refetchKeyeffApiSettings();
+    },
+    onError: () => {
+      toast.error("Fehler beim Speichern der KeyEff API-Einstellungen.");
+    }
+  });
+
   const { mutate: saveGlobalSettingsMutation } = useMutation({
     mutationFn: (settings: Record<string, string>) => 
       settingsService.saveSettings('global', settings),
@@ -197,6 +224,50 @@ const Settings = () => {
     },
     onError: () => {
       toast.error("VPN-Verbindungstest fehlgeschlagen.");
+    }
+  });
+
+  // New test mutations for FRITZ!Box and Email
+  const { mutate: testFritzboxConnectionMutation, isPending: isTestingFritzboxConnection } = useMutation({
+    mutationFn: () => settingsService.testFritzboxConnection({
+      fritzBoxIP: fritzboxSettings.fritzBoxIP,
+      fritzBoxUser: fritzboxSettings.fritzBoxUser,
+      fritzBoxPassword: fritzboxSettings.fritzBoxPassword,
+    }),
+    onSuccess: () => {
+      toast.success("FRITZ!Box-Verbindung erfolgreich getestet.");
+    },
+    onError: () => {
+      toast.error("FRITZ!Box-Verbindungstest fehlgeschlagen.");
+    }
+  });
+
+  const { mutate: testEmailConnectionMutation, isPending: isTestingEmailConnection } = useMutation({
+    mutationFn: () => settingsService.testEmailConnection({
+      smtpServer: emailSettings.smtpServer,
+      smtpPort: emailSettings.smtpPort,
+      smtpUser: emailSettings.smtpUser,
+      smtpPassword: emailSettings.smtpPassword,
+    }),
+    onSuccess: () => {
+      toast.success("E-Mail-Verbindung erfolgreich getestet.");
+    },
+    onError: () => {
+      toast.error("E-Mail-Verbindungstest fehlgeschlagen.");
+    }
+  });
+
+  const { mutate: testKeyEffApiConnectionMutation, isPending: isTestingKeyEffApiConnection } = useMutation({
+    mutationFn: () => settingsService.testKeyEffApiConnection({
+      apiUrl: keyeffApiSettings.apiUrl,
+      apiKey: keyeffApiSettings.apiKey,
+      apiSecret: keyeffApiSettings.apiSecret,
+    }),
+    onSuccess: () => {
+      toast.success("KeyEff API-Verbindung erfolgreich getestet.");
+    },
+    onError: () => {
+      toast.error("KeyEff API-Verbindungstest fehlgeschlagen.");
     }
   });
   
@@ -256,6 +327,19 @@ const Settings = () => {
       });
     }
   }, [vpnSettingsData]);
+
+  useEffect(() => {
+    if (keyeffApiSettingsData) {
+      setKeyeffApiSettings({
+        apiUrl: keyeffApiSettingsData.apiUrl || "",
+        apiKey: keyeffApiSettingsData.apiKey || "",
+        apiSecret: keyeffApiSettingsData.apiSecret || "********",
+        enableSync: keyeffApiSettingsData.enableSync === "true",
+        syncInterval: keyeffApiSettingsData.syncInterval || "60",
+        syncLogs: keyeffApiSettingsData.syncLogs === "true",
+      });
+    }
+  }, [keyeffApiSettingsData]);
   
   // Save handlers
   const handleSaveEmailSettings = () => {
@@ -313,12 +397,39 @@ const Settings = () => {
     setLoading(false);
   };
 
+  const handleSaveKeyEffApiSettings = () => {
+    setLoading(true);
+    // Convert boolean values to strings before saving
+    const keyeffApiSettingsToSave: Record<string, string> = {
+      apiUrl: keyeffApiSettings.apiUrl,
+      apiKey: keyeffApiSettings.apiKey,
+      apiSecret: keyeffApiSettings.apiSecret,
+      enableSync: keyeffApiSettings.enableSync.toString(),
+      syncInterval: keyeffApiSettings.syncInterval,
+      syncLogs: keyeffApiSettings.syncLogs.toString(),
+    };
+    saveKeyeffApiSettingsMutation(keyeffApiSettingsToSave);
+    setLoading(false);
+  };
+
   const handleTestSipConnection = () => {
     testSipConnectionMutation();
   };
 
   const handleTestVpnConnection = () => {
     testVpnConnectionMutation();
+  };
+
+  const handleTestFritzboxConnection = () => {
+    testFritzboxConnectionMutation();
+  };
+
+  const handleTestEmailConnection = () => {
+    testEmailConnectionMutation();
+  };
+
+  const handleTestKeyEffApiConnection = () => {
+    testKeyEffApiConnectionMutation();
   };
 
   return (
@@ -347,11 +458,12 @@ const Settings = () => {
       )}
       
       <Tabs defaultValue="sip" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 w-full">
           <TabsTrigger value="sip">SIP & WebRTC</TabsTrigger>
           <TabsTrigger value="vpn">VPN</TabsTrigger>
           <TabsTrigger value="fritzbox">FRITZ!Box</TabsTrigger>
           <TabsTrigger value="email">E-Mail</TabsTrigger>
+          <TabsTrigger value="keyeff-api">KeyEff API</TabsTrigger>
           <TabsTrigger value="global">Global</TabsTrigger>
           <TabsTrigger value="test">Testclient</TabsTrigger>
         </TabsList>
@@ -655,9 +767,18 @@ const Settings = () => {
                   <Label htmlFor="useFallback">Als Fallback für WebRTC nutzen</Label>
                 </div>
               </div>
-              <Button onClick={handleSaveFritzBoxSettings} disabled={loading}>
-                {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-              </Button>
+              <div className="flex gap-4 mt-6">
+                <Button onClick={handleSaveFritzBoxSettings} disabled={loading}>
+                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleTestFritzboxConnection}
+                  disabled={isTestingFritzboxConnection || !fritzboxSettings.enableFritzBox}
+                >
+                  {isTestingFritzboxConnection ? "Teste Verbindung..." : "Verbindung testen"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -723,9 +844,107 @@ const Settings = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveEmailSettings} disabled={loading}>
-                {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
-              </Button>
+              <div className="flex gap-4 mt-6">
+                <Button onClick={handleSaveEmailSettings} disabled={loading}>
+                  {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleTestEmailConnection}
+                  disabled={isTestingEmailConnection}
+                >
+                  {isTestingEmailConnection ? "Teste Verbindung..." : "Verbindung testen"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* KeyEff API Tab */}
+        <TabsContent value="keyeff-api" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>KeyEff API Einstellungen</CardTitle>
+              <CardDescription>
+                Konfigurieren Sie die Verbindung zur KeyEff API für Datenaustausch und Synchronisation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {user?.role === 'admin' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-2 flex items-center space-x-2 mb-4">
+                      <Switch 
+                        id="enableSync" 
+                        checked={keyeffApiSettings.enableSync}
+                        onCheckedChange={(checked) => setKeyeffApiSettings({...keyeffApiSettings, enableSync: checked})}
+                      />
+                      <Label htmlFor="enableSync">API-Synchronisation aktivieren</Label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="apiUrl">API URL</Label>
+                      <Input 
+                        id="apiUrl" 
+                        value={keyeffApiSettings.apiUrl} 
+                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiUrl: e.target.value})}
+                        placeholder="https://api.keyeff.de/v1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="apiKey">API Key</Label>
+                      <Input 
+                        id="apiKey" 
+                        value={keyeffApiSettings.apiKey} 
+                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiKey: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="apiSecret">API Secret</Label>
+                      <Input 
+                        id="apiSecret" 
+                        type="password" 
+                        value={keyeffApiSettings.apiSecret} 
+                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, apiSecret: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="syncInterval">Synchronisationsintervall (Minuten)</Label>
+                      <Input 
+                        id="syncInterval" 
+                        type="number" 
+                        value={keyeffApiSettings.syncInterval} 
+                        onChange={(e) => setKeyeffApiSettings({...keyeffApiSettings, syncInterval: e.target.value})}
+                        min="5"
+                        max="1440"
+                      />
+                    </div>
+                    <div className="col-span-2 flex items-center space-x-2 mt-4">
+                      <Switch 
+                        id="syncLogs" 
+                        checked={keyeffApiSettings.syncLogs}
+                        onCheckedChange={(checked) => setKeyeffApiSettings({...keyeffApiSettings, syncLogs: checked})}
+                      />
+                      <Label htmlFor="syncLogs">Logs synchronisieren</Label>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 mt-6">
+                    <Button onClick={handleSaveKeyEffApiSettings} disabled={loading}>
+                      {loading ? "Wird gespeichert..." : "Einstellungen speichern"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleTestKeyEffApiConnection}
+                      disabled={isTestingKeyEffApiConnection || !keyeffApiSettings.apiUrl || !keyeffApiSettings.apiKey}
+                    >
+                      {isTestingKeyEffApiConnection ? "Teste Verbindung..." : "Verbindung testen"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-amber-500">
+                  Die KeyEff API-Einstellungen können nur von Administratoren eingesehen und bearbeitet werden.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
