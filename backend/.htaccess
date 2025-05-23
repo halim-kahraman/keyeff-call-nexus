@@ -1,7 +1,7 @@
 
 # Enable CORS for all routes
 <IfModule mod_headers.c>
-    # Specific origin handling will be done in PHP
+    # We'll handle specific origins in PHP
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header always set Access-Control-Max-Age "1728000"

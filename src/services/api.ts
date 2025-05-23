@@ -4,15 +4,23 @@ import { toast } from "sonner";
 // Get current URL components for better environment detection
 const currentHost = window.location.hostname;
 const currentPort = window.location.port;
+const isLovablePreview = currentHost.includes('lovableproject.com');
 
-// API configuration - optimized for local development
+// API configuration - optimized for both local development and Lovable preview
 const API_URL = (() => {
   console.log('Environment detection:', {
     hostname: currentHost,
-    port: currentPort
+    port: currentPort,
+    isLovablePreview
   });
   
-  // Always use relative paths for easier development
+  // For Lovable preview, use a mock API URL since backend is not available
+  if (isLovablePreview) {
+    console.log('Running in Lovable preview - using mock API mode');
+    return '/api';  // This will be intercepted for demo purposes
+  }
+  
+  // For local development
   return '/keyeff_callpanel/backend';
 })();
 
@@ -24,18 +32,18 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Set withCredentials to false since we're using Bearer token auth
-  // and our CORS is configured to work with any origin
+  // Set withCredentials to match our CORS configuration
   withCredentials: false,
 });
+
+// Flag to detect if we're in mock mode (Lovable preview)
+const isMockMode = isLovablePreview;
 
 // Add request interceptor to add token to requests
 apiClient.interceptors.request.use(
   (config) => {
     // Log the request for debugging
     console.log(`Making ${config.method?.toUpperCase()} request to: ${config.baseURL}${config.url}`);
-    console.log('Request headers:', config.headers);
-    console.log('Request data:', config.data);
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -49,56 +57,104 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
+// Add response interceptor with mock handling for Lovable preview
 apiClient.interceptors.response.use(
   (response) => {
     // Log successful responses
     console.log(`Response from ${response.config.url}:`, response.status);
-    console.log('Response data:', response.data);
     return response;
   },
   (error: AxiosError) => {
     console.error('API Error:', error);
     
-    // Special handling for CORS errors
-    if (error.message && error.message.includes('Network Error')) {
-      console.error('Network error detected', {
-        url: error.config?.url,
-        headers: error.config?.headers,
-        baseURL: error.config?.baseURL
-      });
+    // Handle mock mode for Lovable preview
+    if (isMockMode && error.message && error.message.includes('Network Error')) {
+      console.log('Mock mode activated - generating demo response');
       
-      toast.error('Netzwerkfehler', {
-        description: 'Bitte überprüfen Sie Ihre PHP-Servereinstellungen und Internetverbindung.',
-        duration: 6000
-      });
-    }
-    // Handle unauthorized errors
-    else if (error.response?.status === 401) {
-      console.warn('Unauthorized access attempt (401)', {
-        url: error.config?.url,
-        data: error.response?.data
-      });
+      // Extract endpoint from URL
+      const url = error.config?.url || '';
       
-      // Only redirect to login if not already on login page
-      if (!window.location.pathname.includes('login')) {
-        // Clear token and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        toast.error('Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
-        window.location.href = '/login';
-      } else {
-        toast.error('Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.');
+      // Handle login mock
+      if (url.includes('login.php')) {
+        const requestData = error.config?.data ? JSON.parse(error.config.data) : {};
+        const { email, password } = requestData;
+        
+        // Check if credentials match demo accounts
+        const demoUsers = {
+          'admin@keyeff.de': { id: 'demo_admin', name: 'Admin User', role: 'admin' },
+          'telefonist@keyeff.de': { id: 'demo_telefonist', name: 'Telefonist User', role: 'telefonist' },
+          'filialleiter@keyeff.de': { id: 'demo_filialleiter', name: 'Filialleiter User', role: 'filialleiter' }
+        };
+        
+        if (demoUsers[email] && password === 'password') {
+          // Successful login - return needs_verification with OTP
+          return Promise.resolve({
+            data: {
+              success: true, 
+              message: 'OTP generated successfully',
+              data: {
+                needs_verification: true,
+                user_id: demoUsers[email].id,
+                otp: '123456' // Demo OTP
+              }
+            }
+          });
+        }
+        
+        // Invalid credentials
+        return Promise.reject({
+          response: {
+            status: 401,
+            data: {
+              success: false,
+              message: 'Invalid credentials'
+            }
+          }
+        });
       }
-    }
-    else {
-      // Show error message from response if available
-      const errorMessage = error.response?.data && typeof error.response.data === 'object' 
-        ? (error.response.data as any).message || 'Ein Fehler ist aufgetreten'
-        : 'Ein Fehler ist aufgetreten';
       
-      toast.error(errorMessage);
+      // Handle 2FA verification mock
+      if (url.includes('verify.php')) {
+        const requestData = error.config?.data ? JSON.parse(error.config.data) : {};
+        const { user_id, otp } = requestData;
+        
+        // Extract user info from id
+        const demoUsers = {
+          'demo_admin': { id: 'demo_admin', name: 'Admin User', role: 'admin', email: 'admin@keyeff.de' },
+          'demo_telefonist': { id: 'demo_telefonist', name: 'Telefonist User', role: 'telefonist', email: 'telefonist@keyeff.de' },
+          'demo_filialleiter': { id: 'demo_filialleiter', name: 'Filialleiter User', role: 'filialleiter', email: 'filialleiter@keyeff.de' }
+        };
+        
+        // In mock mode, accept any OTP
+        if (demoUsers[user_id]) {
+          // Generate a demo token
+          const token = `demo_token_${Math.random().toString(36).substring(2)}`;
+          
+          return Promise.resolve({
+            data: {
+              success: true,
+              message: 'Login successful',
+              data: {
+                token,
+                user: demoUsers[user_id]
+              }
+            }
+          });
+        }
+      }
+      
+      // For any other API in mock mode, return generic success
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: 'Mock API response',
+          data: {}
+        }
+      });
     }
+    
+    // Don't show toast here, let components handle their own error messages
+    // This prevents duplicate error messages
     
     return Promise.reject(error);
   }

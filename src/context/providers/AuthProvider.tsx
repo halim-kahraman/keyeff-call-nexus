@@ -1,6 +1,5 @@
 
 import React, { createContext, useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
 import { User, AuthContextType, PasswordResetResponse } from "../types/auth.types";
@@ -13,7 +12,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
-  const { toast: uiToast } = useToast();
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -43,11 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
         });
         
-        uiToast({
-          title: "2FA-Code gesendet",
-          description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
-        });
-        
         // For demo purposes, show the OTP
         console.log('Demo OTP for login:', response.data.otp);
         toast.info(`Demo OTP: ${response.data.otp}`, {
@@ -59,12 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error("Anmeldung fehlgeschlagen", {
         description: "Bitte überprüfen Sie Ihre Anmeldedaten"
       });
-      
-      uiToast({
-        title: "Anmeldung fehlgeschlagen",
-        description: "Bitte überprüfen Sie Ihre Anmeldedaten",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
@@ -74,12 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!pendingUserId) {
       toast.error("Fehler", {
         description: "Keine Anmeldesitzung gefunden"
-      });
-      
-      uiToast({
-        title: "Fehler",
-        description: "Keine Anmeldesitzung gefunden",
-        variant: "destructive"
       });
       return;
     }
@@ -96,22 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success("Anmeldung erfolgreich", {
           description: `Willkommen zurück, ${response.data.user.name}!`
         });
-        
-        uiToast({
-          title: "Anmeldung erfolgreich",
-          description: `Willkommen zurück, ${response.data.user.name}!`
-        });
       }
     } catch (error) {
       console.error('2FA error:', error);
       toast.error("Bestätigung fehlgeschlagen", {
         description: "Der eingegebene Code ist ungültig oder abgelaufen"
-      });
-      
-      uiToast({
-        title: "Bestätigung fehlgeschlagen",
-        description: "Der eingegebene Code ist ungültig oder abgelaufen",
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -125,11 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (response.success) {
         toast.success("Zurücksetzen-Code gesendet", {
-          description: "Falls die E-Mail in unserem System existiert, wurde ein Code gesendet."
-        });
-        
-        uiToast({
-          title: "Zurücksetzen-Code gesendet",
           description: "Falls die E-Mail in unserem System existiert, wurde ein Code gesendet."
         });
         
@@ -147,12 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error("Anfrage fehlgeschlagen", {
         description: "Bitte versuchen Sie es später erneut"
       });
-      
-      uiToast({
-        title: "Anfrage fehlgeschlagen",
-        description: "Bitte versuchen Sie es später erneut",
-        variant: "destructive"
-      });
       return null;
     } finally {
       setIsLoading(false);
@@ -168,11 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success("Passwort aktualisiert", {
           description: "Ihr Passwort wurde erfolgreich zurückgesetzt."
         });
-        
-        uiToast({
-          title: "Passwort aktualisiert",
-          description: "Ihr Passwort wurde erfolgreich zurückgesetzt."
-        });
         return response;
       }
       return null;
@@ -180,12 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Password reset confirmation error:', error);
       toast.error("Zurücksetzen fehlgeschlagen", {
         description: "Der eingegebene Code ist ungültig oder abgelaufen"
-      });
-      
-      uiToast({
-        title: "Zurücksetzen fehlgeschlagen",
-        description: "Der eingegebene Code ist ungültig oder abgelaufen",
-        variant: "destructive"
       });
       return null;
     } finally {
@@ -203,11 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setIsLoading(false);
       toast.success("Abgemeldet", {
-        description: "Sie wurden erfolgreich abgemeldet."
-      });
-      
-      uiToast({
-        title: "Abgemeldet",
         description: "Sie wurden erfolgreich abgemeldet."
       });
     }

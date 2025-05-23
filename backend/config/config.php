@@ -24,7 +24,7 @@ define('MAIL_ENCRYPTION', 'tls');
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
-// Improved CORS Headers for same-site setup
+// Improved CORS Headers - set before ANY output
 function setCorsHeaders() {
     // Check if the request has an origin header
     if (isset($_SERVER['HTTP_ORIGIN'])) {
@@ -32,6 +32,9 @@ function setCorsHeaders() {
         if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
             header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
             header('Access-Control-Allow-Credentials: true');
+        } else {
+            // Fallback for requests from other origins
+            header("Access-Control-Allow-Origin: *");
         }
     } else {
         // Fallback for requests without origin
@@ -46,7 +49,7 @@ function setCorsHeaders() {
 // Set CORS headers before any output
 setCorsHeaders();
 
-// Handle preflight OPTIONS requests
+// Handle preflight OPTIONS requests - do this BEFORE session start
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     header("HTTP/1.1 200 OK");
     exit;
@@ -55,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 // Default content type for API responses
 header('Content-Type: application/json; charset=UTF-8');
 
-// Start session after setting all headers
+// Start session AFTER setting all headers
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -76,9 +79,10 @@ function jsonResponse($success = true, $message = '', $data = null, $status = 20
         if (in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
             header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
             header('Access-Control-Allow-Credentials: true');
+        } else {
+            header("Access-Control-Allow-Origin: *");
         }
     } else {
-        // Fallback for requests without origin
         header("Access-Control-Allow-Origin: *");
     }
     

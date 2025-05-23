@@ -60,13 +60,9 @@ const Login = () => {
         setResetStep("code");
         setResetCode(result.data.reset_code);
         console.log("Reset code received:", result.data.reset_code);
-        toast.success("Reset-Code gesendet", { 
-          description: "Ein Code wurde an Ihre E-Mail-Adresse gesendet." 
-        });
       }
     } catch (error) {
       console.error("Error requesting password reset:", error);
-      toast.error("Fehler beim Zurücksetzen des Passworts");
     } finally {
       setResetLoading(false);
     }
@@ -97,13 +93,9 @@ const Login = () => {
       console.log("Password reset confirmation result:", result);
       if (result && result.success) {
         setIsResetDialogOpen(false);
-        toast.success("Passwort zurückgesetzt", { 
-          description: "Bitte melden Sie sich mit Ihrem neuen Passwort an." 
-        });
       }
     } catch (error) {
       console.error("Error confirming password reset:", error);
-      toast.error("Fehler beim Zurücksetzen des Passworts");
     } finally {
       setResetLoading(false);
     }
