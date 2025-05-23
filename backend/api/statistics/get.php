@@ -295,4 +295,3 @@ jsonResponse(true, 'Statistics retrieved successfully', [
     'appointments_by_type' => $appointments_by_type,
     'filiale_stats' => $filiale_stats
 ]);
-?>

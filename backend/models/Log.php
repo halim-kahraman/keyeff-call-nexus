@@ -36,7 +36,7 @@ class Log {
     
     // Get all logs with filtering options
     public function getAll($filters = []) {
-        $sql = "SELECT l.*, u.name as user_name 
+        $sql = "SELECT l.*, u.name as user_name, u.role as user_role
                 FROM logs l 
                 LEFT JOIN users u ON l.user_id = u.id 
                 WHERE 1=1";
@@ -207,6 +207,25 @@ class Log {
         fclose($file);
         
         return $filename;
+    }
+    
+    // Get all users for filtering
+    public function getUsers() {
+        $sql = "SELECT DISTINCT u.id, u.name 
+                FROM logs l 
+                JOIN users u ON l.user_id = u.id 
+                ORDER BY u.name ASC";
+                
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $users = [];
+        
+        while($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
+        
+        return $users;
     }
 }
 ?>

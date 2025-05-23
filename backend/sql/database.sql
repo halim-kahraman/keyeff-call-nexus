@@ -182,6 +182,22 @@ CREATE TABLE logs (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Filialen table (Branch offices)
+CREATE TABLE IF NOT EXISTS filialen (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    address TEXT NULL,
+    city VARCHAR(100) NULL,
+    postal_code VARCHAR(20) NULL,
+    phone VARCHAR(20) NULL,
+    email VARCHAR(100) NULL,
+    manager_id INT NULL, -- Filialleiter
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Sample Data - Default Admin User
 INSERT INTO users (name, email, password, role) 
 VALUES ('Admin User', 'admin@keyeff.de', '$2y$10$mr5ZU8HeRZvzAQS9qXGK8.lq3aW1zgKrIdQ4OlEESgK6SVHtq0zJa', 'admin');
@@ -258,3 +274,9 @@ INSERT INTO settings (category, `key`, value, filiale_id) VALUES
 ('fritzbox', 'username', 'admin', 1),
 ('fritzbox', 'password', 'password', 1),
 ('fritzbox', 'use_fallback', 'true', 1);
+
+-- Sample Filialen data
+INSERT INTO filialen (name, address, city, postal_code, phone, email, status) VALUES
+('Berlin', 'Alexanderplatz 1', 'Berlin', '10178', '+49 30 1234567', 'berlin@keyeff.de', 'active'),
+('München', 'Marienplatz 1', 'München', '80331', '+49 89 1234567', 'muenchen@keyeff.de', 'active'),
+('Hamburg', 'Jungfernstieg 1', 'Hamburg', '20354', '+49 40 1234567', 'hamburg@keyeff.de', 'active');

@@ -176,71 +176,76 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-      {/* Call control panel */}
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle>Telefonanruf</CardTitle>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      {/* Call control panel - now takes more space */}
+      <Card className="lg:col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Telefonanruf</CardTitle>
           <CardDescription>
             {isCallActive 
               ? "Anruf läuft..." 
               : "Starten Sie den Anruf mit dem Kunden"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="text-center">
             {isCallActive ? (
-              <div className="mb-4">
-                <div className="text-lg font-semibold">
-                  {selectedContact?.phone && <div className="mb-1">{selectedContact.phone}</div>}
+              <div className="mb-6">
+                <div className="text-xl font-semibold mb-2">
+                  {selectedContact?.phone && <div className="mb-2">{selectedContact.phone}</div>}
                   Anruf aktiv
                 </div>
-                <div className="text-xl font-mono">{formatTime(callDuration)}</div>
+                <div className="text-2xl font-mono bg-muted py-2 px-4 inline-block rounded-md">{formatTime(callDuration)}</div>
               </div>
             ) : (
-              <div className="mb-4">
-                <div className="text-lg">
+              <div className="mb-6">
+                <div className="text-xl mb-2">
                   {selectedContact ? (
-                    <div className="font-semibold">{selectedContact.phone}</div>
+                    <div className="font-semibold text-2xl">{selectedContact.phone}</div>
                   ) : phoneNumber ? (
-                    <div className="font-semibold">{phoneNumber}</div>
+                    <div className="font-semibold text-2xl">{phoneNumber}</div>
                   ) : (
                     <div className="text-muted-foreground">Keine Telefonnummer ausgewählt</div>
                   )}
                 </div>
                 {selectedContact && selectedContact.contact_type && (
-                  <div className="text-sm text-muted-foreground">{selectedContact.contact_type}</div>
+                  <div className="text-md text-muted-foreground">{selectedContact.contact_type}</div>
                 )}
               </div>
             )}
 
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-4">
               {!isCallActive ? (
                 <Button 
                   onClick={startCall} 
-                  className="bg-green-500 hover:bg-green-600 text-white"
+                  className="bg-green-500 hover:bg-green-600 text-white text-lg py-6 px-8"
+                  size="lg"
                   disabled={!selectedContact && !phoneNumber}
                 >
-                  <Phone className="mr-2 h-4 w-4" /> Anruf starten
+                  <Phone className="mr-2 h-5 w-5" /> Anruf starten
                 </Button>
               ) : (
                 <>
                   <Button 
                     onClick={toggleMute} 
                     variant="outline"
+                    size="lg"
+                    className="py-5 px-6"
                   >
                     {isMuted ? (
-                      <><MicOff className="mr-2 h-4 w-4" /> Mikro an</>
+                      <><MicOff className="mr-2 h-5 w-5" /> Mikro an</>
                     ) : (
-                      <><Mic className="mr-2 h-4 w-4" /> Mikro aus</>
+                      <><Mic className="mr-2 h-5 w-5" /> Mikro aus</>
                     )}
                   </Button>
                   
                   <Button 
                     onClick={endCall}
                     variant="destructive"
+                    size="lg"
+                    className="py-5 px-6"
                   >
-                    <PhoneOff className="mr-2 h-4 w-4" /> Anruf beenden
+                    <PhoneOff className="mr-2 h-5 w-5" /> Anruf beenden
                   </Button>
                 </>
               )}
@@ -248,23 +253,23 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
           </div>
           
           {customer?.contacts && customer.contacts.length > 1 && (
-            <div className="mt-4">
-              <h4 className="mb-2 font-medium text-sm">Alternative Telefonnummern:</h4>
-              <div className="space-y-1">
+            <div className="mt-6">
+              <h4 className="mb-3 font-medium text-md">Alternative Telefonnummern:</h4>
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                 {customer.contacts.map(contact => (
                   <div 
                     key={contact.id}
-                    className={`flex justify-between items-center p-2 rounded-md cursor-pointer hover:bg-muted ${selectedContact?.id === contact.id ? 'bg-muted' : ''}`}
+                    className={`flex justify-between items-center p-3 rounded-md cursor-pointer hover:bg-muted transition-colors ${selectedContact?.id === contact.id ? 'bg-muted' : ''}`}
                     onClick={() => setSelectedContact(contact)}
                   >
                     <div>
                       <div className="font-medium">{contact.phone}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-sm text-muted-foreground">
                         {contact.contact_type}
                         {contact.contact_name && ` - ${contact.contact_name}`}
                       </div>
                     </div>
-                    {contact.is_primary && <Badge variant="outline">Hauptnummer</Badge>}
+                    {contact.is_primary && <Badge className="ml-2" variant="outline">Hauptnummer</Badge>}
                   </div>
                 ))}
               </div>
@@ -274,11 +279,11 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
       </Card>
       
       {/* Customer information */}
-      <Card className="md:col-span-3">
-        <CardHeader>
+      <Card className="lg:col-span-3">
+        <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>{customer?.name || "Kunde"}</CardTitle>
+              <CardTitle className="text-xl">{customer?.name || "Kunde"}</CardTitle>
               <CardDescription>
                 {customer?.company || ""}
                 {customer?.last_contact && ` - Letzter Kontakt: ${formatDate(customer.last_contact)}`}
@@ -297,11 +302,11 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
               {/* Contract Information */}
               {activeContract && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <h3 className="text-md font-medium mb-3 flex items-center">
                     <Calendar className="mr-2 h-4 w-4" /> Aktiver Vertrag
                   </h3>
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-muted/50 rounded-md p-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <span className="text-xs text-muted-foreground">Vertragsnummer</span>
                         <p className="font-medium">{activeContract.contract_number || "N/A"}</p>
@@ -331,11 +336,11 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
 
               {/* Contract warnings */}
               {contractsEndingSoon && contractsEndingSoon.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <h3 className="text-sm font-medium mb-2 flex items-center text-amber-800">
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                  <h3 className="text-md font-medium mb-3 flex items-center text-amber-800">
                     <AlertCircle className="mr-2 h-4 w-4" /> Verträge laufen bald aus
                   </h3>
-                  <ul className="space-y-1 text-sm">
+                  <ul className="space-y-2 text-sm">
                     {contractsEndingSoon.map(contract => (
                       <li key={contract.id} className="flex justify-between">
                         <span>{contract.contract_type} ({contract.contract_number})</span>
@@ -349,26 +354,26 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
               {/* Customer notes */}
               {customer.notes && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Notizen:</h3>
-                  <div className="bg-muted/50 rounded-md p-3">
+                  <h3 className="text-md font-medium mb-3">Notizen:</h3>
+                  <div className="bg-muted/50 rounded-md p-4">
                     <p className="text-sm whitespace-pre-wrap">{customer.notes}</p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Keine Kundeninformationen verfügbar
             </div>
           )}
 
           {/* Campaign script */}
           {campaignScript && (
-            <div className="mt-4 border-t pt-4">
-              <h3 className="text-sm font-medium mb-2 flex items-center">
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-md font-medium mb-3 flex items-center">
                 <User className="mr-2 h-4 w-4" /> Gesprächsleitfaden
               </h3>
-              <div className="bg-muted/50 rounded-md p-3">
+              <div className="bg-muted/50 rounded-md p-4">
                 <p className="text-sm whitespace-pre-wrap">{campaignScript}</p>
               </div>
             </div>

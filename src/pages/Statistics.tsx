@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,13 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Mail } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { format, sub } from "date-fns";
 import { de } from "date-fns/locale";
 import { statisticsService } from "@/services/api";
+import { exportToPdf, exportToExcel, formatStatisticsForExport } from "@/utils/exportUtils";
 
 // Types for statistics data
 interface StatisticsData {
@@ -148,23 +150,55 @@ const Statistics = () => {
   };
 
   // Handle PDF export
-  const exportToPDF = () => {
-    toast({
-      title: "Export gestartet",
-      description: "Die Statistiken werden als PDF exportiert...",
-    });
-    
-    // In a real implementation, this would use a library like jsPDF or call a backend API
-    setTimeout(() => {
+  const handleExportToPDF = async () => {
+    if (!statsData) {
       toast({
-        title: "Export erfolgreich",
-        description: "Die Statistiken wurden erfolgreich als PDF exportiert.",
+        title: "Keine Daten vorhanden",
+        description: "Es sind keine Daten zum Exportieren verfügbar.",
       });
-    }, 2000);
+      return;
+    }
+
+    const period = `${format(new Date(dateRange.startDate), "dd.MM.yyyy", { locale: de })} - ${format(new Date(dateRange.endDate), "dd.MM.yyyy", { locale: de })}`;
+    const exportData = formatStatisticsForExport(statsData, period);
+    
+    await exportToPdf(
+      exportData,
+      `Statistik_${format(new Date(), "yyyy-MM-dd")}`,
+      `Statistikbericht ${period}`
+    );
+  };
+  
+  // Handle Excel export
+  const handleExportToExcel = () => {
+    if (!statsData) {
+      toast({
+        title: "Keine Daten vorhanden",
+        description: "Es sind keine Daten zum Exportieren verfügbar.",
+      });
+      return;
+    }
+    
+    const period = `${format(new Date(dateRange.startDate), "dd.MM.yyyy", { locale: de })} - ${format(new Date(dateRange.endDate), "dd.MM.yyyy", { locale: de })}`;
+    const exportData = formatStatisticsForExport(statsData, period);
+    
+    exportToExcel(
+      exportData,
+      `Statistik_${format(new Date(), "yyyy-MM-dd")}`,
+      "Statistikbericht"
+    );
   };
   
   // Handle email sending
   const sendReportEmail = () => {
+    if (!statsData) {
+      toast({
+        title: "Keine Daten vorhanden",
+        description: "Es sind keine Daten zum Versenden verfügbar.",
+      });
+      return;
+    }
+    
     toast({
       title: "Report wird versendet",
       description: "Die Statistiken werden per E-Mail versendet...",
@@ -243,13 +277,17 @@ const Statistics = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={exportToPDF}>
+          <Button variant="outline" size="sm" onClick={handleExportToPDF}>
             <Download className="mr-2 h-4 w-4" />
             PDF Export
           </Button>
-          <Button variant="outline" size="sm" onClick={sendReportEmail}>
+          <Button variant="outline" size="sm" onClick={handleExportToExcel}>
             <FileText className="mr-2 h-4 w-4" />
-            Per E-Mail senden
+            Excel Export
+          </Button>
+          <Button variant="outline" size="sm" onClick={sendReportEmail}>
+            <Mail className="mr-2 h-4 w-4" />
+            Per E-Mail
           </Button>
         </div>
       </div>
