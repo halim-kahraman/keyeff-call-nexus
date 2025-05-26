@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -100,29 +99,16 @@ const CallPanel = () => {
     console.log('Call started to:', selectedPhoneNumber);
     setCallResult(null);
     setCallDuration(0);
-    
-    // Start call timer
-    const timer = setInterval(() => {
-      setCallDuration(prev => prev + 1);
-    }, 1000);
-    
-    // Store timer reference for cleanup
-    (window as any).callTimer = timer;
   };
 
   // Handle call end
-  const handleCallEnd = () => {
-    console.log('Call ended');
+  const handleCallEnd = (duration: number) => {
+    console.log('Call ended with duration:', duration);
     setCallResult({
-      duration: callDuration,
+      duration: duration,
       timestamp: new Date().toISOString()
     });
-    
-    // Clear timer
-    if ((window as any).callTimer) {
-      clearInterval((window as any).callTimer);
-      (window as any).callTimer = null;
-    }
+    setCallDuration(duration);
   };
 
   // Save call log
