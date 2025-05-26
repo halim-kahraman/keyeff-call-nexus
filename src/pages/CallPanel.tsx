@@ -5,7 +5,7 @@ import { WebRTCClient } from "@/components/sip/WebRTCClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -21,15 +21,15 @@ import { useConnectionManager } from "@/hooks/useConnectionManager";
 const CallPanel = () => {
   const [activeTab, setActiveTab] = useState("dialpad");
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState("");
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [selectedContract, setSelectedContract] = useState(null);
-  const [callResult, setCallResult] = useState(null);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [selectedContract, setSelectedContract] = useState<any>(null);
+  const [callResult, setCallResult] = useState<any>(null);
   const [callNotes, setCallNotes] = useState("");
   const [callOutcome, setCallOutcome] = useState("Erfolgreich");
   const [callDuration, setCallDuration] = useState(0);
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState(null);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   
   const location = useLocation();
   const { toast } = useToast();
@@ -186,7 +186,7 @@ const CallPanel = () => {
       
       // If specific contact ID was passed, find it
       if (contactIdFromNav && customerFromNav.contacts) {
-        const contact = customerFromNav.contacts.find(c => c.id === contactIdFromNav);
+        const contact = customerFromNav.contacts.find((c: any) => c.id === contactIdFromNav);
         if (contact) {
           setSelectedContact(contact);
           setSelectedPhoneNumber(contact.phone);
@@ -341,13 +341,13 @@ const CallPanel = () => {
                     {selectedFiliale && campaigns && campaigns.length > 0 && (
                       <div>
                         <Label htmlFor="campaign">Kampagne auswählen</Label>
-                        <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                        <Select value={selectedCampaign || ""} onValueChange={setSelectedCampaign}>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Alle Kunden anzeigen" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">Alle Kunden anzeigen</SelectItem>
-                            {campaigns.map(campaign => (
+                            {campaigns.map((campaign: any) => (
                               <SelectItem key={campaign.id} value={campaign.id.toString()}>
                                 {campaign.name}
                               </SelectItem>
@@ -374,7 +374,7 @@ const CallPanel = () => {
                         <Label className="mb-2 block">Kontakt auswählen</Label>
                         <div className="space-y-2">
                           {customerFromNav.contacts ? (
-                            customerFromNav.contacts.map(contact => (
+                            customerFromNav.contacts.map((contact: any) => (
                               <div 
                                 key={contact.id}
                                 className={`border rounded-lg p-3 cursor-pointer ${selectedContact?.id === contact.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
@@ -397,7 +397,7 @@ const CallPanel = () => {
                               </div>
                             ))
                           ) : (
-                            customerFromNav.primary_phones?.split(',').map((phone, index) => (
+                            customerFromNav.primary_phones?.split(',').map((phone: string, index: number) => (
                               <div 
                                 key={index}
                                 className={`border rounded-lg p-3 cursor-pointer ${selectedPhoneNumber === phone ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
@@ -417,7 +417,7 @@ const CallPanel = () => {
                         <div>
                           <Label className="mb-2 block">Vertrag auswählen</Label>
                           <div className="space-y-2">
-                            {customerFromNav.contracts.map(contract => (
+                            {customerFromNav.contracts.map((contract: any) => (
                               <div 
                                 key={contract.id}
                                 className={`border rounded-lg p-3 cursor-pointer ${selectedContract?.id === contract.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
