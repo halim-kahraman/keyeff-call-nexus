@@ -11,10 +11,12 @@ import { campaignService } from '@/services/api';
 import { Phone, Users, Calendar, TrendingUp, PlayCircle, PauseCircle } from 'lucide-react';
 import { useCampaignSession } from '@/hooks/useCampaignSession';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const Campaigns = () => {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { 
     activeSessions, 
     startCampaignSession, 

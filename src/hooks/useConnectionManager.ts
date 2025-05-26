@@ -53,7 +53,7 @@ export const useConnectionManager = () => {
   };
 
   // Start connection to filiale
-  const connectToFiliale = async (filialeId: number, filialeName: string) => {
+  const connectToFiliale = async (filialeId: number, filialeName?: string) => {
     setIsConnecting(true);
     
     try {
@@ -88,14 +88,17 @@ export const useConnectionManager = () => {
       
       await fetchConnections();
       
-      toast.success(`Verbunden mit Filiale ${filialeName}`, {
+      toast.success(`Verbunden mit Filiale ${filialeName || filialeId}`, {
         description: 'Alle Verbindungen (VPN, SIP, WebRTC) wurden erfolgreich hergestellt.'
       });
+      
+      return true;
       
     } catch (error) {
       toast.error('Verbindungsfehler', {
         description: 'Fehler beim Herstellen der Verbindung zur Filiale.'
       });
+      return false;
     } finally {
       setIsConnecting(false);
     }
@@ -191,6 +194,7 @@ export const useConnectionManager = () => {
     connections,
     isConnecting,
     isReady,
+    isConnected: isReady, // Add isConnected as alias for isReady
     connectToFiliale,
     disconnectFromFiliale,
     fetchConnections

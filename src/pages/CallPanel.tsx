@@ -54,13 +54,20 @@ const CallPanel = () => {
       description: "VPN, SIP und WebRTC werden initialisiert.",
     });
     
-    const success = await connectToFiliale(filialeId);
+    const success = await connectToFiliale(filialeId, `Filiale ${filialeId}`);
     if (success) {
       toast({
         title: "Verbindung hergestellt",
         description: `Erfolgreich mit Filiale verbunden.`,
       });
     }
+  };
+
+  // Clear customer selection
+  const clearCustomerSelection = () => {
+    setSelectedContact(null);
+    setSelectedContract(null);
+    setSelectedPhoneNumber("");
   };
 
   // Format time for timer display
@@ -73,7 +80,6 @@ const CallPanel = () => {
   // Fetch campaigns for the selected filiale
   const { data: campaigns } = useQuery({
     queryKey: ['campaigns', selectedFiliale],
-    // Fixed: Removed the parameter as it's not expected by the API function
     queryFn: () => campaignService.getCampaigns(),
     enabled: !!selectedFiliale,
   });
@@ -125,48 +131,16 @@ const CallPanel = () => {
       setSelectedCampaign(campaignFromNav.toString());
     }
   }, [campaignFromNav]);
-  
-  const handleCallStart = () => {
-    if (!isConnected) {
-      toast({
-        title: "Keine Verbindung",
-        description: "Bitte stellen Sie zuerst eine Verbindung zur Filiale her.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    toast({
-      title: "Anruf gestartet",
-      description: `Verbinde mit ${selectedPhoneNumber}...`,
-    });
-  };
-  
-  const handleCallEnd = (duration) => {
-    setCallDuration(duration);
-    setCallResult({
-      status: "ended",
-      duration,
-    });
-    toast({
-      title: "Anruf beendet",
-      description: `Dauer: ${formatCallDuration(duration)}`,
-    });
-  };
-  
-  const handleSaveCallLog = () => {
-    if (callResult) {
-      toast({
-        title: "Anruf gespeichert",
-        description: "Die Anrufdaten wurden erfolgreich gespeichert.",
-      });
-      
-      // Reset for next call
-      setCallNotes("");
-      setCallOutcome("Erfolgreich");
-      setCallResult(null);
-    }
-  };
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Anrufe" subtitle="Telefonzentrale">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Connection Status Bar
   return (
@@ -194,7 +168,7 @@ const CallPanel = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(selectedFiliale)}
+                  onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(selectedFiliale, `Filiale ${selectedFiliale}`)}
                 >
                   {isConnected ? 'Trennen' : 'Verbinden'}
                 </Button>
@@ -255,7 +229,6 @@ const CallPanel = () => {
                             <SelectValue placeholder="Alle Kunden anzeigen" />
                           </SelectTrigger>
                           <SelectContent>
-                            {/* Fix: Changed empty string value to "all" */}
                             <SelectItem value="all">Alle Kunden anzeigen</SelectItem>
                             {campaigns.map(campaign => (
                               <SelectItem key={campaign.id} value={campaign.id.toString()}>
@@ -360,7 +333,6 @@ const CallPanel = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Would show customer list from campaign or filiale here */}
                       <p className="text-muted-foreground">Bitte wählen Sie zunächst eine Kampagne aus.</p>
                     </div>
                   )}
@@ -496,6 +468,12 @@ const CallPanel = () => {
           )}
         </div>
       </div>
+
+      <BranchSelectionDialog
+        isOpen={isFilialSelectionOpen}
+        onClose={() => setIsFilialSelectionOpen(false)}
+        onSelect={handleFilialeSelected}
+      />
     </AppLayout>
   );
 };
