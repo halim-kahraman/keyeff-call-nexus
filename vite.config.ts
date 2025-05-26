@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/backend/api')
+      }
+    }
   },
   plugins: [
     react(),
@@ -21,6 +28,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    outDir: 'htdocs/public',
     rollupOptions: {
       // Ensure proper handling of external dependencies
       onwarn(warning, warn) {

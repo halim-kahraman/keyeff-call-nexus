@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { useQuery } from "@tanstack/react-query";
 import { customerService, campaignService } from "@/services/api";
-import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff } from "lucide-react";
+import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff, Wifi, WifiOff } from "lucide-react";
+import { useConnectionManager } from "@/hooks/useConnectionManager";
 
 const CallPanel = () => {
   const [activeTab, setActiveTab] = useState("dialpad");
@@ -32,18 +33,34 @@ const CallPanel = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { connections, isConnected, connectToFiliale, disconnectFromFiliale } = useConnectionManager();
   
   // Customer from navigation state if available
   const customerFromNav = location.state?.customer;
   const contactIdFromNav = location.state?.contactId;
+  const campaignFromNav = location.state?.campaignId;
   
   // Determine if user needs to select filiale
   const needsFilialSelection = user && user.role === 'admin' && !selectedFiliale;
 
-  // Handle filiale selection
-  const handleFilialeSelected = (filialeId) => {
+  // Handle filiale selection and connection
+  const handleFilialeSelected = async (filialeId) => {
     setSelectedFiliale(filialeId);
     setIsFilialSelectionOpen(false);
+    
+    // Start connection process
+    toast({
+      title: "Verbindung wird hergestellt...",
+      description: "VPN, SIP und WebRTC werden initialisiert.",
+    });
+    
+    const success = await connectToFiliale(filialeId);
+    if (success) {
+      toast({
+        title: "Verbindung hergestellt",
+        description: `Erfolgreich mit Filiale verbunden.`,
+      });
+    }
   };
 
   // Format time for timer display
@@ -102,7 +119,23 @@ const CallPanel = () => {
     }
   }, [needsFilialSelection]);
   
+  // Set campaign from navigation
+  useEffect(() => {
+    if (campaignFromNav) {
+      setSelectedCampaign(campaignFromNav.toString());
+    }
+  }, [campaignFromNav]);
+  
   const handleCallStart = () => {
+    if (!isConnected) {
+      toast({
+        title: "Keine Verbindung",
+        description: "Bitte stellen Sie zuerst eine Verbindung zur Filiale her.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
       title: "Anruf gestartet",
       description: `Verbinde mit ${selectedPhoneNumber}...`,
@@ -135,31 +168,46 @@ const CallPanel = () => {
     }
   };
 
-  // If no filiale is selected for admin, show the dialog
-  if (needsFilialSelection) {
-    return (
-      <AppLayout title="Anrufe" subtitle="Telefonzentrale">
-        <BranchSelectionDialog 
-          open={isFilialSelectionOpen} 
-          onOpenChange={setIsFilialSelectionOpen}
-          onBranchSelected={handleFilialeSelected}
-        />
-      </AppLayout>
-    );
-  }
-
-  // Reset customer selection
-  const clearCustomerSelection = () => {
-    setSelectedPhoneNumber("");
-    setSelectedContact(null);
-    setSelectedContract(null);
-  };
-
+  // Connection Status Bar
   return (
     <AppLayout title="Anrufe" subtitle="Telefonzentrale">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="mb-6">
+      <div className="mb-6">
+        <Card className={`border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isConnected ? (
+                  <Wifi className="h-5 w-5 text-green-600" />
+                ) : (
+                  <WifiOff className="h-5 w-5 text-amber-600" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {isConnected ? 'Verbunden mit Filiale' : 'Keine Verbindung'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isConnected ? 'VPN, SIP und WebRTC aktiv' : 'Verbindung erforderlich für Anrufe'}
+                  </p>
+                </div>
+              </div>
+              {selectedFiliale && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(selectedFiliale)}
+                >
+                  {isConnected ? 'Trennen' : 'Verbinden'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Call Controls and Results */}
+        <div className="space-y-6">
+          <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Anrufsteuerung</span>
@@ -400,19 +448,52 @@ const CallPanel = () => {
           </Card>
         </div>
         
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Telefon</CardTitle>
+        {/* Right Column - Phone Interface and Customer Info */}
+        <div className="space-y-6">
+          <Card className="border-2 border-primary/20">
+            <CardHeader className="bg-primary/5">
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                Telefonie-Interface
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <WebRTCClient 
                 onCallStart={handleCallStart}
                 onCallEnd={handleCallEnd}
                 phoneNumber={selectedPhoneNumber}
+                customer={customerFromNav}
+                contactId={contactIdFromNav}
+                campaignScript={selectedCampaign ? "Kampagnen-Skript wird geladen..." : undefined}
               />
             </CardContent>
           </Card>
+
+          {/* Campaign Script */}
+          {selectedCampaign && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Kampagnen-Skript</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/50 rounded-md p-4">
+                  <p className="text-sm whitespace-pre-wrap">
+                    Guten Tag, mein Name ist [Name] von KeyEff.
+                    
+                    Ich rufe Sie bezüglich Ihres Vertrags an.
+                    
+                    Haben Sie einen Moment Zeit für ein kurzes Gespräch?
+                    
+                    --- Gesprächsführung ---
+                    1. Aktuelle Situation erfragen
+                    2. Bedürfnisse ermitteln
+                    3. Lösung anbieten
+                    4. Termin vereinbaren
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </AppLayout>

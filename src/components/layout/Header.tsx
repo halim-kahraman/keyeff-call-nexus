@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { UserProfileDialog } from "@/components/user/UserProfileDialog";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface HeaderProps {
   title: string;
@@ -30,15 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   
-  // Mock notifications for demo
-  const notifications = [
-    { id: 1, text: "Neuer Termin: Kundengespräch um 14:00 Uhr", time: "vor 10 Minuten", read: false },
-    { id: 2, text: "Verpasster Anruf von Kunde #12345", time: "vor 30 Minuten", read: false },
-    { id: 3, text: "Vertrag #87654 läuft in 5 Tagen ab", time: "vor 1 Stunde", read: true },
-  ];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -49,6 +44,20 @@ export const Header: React.FC<HeaderProps> = ({
       .join("")
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+  };
+
+  const handleNotificationsOpen = (open) => {
+    setIsNotificationsOpen(open);
+    if (!open && unreadCount > 0) {
+      // Mark all as read when closing if there were unread notifications
+      markAllAsRead();
+    }
   };
 
   return (
@@ -70,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             </Button>
           )}
         
-          <Popover>
+          <Popover open={isNotificationsOpen} onOpenChange={handleNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon" className="relative">
                 <Bell size={20} />
@@ -85,15 +94,21 @@ export const Header: React.FC<HeaderProps> = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0 z-50 bg-white" align="end">
-              <div className="p-3 border-b">
+              <div className="p-3 border-b flex justify-between items-center">
                 <h3 className="font-medium">Benachrichtigungen</h3>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                    Alle lesen
+                  </Button>
+                )}
               </div>
               {notifications.length > 0 ? (
                 <ul className="divide-y">
                   {notifications.map((notification) => (
                     <li 
                       key={notification.id} 
-                      className={`p-3 hover:bg-muted cursor-pointer ${!notification.read ? "bg-accent" : ""}`}
+                      className={`p-3 hover:bg-muted cursor-pointer transition-colors ${!notification.read ? "bg-accent" : ""}`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <p className="text-sm">{notification.text}</p>
                       <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
