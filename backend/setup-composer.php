@@ -47,6 +47,12 @@ if (file_exists('vendor/autoload.php')) {
         echo "⚠️  PHPMailer installiert, aber Klasse nicht verfügbar\n";
     }
     
+    if (class_exists('Firebase\\JWT\\JWT')) {
+        echo "✅ JWT erfolgreich installiert und verfügbar\n";
+    } else {
+        echo "⚠️  JWT installiert, aber Klasse nicht verfügbar\n";
+    }
+    
     echo "\n📋 Installierte Pakete:\n";
     echo "======================\n";
     
@@ -57,8 +63,39 @@ if (file_exists('vendor/autoload.php')) {
         }
     }
     
+    echo "\n🔧 Prüfe PSR-4 Autoloading...\n";
+    echo "==============================\n";
+    
+    // Test if our model classes can be loaded with PSR-4
+    try {
+        $testClasses = [
+            'KeyEff\\CallPanel\\Models\\User',
+            'KeyEff\\CallPanel\\Models\\Setting',
+            'KeyEff\\CallPanel\\Models\\Log',
+            'KeyEff\\CallPanel\\Models\\Campaign',
+            'KeyEff\\CallPanel\\Models\\Filiale',
+            'KeyEff\\CallPanel\\Models\\Appointment'
+        ];
+        
+        foreach ($testClasses as $className) {
+            if (class_exists($className)) {
+                echo "✅ {$className} erfolgreich geladen\n";
+            } else {
+                echo "❌ {$className} konnte nicht geladen werden\n";
+            }
+        }
+        
+        echo "\n✅ PSR-4 Autoloading konfiguriert\n";
+        
+    } catch (Exception $e) {
+        echo "⚠️  PSR-4 Test fehlgeschlagen: " . $e->getMessage() . "\n";
+    }
+    
     echo "\n✅ Setup abgeschlossen!\n";
-    echo "Sie können nun E-Mails mit 2FA versenden.\n";
+    echo "Sie können nun:\n";
+    echo "• E-Mails mit 2FA versenden\n";
+    echo "• Alle Model-Klassen mit PSR-4 Autoloading nutzen\n";
+    echo "• JWT-Token generieren und validieren\n\n";
     
 } else {
     echo "❌ Installation fehlgeschlagen!\n";

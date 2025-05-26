@@ -1,5 +1,6 @@
-
 <?php
+namespace KeyEff\CallPanel\Models;
+
 require_once __DIR__ . '/../config/database.php';
 
 class Appointment {
@@ -94,7 +95,6 @@ class Appointment {
     
     // Sync appointment to KeyEff CRM
     public function syncToKeyEff($id) {
-        // Get appointment data
         $sql = "SELECT a.*, c.name as customer_name, c.company as customer_company, c.phone as customer_phone 
                 FROM appointments a 
                 JOIN customers c ON a.customer_id = c.id 
@@ -109,7 +109,6 @@ class Appointment {
         if($result->num_rows > 0) {
             $appointment = $result->fetch_assoc();
             
-            // Load API settings
             require_once __DIR__ . '/Setting.php';
             $setting = new Setting();
             $api_endpoint = $setting->get('api', 'endpoint');
@@ -119,7 +118,6 @@ class Appointment {
                 return ['success' => false, 'message' => 'API settings not configured'];
             }
             
-            // Prepare data for KeyEff API
             $data = [
                 'customer_name' => $appointment['customer_name'],
                 'customer_company' => $appointment['customer_company'],
@@ -131,10 +129,8 @@ class Appointment {
                 'status' => $appointment['status']
             ];
             
-            // Initialize cURL
             $ch = curl_init($api_endpoint . '/appointments');
             
-            // Setup request
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -143,11 +139,9 @@ class Appointment {
                 'Authorization: Bearer ' . $api_token
             ]);
             
-            // Send the request
             $response = curl_exec($ch);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             
-            // Check for errors
             if(curl_errno($ch)) {
                 curl_close($ch);
                 return ['success' => false, 'message' => 'cURL Error: ' . curl_error($ch)];
@@ -155,11 +149,9 @@ class Appointment {
             
             curl_close($ch);
             
-            // Process response
             $response_data = json_decode($response, true);
             
             if($http_code >= 200 && $http_code < 300) {
-                // Update sync status in database
                 $sql = "UPDATE appointments SET synced_to_crm = 1, updated_at = NOW() WHERE id = ?";
                 $stmt = $this->conn->prepare($sql);
                 $stmt->bind_param("i", $id);
