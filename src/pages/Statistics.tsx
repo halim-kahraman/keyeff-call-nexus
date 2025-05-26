@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -21,7 +22,7 @@ import {
 } from "recharts";
 import { Download, RefreshCw, TrendingUp, Phone, Users, Calendar } from "lucide-react";
 import { statisticsService, filialeService } from "@/services/api";
-import { exportUtils } from "@/utils/exportUtils";
+import { exportToPdf } from "@/utils/exportUtils";
 
 const Statistics = () => {
   const { user } = useAuth();
@@ -100,8 +101,13 @@ const Statistics = () => {
     setDateRange(range);
   };
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   const handleExport = () => {
-    exportUtils.exportToPDF("statistics-container", "statistiken");
+    const exportData = stats ? [stats] : [];
+    exportToPdf(exportData, "statistiken", "Statistiken");
   };
 
   return (
@@ -136,7 +142,7 @@ const Statistics = () => {
           </Select>
 
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={refetch} disabled={isLoading}>
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Aktualisieren
             </Button>
