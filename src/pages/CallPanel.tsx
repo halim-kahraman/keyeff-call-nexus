@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -54,7 +55,7 @@ const CallPanel = () => {
       description: "VPN, SIP und WebRTC werden initialisiert.",
     });
     
-    const success = await connectToFiliale(filialeId, `Filiale ${filialeId}`);
+    const success = await connectToFiliale(parseInt(filialeId), `Filiale ${filialeId}`);
     if (success) {
       toast({
         title: "Verbindung hergestellt",
@@ -68,6 +69,82 @@ const CallPanel = () => {
     setSelectedContact(null);
     setSelectedContract(null);
     setSelectedPhoneNumber("");
+  };
+
+  // Handle call start
+  const handleCallStart = (phoneNumber: string) => {
+    console.log('Call started to:', phoneNumber);
+    setCallResult(null);
+    setCallDuration(0);
+    
+    // Start call timer
+    const timer = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
+    
+    // Store timer reference for cleanup
+    (window as any).callTimer = timer;
+  };
+
+  // Handle call end
+  const handleCallEnd = () => {
+    console.log('Call ended');
+    setCallResult({
+      duration: callDuration,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Clear timer
+    if ((window as any).callTimer) {
+      clearInterval((window as any).callTimer);
+      (window as any).callTimer = null;
+    }
+  };
+
+  // Save call log
+  const handleSaveCallLog = async () => {
+    try {
+      const logData = {
+        phone_number: selectedPhoneNumber,
+        duration: callDuration,
+        outcome: callOutcome,
+        notes: callNotes,
+        customer_id: customerFromNav?.id,
+        campaign_id: selectedCampaign,
+        filiale_id: selectedFiliale
+      };
+
+      // Save to backend
+      const response = await fetch('/api/calls/log.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify(logData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Anruf gespeichert",
+          description: "Der Anruf wurde erfolgreich protokolliert.",
+        });
+        
+        // Reset form
+        setCallResult(null);
+        setCallNotes("");
+        setCallDuration(0);
+        setCallOutcome("Erfolgreich");
+      } else {
+        throw new Error('Failed to save call log');
+      }
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Der Anruf konnte nicht gespeichert werden.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Format time for timer display
@@ -168,7 +245,7 @@ const CallPanel = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(selectedFiliale, `Filiale ${selectedFiliale}`)}
+                  onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(parseInt(selectedFiliale), `Filiale ${selectedFiliale}`)}
                 >
                   {isConnected ? 'Trennen' : 'Verbinden'}
                 </Button>
@@ -470,9 +547,9 @@ const CallPanel = () => {
       </div>
 
       <BranchSelectionDialog
-        isOpen={isFilialSelectionOpen}
-        onClose={() => setIsFilialSelectionOpen(false)}
-        onSelect={handleFilialeSelected}
+        open={isFilialSelectionOpen}
+        onOpenChange={setIsFilialSelectionOpen}
+        onBranchSelected={handleFilialeSelected}
       />
     </AppLayout>
   );
