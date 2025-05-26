@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build --outDir htdocs/public",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview --outDir htdocs/public",
+    "preview": "vite preview",
     "postbuild": "node scripts/copy-backend.js"
   },
   "dependencies": {

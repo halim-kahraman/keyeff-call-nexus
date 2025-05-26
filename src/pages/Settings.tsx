@@ -100,15 +100,15 @@ const Settings = () => {
 
   // Fetch settings for the current tab
   const { data: settings, isLoading: isLoadingSettings, refetch } = useQuery({
-    queryKey: ['settings', activeTab, effectiveFiliale],
-    queryFn: () => settingsService.getSettings(activeTab, effectiveFiliale),
-    enabled: !!activeTab,
+    queryKey: ['settings', effectiveFiliale],
+    queryFn: () => settingsService.getSettings(effectiveFiliale),
+    enabled: !!effectiveFiliale,
   });
 
   // Save settings mutation
   const { mutate: saveSettings, isPending: isSaving } = useMutation({
-    mutationFn: (data: { category: string; settings: Record<string, string>; filialeId?: string }) => 
-      settingsService.saveSettings(data.category, data.settings, data.filialeId),
+    mutationFn: (data: { settings: Record<string, string>; filialeId?: string }) => 
+      settingsService.saveSettings(data.settings, data.filialeId),
     onSuccess: () => {
       toast.success("Einstellungen erfolgreich gespeichert");
       refetch(); // Refresh settings after save
@@ -185,7 +185,6 @@ const Settings = () => {
     }
     
     saveSettings({
-      category,
       settings: settingsToSave,
       filialeId: effectiveFiliale || undefined
     });
