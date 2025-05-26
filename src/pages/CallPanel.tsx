@@ -36,13 +36,13 @@ const CallPanel = () => {
   const { user } = useAuth();
   const { connections, isConnecting, isConnected, connectToFiliale, disconnectFromFiliale } = useConnectionManager();
   
-  // Customer from navigation state if available
-  const customerFromNav = location.state?.customer;
-  const contactIdFromNav = location.state?.contactId;
-  const campaignFromNav = location.state?.campaignId;
+  // Safely access navigation state
+  const customerFromNav = location.state?.customer || null;
+  const contactIdFromNav = location.state?.contactId || null;
+  const campaignFromNav = location.state?.campaignId || null;
   
   // Determine if user needs to select filiale
-  const needsFilialSelection = user && user.role === 'admin' && !selectedFiliale;
+  const needsFilialSelection = user?.role === 'admin' && !selectedFiliale;
 
   // Handle filiale selection and connection
   const handleFilialeSelected = async (filialeId: string) => {
@@ -120,7 +120,7 @@ const CallPanel = () => {
         duration: callDuration,
         outcome: callOutcome,
         notes: callNotes,
-        customer_id: customerFromNav?.id,
+        customer_id: customerFromNav?.id || null,
         campaign_id: selectedCampaign,
         filiale_id: selectedFiliale
       };
@@ -166,14 +166,14 @@ const CallPanel = () => {
   };
   
   // Fetch campaigns for the selected filiale
-  const { data: campaigns } = useQuery({
+  const { data: campaigns = [] } = useQuery({
     queryKey: ['campaigns', selectedFiliale],
     queryFn: () => campaignService.getCampaigns(),
     enabled: !!selectedFiliale,
   });
 
   // Fetch customers based on the selected campaign
-  const { data: customers, isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', selectedFiliale, selectedCampaign],
     queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaign),
     enabled: !!selectedFiliale,
@@ -189,14 +189,16 @@ const CallPanel = () => {
         const contact = customerFromNav.contacts.find((c: any) => c.id === contactIdFromNav);
         if (contact) {
           setSelectedContact(contact);
-          setSelectedPhoneNumber(contact.phone);
+          setSelectedPhoneNumber(contact.phone || "");
         } else {
           // Default to first contact or primary phone
-          setSelectedPhoneNumber(customerFromNav.primary_phones?.split(',')[0] || "");
+          const primaryPhones = customerFromNav.primary_phones?.split(',') || [];
+          setSelectedPhoneNumber(primaryPhones[0] || "");
         }
       } else {
         // Default to first phone number
-        setSelectedPhoneNumber(customerFromNav.primary_phones?.split(',')[0] || "");
+        const primaryPhones = customerFromNav.primary_phones?.split(',') || [];
+        setSelectedPhoneNumber(primaryPhones[0] || "");
       }
       
       // Default to first contract
@@ -380,7 +382,7 @@ const CallPanel = () => {
                                 className={`border rounded-lg p-3 cursor-pointer ${selectedContact?.id === contact.id ? 'border-primary ring-2 ring-primary ring-opacity-50' : ''}`}
                                 onClick={() => {
                                   setSelectedContact(contact);
-                                  setSelectedPhoneNumber(contact.phone);
+                                  setSelectedPhoneNumber(contact.phone || "");
                                 }}
                               >
                                 <div className="flex items-center justify-between">
@@ -408,7 +410,7 @@ const CallPanel = () => {
                                   {index === 0 && <Badge>Primär</Badge>}
                                 </div>
                               </div>
-                            ))
+                            )) || []
                           )}
                         </div>
                       </div>
