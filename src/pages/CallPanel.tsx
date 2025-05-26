@@ -185,7 +185,7 @@ const CallPanel = () => {
       setActiveTab("customer");
       
       // If specific contact ID was passed, find it
-      if (contactIdFromNav && customerFromNav.contacts) {
+      if (contactIdFromNav && Array.isArray(customerFromNav.contacts)) {
         const contact = customerFromNav.contacts.find((c: any) => c.id === contactIdFromNav);
         if (contact) {
           setSelectedContact(contact);
@@ -202,7 +202,7 @@ const CallPanel = () => {
       }
       
       // Default to first contract
-      if (customerFromNav.contracts && customerFromNav.contracts.length > 0) {
+      if (Array.isArray(customerFromNav.contracts) && customerFromNav.contracts.length > 0) {
         setSelectedContract(customerFromNav.contracts[0]);
       }
     }
@@ -312,7 +312,7 @@ const CallPanel = () => {
                     <Phone className="h-4 w-4 mr-2" />
                     Wählen
                   </TabsTrigger>
-                  <TabsTrigger value="customer" disabled={!customers?.length && !customerFromNav}>
+                  <TabsTrigger value="customer" disabled={!Array.isArray(customers) || (customers.length === 0 && !customerFromNav)}>
                     <ClipboardList className="h-4 w-4 mr-2" />
                     Kundenliste
                   </TabsTrigger>
@@ -340,7 +340,7 @@ const CallPanel = () => {
                       )}
                     </div>
                     
-                    {selectedFiliale && campaigns && campaigns.length > 0 && (
+                    {selectedFiliale && Array.isArray(campaigns) && campaigns.length > 0 && (
                       <div>
                         <Label htmlFor="campaign">Kampagne auswählen</Label>
                         <Select value={selectedCampaign || ""} onValueChange={setSelectedCampaign}>
@@ -375,7 +375,7 @@ const CallPanel = () => {
                       <div>
                         <Label className="mb-2 block">Kontakt auswählen</Label>
                         <div className="space-y-2">
-                          {customerFromNav.contacts ? (
+                          {Array.isArray(customerFromNav.contacts) ? (
                             customerFromNav.contacts.map((contact: any) => (
                               <div 
                                 key={contact.id}
@@ -415,7 +415,7 @@ const CallPanel = () => {
                         </div>
                       </div>
                       
-                      {customerFromNav.contracts && customerFromNav.contracts.length > 0 && (
+                      {Array.isArray(customerFromNav.contracts) && customerFromNav.contracts.length > 0 && (
                         <div>
                           <Label className="mb-2 block">Vertrag auswählen</Label>
                           <div className="space-y-2">
