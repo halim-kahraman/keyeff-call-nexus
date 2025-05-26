@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Mic, MicOff, User, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, User, Calendar, Clock, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { useConnectionManager } from "@/hooks/useConnectionManager";
 
 export interface CustomerContract {
   id: string;
@@ -64,6 +64,9 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
     customer?.contacts?.[0]
   );
 
+  // Get connection status
+  const { isConnected } = useConnectionManager();
+
   // Find active contract
   const activeContract = customer?.contracts?.find(c => c.contract_status === "Aktiv") || customer?.contracts?.[0];
   
@@ -94,6 +97,12 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
   }, [contactId, customer]);
 
   const startCall = () => {
+    // Check connection status before starting call
+    if (!isConnected) {
+      console.error('Cannot start call: Not connected to branch');
+      return;
+    }
+
     // In a real app, this would initiate the SIP call
     setIsCallActive(true);
     
@@ -180,11 +189,18 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
       {/* Call control panel - now takes more space */}
       <Card className="lg:col-span-2">
         <CardHeader className="pb-2">
-          <CardTitle className="text-xl">Telefonanruf</CardTitle>
+          <CardTitle className="text-xl flex items-center gap-2">
+            Telefonanruf
+            {!isConnected && (
+              <WifiOff className="h-4 w-4 text-red-500" />
+            )}
+          </CardTitle>
           <CardDescription>
             {isCallActive 
               ? "Anruf läuft..." 
-              : "Starten Sie den Anruf mit dem Kunden"}
+              : isConnected
+                ? "Starten Sie den Anruf mit dem Kunden"
+                : "Keine Verbindung zur Filiale - Anrufe nicht möglich"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -218,11 +234,13 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
               {!isCallActive ? (
                 <Button 
                   onClick={startCall} 
-                  className="bg-green-500 hover:bg-green-600 text-white text-lg py-6 px-8"
+                  className="bg-green-500 hover:bg-green-600 text-white text-lg py-6 px-8 disabled:opacity-50 disabled:cursor-not-allowed"
                   size="lg"
-                  disabled={!selectedContact && !phoneNumber}
+                  disabled={!isConnected || (!selectedContact && !phoneNumber)}
+                  title={!isConnected ? "Keine Verbindung zur Filiale" : (!selectedContact && !phoneNumber) ? "Keine Telefonnummer ausgewählt" : ""}
                 >
-                  <Phone className="mr-2 h-5 w-5" /> Anruf starten
+                  <Phone className="mr-2 h-5 w-5" /> 
+                  {!isConnected ? "Nicht verfügbar" : "Anruf starten"}
                 </Button>
               ) : (
                 <>

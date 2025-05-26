@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { useQuery } from "@tanstack/react-query";
 import { customerService, campaignService } from "@/services/api";
-import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff, Wifi, WifiOff } from "lucide-react";
+import { Phone, CalendarClock, ClipboardList, Clock, CheckCircle, XCircle, PhoneOff, Wifi, WifiOff, AlertTriangle } from "lucide-react";
 import { useConnectionManager } from "@/hooks/useConnectionManager";
 
 const CallPanel = () => {
@@ -33,7 +34,7 @@ const CallPanel = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { connections, isConnected, connectToFiliale, disconnectFromFiliale } = useConnectionManager();
+  const { connections, isConnecting, isConnected, connectToFiliale, disconnectFromFiliale } = useConnectionManager();
   
   // Customer from navigation state if available
   const customerFromNav = location.state?.customer;
@@ -44,7 +45,7 @@ const CallPanel = () => {
   const needsFilialSelection = user && user.role === 'admin' && !selectedFiliale;
 
   // Handle filiale selection and connection
-  const handleFilialeSelected = async (filialeId) => {
+  const handleFilialeSelected = async (filialeId: string) => {
     setSelectedFiliale(filialeId);
     setIsFilialSelectionOpen(false);
     
@@ -54,11 +55,17 @@ const CallPanel = () => {
       description: "VPN, SIP und WebRTC werden initialisiert.",
     });
     
-    const success = await connectToFiliale(parseInt(filialeId), `Filiale ${filialeId}`);
-    if (success) {
+    try {
+      await connectToFiliale(parseInt(filialeId), `Filiale ${filialeId}`);
       toast({
         title: "Verbindung hergestellt",
         description: `Erfolgreich mit Filiale verbunden.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Verbindungsfehler",
+        description: "Fehler beim Herstellen der Verbindung zur Filiale.",
+        variant: "destructive"
       });
     }
   };
@@ -70,8 +77,26 @@ const CallPanel = () => {
     setSelectedPhoneNumber("");
   };
 
-  // Handle call start - updated to not require phoneNumber parameter
+  // Handle call start - only allowed if connected
   const handleCallStart = () => {
+    if (!isConnected) {
+      toast({
+        title: "Keine Verbindung",
+        description: "Eine Verbindung zur Filiale muss hergestellt werden, bevor Anrufe getätigt werden können.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedPhoneNumber) {
+      toast({
+        title: "Keine Telefonnummer",
+        description: "Bitte geben Sie eine Telefonnummer ein.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('Call started to:', selectedPhoneNumber);
     setCallResult(null);
     setCallDuration(0);
@@ -147,7 +172,7 @@ const CallPanel = () => {
   };
 
   // Format time for timer display
-  const formatCallDuration = (seconds) => {
+  const formatCallDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -218,25 +243,28 @@ const CallPanel = () => {
     );
   }
 
-  // Connection Status Bar
+  // Connection Status Bar with enhanced warning
   return (
     <AppLayout title="Anrufe" subtitle="Telefonzentrale">
       <div className="mb-6">
-        <Card className={`border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+        <Card className={`border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
           <CardContent className="py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {isConnected ? (
                   <Wifi className="h-5 w-5 text-green-600" />
                 ) : (
-                  <WifiOff className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-center gap-2">
+                    <WifiOff className="h-5 w-5 text-red-600" />
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                  </div>
                 )}
                 <div>
                   <p className="font-medium">
-                    {isConnected ? 'Verbunden mit Filiale' : 'Keine Verbindung'}
+                    {isConnected ? 'Verbunden mit Filiale' : 'KEINE VERBINDUNG - Anrufe nicht möglich'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {isConnected ? 'VPN, SIP und WebRTC aktiv' : 'Verbindung erforderlich für Anrufe'}
+                    {isConnected ? 'VPN, SIP und WebRTC aktiv' : 'Verbindung zur Filiale muss hergestellt werden'}
                   </p>
                 </div>
               </div>
@@ -245,14 +273,34 @@ const CallPanel = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => isConnected ? disconnectFromFiliale() : connectToFiliale(parseInt(selectedFiliale), `Filiale ${selectedFiliale}`)}
+                  disabled={isConnecting}
                 >
-                  {isConnected ? 'Trennen' : 'Verbinden'}
+                  {isConnecting ? 'Verbinde...' : isConnected ? 'Trennen' : 'Verbinden'}
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Show warning if not connected */}
+      {!isConnected && (
+        <div className="mb-6">
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-800">Warnung: Keine Verbindung zur Filiale</p>
+                  <p className="text-sm text-amber-700">
+                    Um Anrufe tätigen zu können, muss eine vollständige Verbindung (VPN, SIP, WebRTC) zur Filiale hergestellt werden.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Call Controls and Results */}
@@ -293,8 +341,14 @@ const CallPanel = () => {
                           placeholder="+49 123 456789"
                           value={selectedPhoneNumber}
                           onChange={(e) => setSelectedPhoneNumber(e.target.value)}
+                          disabled={!isConnected}
                         />
                       </div>
+                      {!isConnected && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Eingabe deaktiviert - keine Verbindung zur Filiale
+                        </p>
+                      )}
                     </div>
                     
                     {selectedFiliale && campaigns && campaigns.length > 0 && (
@@ -498,14 +552,29 @@ const CallPanel = () => {
         
         {/* Right Column - Phone Interface and Customer Info */}
         <div className="space-y-6">
-          <Card className="border-2 border-primary/20">
-            <CardHeader className="bg-primary/5">
+          <Card className={`border-2 ${isConnected ? 'border-primary/20' : 'border-red-200'}`}>
+            <CardHeader className={isConnected ? "bg-primary/5" : "bg-red-50"}>
               <CardTitle className="flex items-center gap-2">
                 <Phone className="h-5 w-5" />
                 Telefonie-Interface
+                {!isConnected && (
+                  <Badge variant="destructive" className="ml-2">Offline</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
+              {!isConnected && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">Anrufe nicht verfügbar</span>
+                  </div>
+                  <p className="text-sm text-red-700 mt-1">
+                    Stellen Sie eine Verbindung zur Filiale her, um Anrufe tätigen zu können.
+                  </p>
+                </div>
+              )}
+              
               <WebRTCClient 
                 onCallStart={handleCallStart}
                 onCallEnd={handleCallEnd}
