@@ -20,6 +20,6 @@ const copyRecursive = (src, dest) => {
   });
 };
 
-console.log('Copying backend files...');
-copyRecursive('backend', 'htdocs/backend');
-console.log('Backend files copied successfully!');
+console.log('Copying backend files to production structure...');
+copyRecursive('backend', 'htdocs/keyeff_callpanel/backend');
+console.log('Backend files copied successfully to htdocs/keyeff_callpanel/backend!');
