@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -71,9 +70,9 @@ const CallPanel = () => {
     setSelectedPhoneNumber("");
   };
 
-  // Handle call start
-  const handleCallStart = (phoneNumber: string) => {
-    console.log('Call started to:', phoneNumber);
+  // Handle call start - updated to not require phoneNumber parameter
+  const handleCallStart = () => {
+    console.log('Call started to:', selectedPhoneNumber);
     setCallResult(null);
     setCallDuration(0);
     
