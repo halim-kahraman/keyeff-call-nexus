@@ -229,9 +229,9 @@ const CallPanel = () => {
     );
   }
 
-  // Connection Status Bar with enhanced warning
   return (
     <AppLayout title="Anrufe" subtitle="Telefonzentrale">
+      {/* Connection Status Bar */}
       <div className="mb-6">
         <Card className={`border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
           <CardContent className="py-3">
@@ -269,7 +269,7 @@ const CallPanel = () => {
         </Card>
       </div>
 
-      {/* Show warning if not connected */}
+      {/* Warning if not connected */}
       {!isConnected && (
         <div className="mb-6">
           <Card className="border-amber-200 bg-amber-50">
@@ -291,6 +291,7 @@ const CallPanel = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Call Controls and Results */}
         <div className="space-y-6">
+          {/* ... keep existing code (call control card and tabs) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
@@ -359,6 +360,7 @@ const CallPanel = () => {
                 </TabsContent>
                 
                 <TabsContent value="customer" className="pt-4">
+                  {/* ... keep existing code (customer tab content) */}
                   {customerFromNav ? (
                     <div className="space-y-4">
                       <div className="flex flex-col">
@@ -412,6 +414,7 @@ const CallPanel = () => {
                         </div>
                       </div>
                       
+                      {/* ... keep existing code (contracts and reset button) */}
                       {customerFromNav.contracts && customerFromNav.contracts.length > 0 && (
                         <div>
                           <Label className="mb-2 block">Vertrag auswählen</Label>
@@ -457,6 +460,7 @@ const CallPanel = () => {
             </CardContent>
           </Card>
           
+          {/* ... keep existing code (call result card) */}
           <Card>
             <CardHeader>
               <CardTitle>Anrufergebnis</CardTitle>
