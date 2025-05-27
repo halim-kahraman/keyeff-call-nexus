@@ -57,7 +57,7 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
   const [isCallActive, setIsCallActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+  const [timer, setTimer] = useState<number | null>(null);
   const [selectedContact, setSelectedContact] = useState<CustomerContact | undefined>(
     customer?.contacts?.find(c => c.id === contactId) || 
     customer?.contacts?.find(c => c.is_primary) ||
