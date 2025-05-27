@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 
-// Production API configuration
+// Local production API configuration
 const API_BASE_URL = 'http://localhost/keyeff_callpanel/backend';
 
 const api = axios.create({
@@ -15,7 +15,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
@@ -43,20 +43,19 @@ export const authService = {
     const response = await api.post('/api/auth/login.php', { email, password });
     return response.data;
   },
-  verify2FA: async (userId: string, code: string) => {
-    const response = await api.post('/api/auth/verify.php', { user_id: userId, code });
+  verify2FA: async (userId: string, otp: string) => {
+    const response = await api.post('/api/auth/verify.php', { user_id: userId, otp });
     return response.data;
   },
   requestPasswordReset: async (email: string) => {
-    const response = await api.post('/api/auth/reset-password.php', { email, action: 'request' });
+    const response = await api.post('/api/auth/reset-password.php', { email });
     return response.data;
   },
-  resetPassword: async (email: string, code: string, newPassword: string) => {
+  resetPassword: async (email: string, reset_code: string, new_password: string) => {
     const response = await api.post('/api/auth/reset-password.php', { 
       email, 
-      code, 
-      new_password: newPassword, 
-      action: 'reset' 
+      reset_code, 
+      new_password 
     });
     return response.data;
   },

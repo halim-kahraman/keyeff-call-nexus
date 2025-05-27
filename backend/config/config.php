@@ -4,9 +4,9 @@
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
 
-// Production Configuration
+// Local Production Configuration
 define('API_URL', 'http://localhost/keyeff_callpanel/backend');
-define('APP_URL', 'http://localhost/keyeff_callpanel');
+define('APP_URL', 'http://localhost/keyeff_callpanel/public');
 
 // JWT Secret for Token Generation
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
@@ -24,18 +24,23 @@ define('MAIL_ENCRYPTION', 'tls');
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
-// Production mode - disable debug
-define('DEBUG_MODE', false);
+// Local development mode - enable debug for local testing
+define('DEBUG_MODE', true);
 
-// Set CORS headers for production
+// Set CORS headers for local development
 function setCorsHeaders() {
-    // Production CORS - only allow localhost
-    $allowed_origins = ['http://localhost:8080', 'http://localhost/keyeff_callpanel'];
+    // Local development CORS - allow localhost on different ports
+    $allowed_origins = [
+        'http://localhost:8080', 
+        'http://localhost:3000',
+        'http://localhost/keyeff_callpanel/public',
+        'http://localhost/keyeff_callpanel'
+    ];
     
     if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
         header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
     } else {
-        header("Access-Control-Allow-Origin: http://localhost/keyeff_callpanel");
+        header("Access-Control-Allow-Origin: http://localhost/keyeff_callpanel/public");
     }
     
     header('Access-Control-Allow-Credentials: true');
@@ -62,9 +67,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Error reporting for production
-ini_set('display_errors', 0);
-error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+// Error reporting for local development
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 // Function to generate JSON response
 function jsonResponse($success = true, $message = '', $data = null, $status = 200) {
@@ -100,9 +105,13 @@ function validateToken($token) {
     return $payload;
 }
 
-// Debug function for production (disabled)
+// Debug function for local development
 function debugLog($message, $data = null) {
-    // Disabled in production
-    return;
+    if (DEBUG_MODE) {
+        error_log("DEBUG: $message");
+        if ($data !== null) {
+            error_log("DEBUG DATA: " . json_encode($data));
+        }
+    }
 }
 ?>

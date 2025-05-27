@@ -21,5 +21,27 @@ const copyRecursive = (src, dest) => {
 };
 
 console.log('Copying backend files to production structure...');
+
+// Ensure the destination directory exists
+if (!existsSync('htdocs')) {
+  mkdirSync('htdocs', { recursive: true });
+}
+
+if (!existsSync('htdocs/keyeff_callpanel')) {
+  mkdirSync('htdocs/keyeff_callpanel', { recursive: true });
+}
+
+// Copy backend files
 copyRecursive('backend', 'htdocs/keyeff_callpanel/backend');
 console.log('Backend files copied successfully to htdocs/keyeff_callpanel/backend!');
+
+console.log('');
+console.log('Production structure created:');
+console.log('htdocs/keyeff_callpanel/');
+console.log('├── backend/ (PHP Backend - not publicly accessible)');
+console.log('└── public/  (Frontend build output - Document Root)');
+console.log('');
+console.log('Next steps:');
+console.log('1. Configure your web server to point Document Root to htdocs/keyeff_callpanel/public/');
+console.log('2. Ensure htdocs/keyeff_callpanel/backend/ is NOT accessible from web');
+console.log('3. Configure database connection in backend/config/database.php');
