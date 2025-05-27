@@ -20,9 +20,9 @@ const copyRecursive = (src, dest) => {
   });
 };
 
-console.log('Copying backend files to production structure...');
+console.log('Kopiere Backend-Dateien zur Produktionsstruktur...');
 
-// Ensure the destination directory exists
+// Stelle sicher, dass das Zielverzeichnis existiert
 if (!existsSync('htdocs')) {
   mkdirSync('htdocs', { recursive: true });
 }
@@ -31,17 +31,17 @@ if (!existsSync('htdocs/keyeff_callpanel')) {
   mkdirSync('htdocs/keyeff_callpanel', { recursive: true });
 }
 
-// Copy backend files
+// Kopiere Backend-Dateien
 copyRecursive('backend', 'htdocs/keyeff_callpanel/backend');
-console.log('Backend files copied successfully to htdocs/keyeff_callpanel/backend!');
+console.log('Backend-Dateien erfolgreich nach htdocs/keyeff_callpanel/backend kopiert!');
 
 console.log('');
-console.log('Production structure created:');
+console.log('Produktionsstruktur erstellt:');
 console.log('htdocs/keyeff_callpanel/');
-console.log('├── backend/ (PHP Backend - not publicly accessible)');
-console.log('└── public/  (Frontend build output - Document Root)');
+console.log('├── backend/ (PHP Backend - nicht öffentlich zugänglich)');
+console.log('└── public/  (Frontend Build Output - Document Root)');
 console.log('');
-console.log('Next steps:');
-console.log('1. Configure your web server to point Document Root to htdocs/keyeff_callpanel/public/');
-console.log('2. Ensure htdocs/keyeff_callpanel/backend/ is NOT accessible from web');
-console.log('3. Configure database connection in backend/config/database.php');
+console.log('Nächste Schritte:');
+console.log('1. Konfiguriere deinen Webserver so, dass Document Root auf htdocs/keyeff_callpanel/public/ zeigt');
+console.log('2. Stelle sicher, dass htdocs/keyeff_callpanel/backend/ NICHT vom Web zugänglich ist');
+console.log('3. Konfiguriere die Datenbankverbindung in backend/config/database.php');
