@@ -31,17 +31,18 @@ if (!existsSync('htdocs/keyeff_callpanel')) {
   mkdirSync('htdocs/keyeff_callpanel', { recursive: true });
 }
 
-// Kopiere Backend-Dateien
+// Kopiere Backend-Dateien direkt in keyeff_callpanel/backend
 copyRecursive('backend', 'htdocs/keyeff_callpanel/backend');
 console.log('Backend-Dateien erfolgreich nach htdocs/keyeff_callpanel/backend kopiert!');
 
 console.log('');
 console.log('Produktionsstruktur erstellt:');
 console.log('htdocs/keyeff_callpanel/');
-console.log('├── backend/ (PHP Backend - nicht öffentlich zugänglich)');
+console.log('├── backend/ (PHP Backend)');
 console.log('└── public/  (Frontend Build Output - Document Root)');
 console.log('');
-console.log('Nächste Schritte:');
-console.log('1. Konfiguriere deinen Webserver so, dass Document Root auf htdocs/keyeff_callpanel/public/ zeigt');
-console.log('2. Stelle sicher, dass htdocs/keyeff_callpanel/backend/ NICHT vom Web zugänglich ist');
-console.log('3. Konfiguriere die Datenbankverbindung in backend/config/database.php');
+console.log('Nächste Schritte für XAMPP:');
+console.log('1. Kopiere den gesamten htdocs/keyeff_callpanel Ordner in dein XAMPP htdocs Verzeichnis');
+console.log('2. Stelle sicher, dass PHP und MySQL in XAMPP aktiviert sind');
+console.log('3. Öffne http://localhost/keyeff_callpanel/public in deinem Browser');
+console.log('4. Konfiguriere die Datenbankverbindung in backend/config/database.php falls nötig');

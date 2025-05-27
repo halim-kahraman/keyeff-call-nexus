@@ -1,7 +1,9 @@
+
 import axios from 'axios';
 
-// Lokale Produktions-API-Konfiguration
-const API_BASE_URL = '/api';
+// API-Konfiguration je nach Umgebung
+const isDevelopment = import.meta.env.DEV;
+const API_BASE_URL = isDevelopment ? '/api' : '/keyeff_callpanel/backend/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
