@@ -4,7 +4,7 @@
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
 
-// Local Production Configuration
+// Lokale Produktions-Konfiguration
 define('API_URL', 'http://localhost/keyeff_callpanel/backend');
 define('APP_URL', 'http://localhost/keyeff_callpanel/public');
 
@@ -24,12 +24,11 @@ define('MAIL_ENCRYPTION', 'tls');
 // Time zone
 date_default_timezone_set('Europe/Berlin');
 
-// Local development mode - enable debug for local testing
+// Debug mode für lokale Entwicklung
 define('DEBUG_MODE', true);
 
-// Set CORS headers for local development
+// CORS-Headers für lokale Entwicklung setzen
 function setCorsHeaders() {
-    // Local development CORS - allow localhost on different ports
     $allowed_origins = [
         'http://localhost:8080', 
         'http://localhost:3000',
@@ -67,7 +66,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Error reporting for local development
+// Error reporting für lokale Entwicklung
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -105,7 +104,7 @@ function validateToken($token) {
     return $payload;
 }
 
-// Debug function for local development
+// Debug function für lokale Entwicklung
 function debugLog($message, $data = null) {
     if (DEBUG_MODE) {
         error_log("DEBUG: $message");
