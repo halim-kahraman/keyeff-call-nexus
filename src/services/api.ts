@@ -1,8 +1,7 @@
-
 import axios from 'axios';
 
-// Local production API configuration
-const API_BASE_URL = 'http://localhost/keyeff_callpanel/backend';
+// Lokale Produktions-API-Konfiguration
+const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -40,19 +39,19 @@ api.interceptors.response.use(
 // Auth service
 export const authService = {
   login: async (email: string, password: string) => {
-    const response = await api.post('/api/auth/login.php', { email, password });
+    const response = await api.post('/auth/login.php', { email, password });
     return response.data;
   },
   verify2FA: async (userId: string, otp: string) => {
-    const response = await api.post('/api/auth/verify.php', { user_id: userId, otp });
+    const response = await api.post('/auth/verify.php', { user_id: userId, otp });
     return response.data;
   },
   requestPasswordReset: async (email: string) => {
-    const response = await api.post('/api/auth/reset-password.php', { email });
+    const response = await api.post('/auth/reset-password.php', { email });
     return response.data;
   },
   resetPassword: async (email: string, reset_code: string, new_password: string) => {
-    const response = await api.post('/api/auth/reset-password.php', { 
+    const response = await api.post('/auth/reset-password.php', { 
       email, 
       reset_code, 
       new_password 
@@ -60,7 +59,7 @@ export const authService = {
     return response.data;
   },
   logout: async () => {
-    const response = await api.post('/api/auth/logout.php');
+    const response = await api.post('/auth/logout.php');
     return response.data;
   }
 };
@@ -72,15 +71,15 @@ export const customerService = {
     if (filialeId) params.append('filiale_id', filialeId);
     if (campaignId) params.append('campaign_id', campaignId);
     
-    const response = await api.get(`/api/customers/list.php?${params.toString()}`);
+    const response = await api.get(`/customers/list.php?${params.toString()}`);
     return response.data;
   },
   getCustomerDetails: async (customerId: string) => {
-    const response = await api.get(`/api/customers/detail.php?id=${customerId}`);
+    const response = await api.get(`/customers/detail.php?id=${customerId}`);
     return response.data;
   },
   createCustomer: async (customerData: any) => {
-    const response = await api.post('/api/customers/create.php', customerData);
+    const response = await api.post('/customers/create.php', customerData);
     return response.data;
   },
   importCustomers: async (file: File, campaignId?: string) => {
@@ -88,7 +87,7 @@ export const customerService = {
     formData.append('file', file);
     if (campaignId) formData.append('campaign_id', campaignId);
     
-    const response = await api.post('/api/customers/import.php', formData, {
+    const response = await api.post('/customers/import.php', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -103,25 +102,25 @@ export const campaignService = {
     const params = new URLSearchParams();
     if (filialeId) params.append('filiale_id', filialeId);
     
-    const response = await api.get(`/api/campaigns/list.php?${params.toString()}`);
+    const response = await api.get(`/campaigns/list.php?${params.toString()}`);
     return response.data;
   },
   startSession: async (campaignId: string) => {
-    const response = await api.post('/api/campaigns/session.php', {
+    const response = await api.post('/campaigns/session.php', {
       action: 'start',
       campaign_id: campaignId
     });
     return response.data;
   },
   endSession: async (campaignId: string) => {
-    const response = await api.post('/api/campaigns/session.php', {
+    const response = await api.post('/campaigns/session.php', {
       action: 'end',
       campaign_id: campaignId
     });
     return response.data;
   },
   checkSession: async (campaignId: string) => {
-    const response = await api.get(`/api/campaigns/session.php?campaign_id=${campaignId}`);
+    const response = await api.get(`/campaigns/session.php?campaign_id=${campaignId}`);
     return response.data;
   }
 };
@@ -132,34 +131,34 @@ export const settingsService = {
     const params = new URLSearchParams();
     if (filialeId) params.append('filiale_id', filialeId);
     
-    const response = await api.get(`/api/settings/get.php?${params.toString()}`);
+    const response = await api.get(`/settings/get.php?${params.toString()}`);
     return response.data;
   },
   saveSettings: async (settings: any, filialeId?: string | null) => {
-    const response = await api.post('/api/settings/save.php', {
+    const response = await api.post('/settings/save.php', {
       ...settings,
       filiale_id: filialeId
     });
     return response.data;
   },
   testSipConnection: async (settings: any) => {
-    const response = await api.post('/api/settings/test-sip.php', settings);
+    const response = await api.post('/settings/test-sip.php', settings);
     return response.data;
   },
   testVpnConnection: async (settings: any) => {
-    const response = await api.post('/api/settings/test-vpn.php', settings);
+    const response = await api.post('/settings/test-vpn.php', settings);
     return response.data;
   },
   testFritzboxConnection: async (settings: any) => {
-    const response = await api.post('/api/settings/test-fritzbox.php', settings);
+    const response = await api.post('/settings/test-fritzbox.php', settings);
     return response.data;
   },
   testEmailConnection: async (settings: any) => {
-    const response = await api.post('/api/settings/test-email.php', settings);
+    const response = await api.post('/settings/test-email.php', settings);
     return response.data;
   },
   testKeyEffApiConnection: async (settings: any) => {
-    const response = await api.post('/api/settings/test-keyeff-api.php', settings);
+    const response = await api.post('/settings/test-keyeff-api.php', settings);
     return response.data;
   }
 };
@@ -167,7 +166,7 @@ export const settingsService = {
 // Filiale service
 export const filialeService = {
   getFilialen: async () => {
-    const response = await api.get('/api/filialen/list.php');
+    const response = await api.get('/filialen/list.php');
     return response.data;
   }
 };
@@ -179,7 +178,7 @@ export const statisticsService = {
     if (filialeId) params.append('filiale_id', filialeId);
     if (dateRange) params.append('date_range', dateRange);
     
-    const response = await api.get(`/api/statistics/get.php?${params.toString()}`);
+    const response = await api.get(`/statistics/get.php?${params.toString()}`);
     return response.data;
   }
 };
@@ -187,21 +186,21 @@ export const statisticsService = {
 // Connection service
 export const connectionService = {
   connect: async (filialeId: string) => {
-    const response = await api.post('/api/connections/manage.php', {
+    const response = await api.post('/connections/manage.php', {
       action: 'connect',
       filiale_id: filialeId
     });
     return response.data;
   },
   disconnect: async (filialeId: string) => {
-    const response = await api.post('/api/connections/manage.php', {
+    const response = await api.post('/connections/manage.php', {
       action: 'disconnect',
       filiale_id: filialeId
     });
     return response.data;
   },
   getStatus: async (filialeId: string) => {
-    const response = await api.get(`/api/connections/manage.php?filiale_id=${filialeId}`);
+    const response = await api.get(`/connections/manage.php?filiale_id=${filialeId}`);
     return response.data;
   }
 };
