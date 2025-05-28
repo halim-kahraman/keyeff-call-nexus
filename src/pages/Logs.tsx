@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -53,7 +54,7 @@ const Logs = () => {
   const users = usersResponse?.data || [];
 
   // Get unique action types from logs with proper typing
-  const actionTypes = Array.from(
+  const actionTypes: string[] = Array.from(
     new Set(
       logs
         .map((log: any) => log.action)
@@ -153,7 +154,7 @@ const Logs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle Arten</SelectItem>
-                    {actionTypes.map((action) => (
+                    {actionTypes.map((action: string) => (
                       <SelectItem key={action} value={action}>
                         {getActionLabel(action)}
                       </SelectItem>
