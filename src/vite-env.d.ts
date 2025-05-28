@@ -35,6 +35,7 @@ declare module '*.webp' {
   export default src;
 }
 
+// Third-party library declarations
 declare module '@tanstack/react-query' {
   export * from '@tanstack/react-query';
 }
@@ -85,4 +86,25 @@ declare module '@radix-ui/react-slot' {
 
 declare module 'react-day-picker' {
   export * from 'react-day-picker';
+}
+
+// Global types for better IDE support
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
+
+// Vite environment variables
+interface ImportMetaEnv {
+  readonly VITE_API_URL?: string;
+  readonly VITE_APP_NAME?: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
 }

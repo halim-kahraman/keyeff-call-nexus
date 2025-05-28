@@ -20,7 +20,10 @@ export default defineConfig(({ mode }) => ({
     }
   },
   plugins: [
-    react(),
+    react({
+      jsxImportSource: 'react',
+      plugins: [['@swc/plugin-styled-jsx', {}]],
+    }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
@@ -28,12 +31,38 @@ export default defineConfig(({ mode }) => ({
       "@": resolve(fileURLToPath(new URL('./src', import.meta.url))),
     },
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      '@tanstack/react-query',
+      'react-router-dom',
+      'lucide-react',
+      'sonner',
+      'date-fns',
+      'class-variance-authority',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-slot',
+      'react-day-picker'
+    ]
+  },
   build: {
     outDir: 'htdocs/keyeff_callpanel/public',
     assetsDir: 'assets',
+    commonjsOptions: {
+      include: [/node_modules/]
+    },
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'query': ['@tanstack/react-query'],
+          'ui': ['lucide-react', '@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
+        },
       },
       onwarn(warning, warn) {
         if (warning.code === 'MISSING_EXPORT') return;
