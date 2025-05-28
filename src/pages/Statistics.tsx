@@ -24,6 +24,11 @@ import { Download, RefreshCw, TrendingUp, Phone, Users, Calendar } from "lucide-
 import { statisticsService, filialeService } from "@/services/api";
 import { exportToPdf } from "@/utils/exportUtils";
 
+interface Filiale {
+  id: string;
+  name: string;
+}
+
 const Statistics = () => {
   const { user } = useAuth();
   const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
@@ -121,7 +126,7 @@ const Statistics = () => {
                 <SelectValue placeholder="Filiale auswählen" />
               </SelectTrigger>
               <SelectContent>
-                {filialen?.map((filiale) => (
+                {filialen?.map((filiale: Filiale) => (
                   <SelectItem key={filiale.id} value={filiale.id}>
                     {filiale.name}
                   </SelectItem>

@@ -1,9 +1,8 @@
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { resolve } from "node:path";
+import { resolve } from "path";
 import { componentTagger } from "lovable-tagger";
-import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }: { mode: string }) => ({
@@ -25,7 +24,7 @@ export default defineConfig(({ mode }: { mode: string }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": resolve(fileURLToPath(new URL('./src', import.meta.url))),
+      "@": resolve(__dirname, "./src"),
     },
   },
   optimizeDeps: {

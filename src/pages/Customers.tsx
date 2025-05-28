@@ -77,7 +77,7 @@ const Customers = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState<number | null>(null);
+  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [campaignList, setCampaignList] = useState<Campaign[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -101,8 +101,8 @@ const Customers = () => {
   }, [needsFilialSelection]);
 
   // Handle filiale selection
-  const handleFilialeSelected = (filialeId: number) => {
-    setSelectedFiliale(filialeId);
+  const handleFilialeSelected = (branchId: string) => {
+    setSelectedFiliale(branchId);
     setIsFilialSelectionOpen(false);
     
     // TODO: Fetch campaigns for this filiale
@@ -502,7 +502,6 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      {/* Import Dialog */}
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
