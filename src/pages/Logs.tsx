@@ -53,8 +53,8 @@ const Logs = () => {
   const logs = logsResponse?.data || [];
   const users = usersResponse?.data || [];
 
-  // Get unique action types from logs
-  const actionTypes = [...new Set(logs.map((log: any) => log.action))];
+  // Get unique action types from logs with proper typing
+  const actionTypes: string[] = [...new Set(logs.map((log: any) => log.action).filter((action: any): action is string => typeof action === 'string'))];
 
   // Export handlers
   const handleExportExcel = () => {
@@ -148,7 +148,7 @@ const Logs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle Arten</SelectItem>
-                    {actionTypes.map((action: string) => (
+                    {actionTypes.map((action) => (
                       <SelectItem key={action} value={action}>
                         {getActionLabel(action)}
                       </SelectItem>
