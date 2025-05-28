@@ -67,7 +67,7 @@ export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }:
       });
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error creating customer:", error);
       toast.error("Fehler beim Anlegen des Kunden");
     },

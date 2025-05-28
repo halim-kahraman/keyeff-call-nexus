@@ -20,10 +20,7 @@ export default defineConfig(({ mode }: { mode: string }) => ({
     }
   },
   plugins: [
-    react({
-      jsxImportSource: 'react',
-      plugins: [['@swc/plugin-styled-jsx', {}]],
-    }),
+    react(),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {

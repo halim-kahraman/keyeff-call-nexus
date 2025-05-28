@@ -46,13 +46,13 @@ export const Header: React.FC<HeaderProps> = ({
       .substring(0, 2);
   };
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = (notification: any) => {
     if (!notification.read) {
       markAsRead(notification.id);
     }
   };
 
-  const handleNotificationsOpen = (open) => {
+  const handleNotificationsOpen = (open: boolean) => {
     setIsNotificationsOpen(open);
     if (!open && unreadCount > 0) {
       // Mark all as read when closing if there were unread notifications
@@ -86,7 +86,6 @@ export const Header: React.FC<HeaderProps> = ({
                 {unreadCount > 0 && (
                   <Badge 
                     className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary"
-                    variant="default"
                   >
                     {unreadCount}
                   </Badge>

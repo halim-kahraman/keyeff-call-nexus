@@ -1,7 +1,5 @@
 
 /// <reference types="vite/client" />
-/// <reference types="react" />
-/// <reference types="react-dom" />
 
 declare module '*.svg' {
   import * as React from 'react';
@@ -33,68 +31,6 @@ declare module '*.gif' {
 declare module '*.webp' {
   const src: string;
   export default src;
-}
-
-// Third-party library declarations
-declare module '@tanstack/react-query' {
-  export * from '@tanstack/react-query';
-}
-
-declare module 'react-router-dom' {
-  export * from 'react-router-dom';
-}
-
-declare module 'sonner' {
-  export * from 'sonner';
-}
-
-declare module 'lucide-react' {
-  export * from 'lucide-react';
-}
-
-declare module 'date-fns' {
-  export * from 'date-fns';
-}
-
-declare module 'date-fns/locale' {
-  export * from 'date-fns/locale';
-}
-
-declare module 'class-variance-authority' {
-  export * from 'class-variance-authority';
-}
-
-declare module '@radix-ui/react-accordion' {
-  export * from '@radix-ui/react-accordion';
-}
-
-declare module '@radix-ui/react-alert-dialog' {
-  export * from '@radix-ui/react-alert-dialog';
-}
-
-declare module '@radix-ui/react-aspect-ratio' {
-  export * from '@radix-ui/react-aspect-ratio';
-}
-
-declare module '@radix-ui/react-avatar' {
-  export * from '@radix-ui/react-avatar';
-}
-
-declare module '@radix-ui/react-slot' {
-  export * from '@radix-ui/react-slot';
-}
-
-declare module 'react-day-picker' {
-  export * from 'react-day-picker';
-}
-
-// Global types for better IDE support
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      [elemName: string]: any;
-    }
-  }
 }
 
 // Vite environment variables
