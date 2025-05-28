@@ -61,14 +61,14 @@ export const useConnectionManager = () => {
       
       // Start VPN connection
       await startConnection(filialeId, 'vpn', {
-        vpn: { server: `vpn-${filialeId}.keyeff.local`, username: user?.email }
+        vpn: { server: `vpn-${filialeId}.keyeff.local`, username: user?.email || 'unknown' }
       });
       
       // Start SIP connection
       await startConnection(filialeId, 'sip', {
         sip: { 
           server: `sip-${filialeId}.keyeff.local`, 
-          username: user?.email,
+          username: user?.email || 'unknown',
           password: 'generated_sip_password'
         }
       });
@@ -78,7 +78,7 @@ export const useConnectionManager = () => {
         webrtc: { 
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: `turn:turn-${filialeId}.keyeff.local`, username: user?.email, credential: 'turn_password' }
+            { urls: `turn:turn-${filialeId}.keyeff.local`, username: user?.email || 'unknown', credential: 'turn_password' }
           ]
         }
       });

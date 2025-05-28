@@ -13,8 +13,19 @@ import { useCampaignSession } from '@/hooks/useCampaignSession';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
+interface Campaign {
+  id: number;
+  name: string;
+  description: string;
+  status: string;
+  customer_count?: number;
+  completed_count?: number;
+  completion?: number;
+  filiale_name?: string;
+}
+
 const Campaigns = () => {
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -29,7 +40,7 @@ const Campaigns = () => {
     queryFn: () => campaignService.getCampaigns(),
   });
 
-  const handleStartCampaign = async (campaign) => {
+  const handleStartCampaign = async (campaign: Campaign) => {
     const success = await startCampaignSession(campaign.id);
     if (success) {
       navigate('/call', { 
@@ -41,7 +52,7 @@ const Campaigns = () => {
     }
   };
 
-  const handleEndCampaign = async (campaignId) => {
+  const handleEndCampaign = async (campaignId: number) => {
     await endCampaignSession(campaignId);
   };
 
@@ -65,7 +76,7 @@ const Campaigns = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6">
-            {campaigns?.map((campaign) => {
+            {campaigns?.map((campaign: Campaign) => {
               const session = activeSessions[campaign.id];
               const isActive = session?.in_use;
               
@@ -176,15 +187,15 @@ const Campaigns = () => {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Aktive Kampagnen</p>
-                    <p className="text-2xl font-bold">{campaigns?.filter(c => c.status === 'Active').length || 0}</p>
+                    <p className="text-2xl font-bold">{campaigns?.filter((c: Campaign) => c.status === 'Active').length || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Gesamte Kunden</p>
-                    <p className="text-2xl font-bold">{campaigns?.reduce((sum, c) => sum + (c.customer_count || 0), 0) || 0}</p>
+                    <p className="text-2xl font-bold">{campaigns?.reduce((sum: number, c: Campaign) => sum + (c.customer_count || 0), 0) || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Abgeschlossene Anrufe</p>
-                    <p className="text-2xl font-bold">{campaigns?.reduce((sum, c) => sum + (c.completed_count || 0), 0) || 0}</p>
+                    <p className="text-2xl font-bold">{campaigns?.reduce((sum: number, c: Campaign) => sum + (c.completed_count || 0), 0) || 0}</p>
                   </div>
                 </div>
               </CardContent>

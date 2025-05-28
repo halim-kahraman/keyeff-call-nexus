@@ -1,9 +1,9 @@
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { resolve } from "path";
+import { resolve } from "node:path";
 import { componentTagger } from "lovable-tagger";
-import { fileURLToPath, URL } from 'url';
+import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }: { mode: string }) => ({

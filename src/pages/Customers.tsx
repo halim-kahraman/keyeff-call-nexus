@@ -34,10 +34,11 @@ import { NewCustomerDialog } from "@/components/customers/NewCustomerDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
+import { Customer, Campaign } from "@/types/customer";
 
 // Helper function to get contract status badge
-const getStatusBadge = (status) => {
-  const statusClasses = {
+const getStatusBadge = (status: string) => {
+  const statusClasses: Record<string, string> = {
     Aktiv: "bg-green-100 text-green-800",
     Inaktiv: "bg-red-100 text-red-800",
     Gekündigt: "bg-red-100 text-red-800",
@@ -48,8 +49,8 @@ const getStatusBadge = (status) => {
 };
 
 // Helper function to get priority badge
-const getPriorityBadge = (priority) => {
-  const priorityClasses = {
+const getPriorityBadge = (priority: string) => {
+  const priorityClasses: Record<string, string> = {
     high: "bg-red-100 text-red-800",
     medium: "bg-amber-100 text-amber-800",
     low: "bg-green-100 text-green-800"
@@ -59,8 +60,8 @@ const getPriorityBadge = (priority) => {
 };
 
 // Helper function to display proper priority text
-const getPriorityText = (priority) => {
-  const priorityText = {
+const getPriorityText = (priority: string) => {
+  const priorityText: Record<string, string> = {
     high: "Hoch",
     medium: "Mittel",
     low: "Niedrig"
@@ -73,17 +74,17 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState(null);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const [campaignList, setCampaignList] = useState([]);
-  const [importFile, setImportFile] = useState(null);
+  const [selectedFiliale, setSelectedFiliale] = useState<number | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [createNewCampaign, setCreateNewCampaign] = useState(false);
   const [newCampaignName, setNewCampaignName] = useState("");
   const [newCampaignDesc, setNewCampaignDesc] = useState("");
-  const [importPreview, setImportPreview] = useState(null);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   
   const { toast } = useToast();
@@ -100,7 +101,7 @@ const Customers = () => {
   }, [needsFilialSelection]);
 
   // Handle filiale selection
-  const handleFilialeSelected = (filialeId) => {
+  const handleFilialeSelected = (filialeId: number) => {
     setSelectedFiliale(filialeId);
     setIsFilialSelectionOpen(false);
     
@@ -120,10 +121,10 @@ const Customers = () => {
   });
 
   // Make sure customers is always an array
-  const customers = Array.isArray(customersData) ? customersData : [];
+  const customers: Customer[] = Array.isArray(customersData) ? customersData : [];
 
   // Filter customers based on search and status
-  const filteredCustomers = customers.filter(customer => {
+  const filteredCustomers = customers.filter((customer: Customer) => {
     const matchesSearch = 
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (customer.primary_phones && customer.primary_phones.includes(searchQuery)) ||
@@ -131,15 +132,15 @@ const Customers = () => {
     
     const matchesStatus = 
       statusFilter === "all" || 
-      (customer.contract_statuses && customer.contract_statuses.split(',').some(status => status === statusFilter));
+      (customer.contract_statuses && customer.contract_statuses.split(',').some((status: string) => status === statusFilter));
     
     return matchesSearch && matchesStatus;
   });
 
-  const handleCustomerClick = (customer) => {
+  const handleCustomerClick = (customer: Customer) => {
     // Fetch full customer details
     customerService.getCustomerDetails(customer.id)
-      .then(data => {
+      .then((data: Customer) => {
         setSelectedCustomer(data);
         setIsDetailSheetOpen(true);
       })
@@ -152,7 +153,7 @@ const Customers = () => {
       });
   };
 
-  const handleCall = (customer, contactId = null) => {
+  const handleCall = (customer: Customer, contactId = null) => {
     toast({
       title: "Anruf wird gestartet",
       description: `Rufe ${customer.name} an...`
@@ -165,7 +166,7 @@ const Customers = () => {
     });
   };
 
-  const handleSchedule = (customer, contractId = null) => {
+  const handleSchedule = (customer: Customer, contractId = null) => {
     toast({
       title: "Termin planen",
       description: `Öffne Kalender für ${customer.name}...`
@@ -178,22 +179,24 @@ const Customers = () => {
     });
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setImportFile(file);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setImportFile(file || null);
     
     if (file) {
       // Parse Excel/CSV file for preview
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        
-        // Show first 5 rows as preview
-        setImportPreview(data.slice(0, 5));
+        if (evt.target?.result) {
+          const bstr = evt.target.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          
+          // Show first 5 rows as preview
+          setImportPreview(data.slice(0, 5));
+        }
       };
       reader.readAsBinaryString(file);
     }
@@ -384,13 +387,13 @@ const Customers = () => {
               </Select>
               
               {selectedFiliale && campaignList.length > 0 && (
-                <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                <Select value={selectedCampaign || ""} onValueChange={setSelectedCampaign}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Kampagne filtern" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>Alle Kampagnen</SelectItem>
-                    {campaignList.map(campaign => (
+                    <SelectItem value="">Alle Kampagnen</SelectItem>
+                    {campaignList.map((campaign: Campaign) => (
                       <SelectItem key={campaign.id} value={campaign.id.toString()}>
                         {campaign.name}
                       </SelectItem>
@@ -439,14 +442,14 @@ const Customers = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {phones.map((phone, index) => (
+                      {phones.map((phone: string, index: number) => (
                         <div key={index} className="flex items-center gap-2 mb-1">
                           <Badge variant="outline" className="font-mono">{phone}</Badge>
                         </div>
                       ))}
                     </TableCell>
                     <TableCell>
-                      {contractTypes.map((type, index) => (
+                      {contractTypes.map((type: string, index: number) => (
                         <div key={index} className="mb-1">
                           {type}
                           {contractExpiry[index] && (
@@ -461,7 +464,7 @@ const Customers = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {contractStatuses.map((status, index) => (
+                      {contractStatuses.map((status: string, index: number) => (
                         <Badge key={index} className={`mb-1 block w-fit ${getStatusBadge(status)}`}>
                           {status}
                         </Badge>
@@ -560,12 +563,12 @@ const Customers = () => {
               ) : (
                 <div className="pt-2">
                   <Label htmlFor="existingCampaign">Bestehende Kampagne auswählen</Label>
-                  <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                  <Select value={selectedCampaign || ""} onValueChange={setSelectedCampaign}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Wählen Sie eine Kampagne" />
                     </SelectTrigger>
                     <SelectContent>
-                      {campaignList.map(campaign => (
+                      {campaignList.map((campaign: Campaign) => (
                         <SelectItem key={campaign.id} value={campaign.id.toString()}>
                           {campaign.name}
                         </SelectItem>
@@ -576,7 +579,7 @@ const Customers = () => {
               )}
             </div>
             
-            {importPreview && (
+            {importPreview && importPreview.length > 0 && (
               <div className="space-y-2 pt-2">
                 <Label>Vorschau (Erste 5 Einträge)</Label>
                 <div className="border rounded-md overflow-hidden">
@@ -590,7 +593,7 @@ const Customers = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {importPreview.map((row, idx) => (
+                      {importPreview.map((row: any, idx: number) => (
                         <TableRow key={idx}>
                           <TableCell>{row.name}</TableCell>
                           <TableCell>{row.company}</TableCell>
@@ -697,7 +700,7 @@ const Customers = () => {
               <TabsContent value="contacts" className="mt-4">
                 <div className="space-y-4">
                   {selectedCustomer.contacts && selectedCustomer.contacts.length > 0 ? (
-                    selectedCustomer.contacts.map((contact) => (
+                    selectedCustomer.contacts.map((contact: any) => (
                       <div key={contact.id} className="border rounded-md p-3">
                         <div className="flex justify-between items-start mb-1">
                           <div>
@@ -736,7 +739,7 @@ const Customers = () => {
               <TabsContent value="calls" className="mt-4">
                 <div className="space-y-4">
                   {selectedCustomer.call_logs && selectedCustomer.call_logs.length > 0 ? (
-                    selectedCustomer.call_logs.map((call) => (
+                    selectedCustomer.call_logs.map((call: any) => (
                       <div key={call.id} className="border rounded-md p-3">
                         <div className="flex justify-between">
                           <div className="font-medium">
@@ -781,7 +784,7 @@ const Customers = () => {
                 
                 {selectedCustomer.contracts && selectedCustomer.contracts.length > 0 ? (
                   <div className="space-y-4">
-                    {selectedCustomer.contracts.map(contract => (
+                    {selectedCustomer.contracts.map((contract: any) => (
                       <div key={contract.id} className="border rounded-md p-4">
                         <div className="flex justify-between">
                           <div>
