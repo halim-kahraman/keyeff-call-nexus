@@ -100,19 +100,6 @@ const Customers = () => {
     }
   }, [needsFilialSelection]);
 
-  // Handle filiale selection
-  const handleFilialeSelected = (branchId: string) => {
-    setSelectedFiliale(branchId);
-    setIsFilialSelectionOpen(false);
-    
-    // TODO: Fetch campaigns for this filiale
-    // For now using mock data
-    setCampaignList([
-      { id: 1, name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
-      { id: 2, name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
-    ]);
-  };
-
   // Query for customers
   const { data: customersData, isLoading } = useQuery({
     queryKey: ['customers', selectedFiliale, selectedCampaign],
@@ -501,7 +488,7 @@ const Customers = () => {
           </Table>
         </CardContent>
       </Card>
-
+      
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
