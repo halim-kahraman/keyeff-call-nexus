@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -100,6 +101,19 @@ const Customers = () => {
     }
   }, [needsFilialSelection]);
 
+  // Handle filiale selection
+  const handleFilialeSelected = (branchId: string) => {
+    setSelectedFiliale(branchId);
+    setIsFilialSelectionOpen(false);
+    
+    // TODO: Fetch campaigns for this filiale
+    // For now using mock data
+    setCampaignList([
+      { id: 1, name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
+      { id: 2, name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
+    ]);
+  };
+
   // Query for customers
   const { data: customersData, isLoading } = useQuery({
     queryKey: ['customers', selectedFiliale, selectedCampaign],
@@ -126,7 +140,7 @@ const Customers = () => {
 
   const handleCustomerClick = (customer: Customer) => {
     // Fetch full customer details
-    customerService.getCustomerDetails(customer.id)
+    customerService.getCustomerDetails(customer.id.toString())
       .then((data: Customer) => {
         setSelectedCustomer(data);
         setIsDetailSheetOpen(true);
