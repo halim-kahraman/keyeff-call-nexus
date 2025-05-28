@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -12,27 +13,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Download, Send } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 import { exportToExcel, exportToPdf, sendDataByEmail } from "@/utils/exportUtils";
-
-// Mock data for logs
-const mockLogs = [
-  { id: 1, timestamp: "2023-05-21 10:30:45", user: { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" }, action: "login", details: "User logged in" },
-  { id: 2, timestamp: "2023-05-21 10:32:12", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "view_customer", details: "Viewed customer #12345" },
-  { id: 3, timestamp: "2023-05-21 10:45:30", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "call_log", details: "Logged call to customer #12345" },
-  { id: 4, timestamp: "2023-05-21 11:05:22", user: { id: 3, name: "Thomas Müller", email: "telefonist2@keyeff.de" }, action: "update_customer", details: "Updated customer #54321" },
-  { id: 5, timestamp: "2023-05-21 11:15:10", user: { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" }, action: "system_settings", details: "Updated system settings" },
-  { id: 6, timestamp: "2023-05-21 12:00:05", user: { id: 4, name: "Laura Weber", email: "filialleiter@keyeff.de" }, action: "export_report", details: "Exported monthly report" },
-  { id: 7, timestamp: "2023-05-21 12:35:30", user: { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" }, action: "logout", details: "User logged out" },
-];
-
-// Mock data for users
-const mockUsers = [
-  { id: 1, name: "Max Mustermann", email: "admin@keyeff.de" },
-  { id: 2, name: "Anna Schmidt", email: "telefonist1@keyeff.de" },
-  { id: 3, name: "Thomas Müller", email: "telefonist2@keyeff.de" },
-  { id: 4, name: "Laura Weber", email: "filialleiter@keyeff.de" },
-];
+import api from "@/services/api";
 
 const Logs = () => {
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -43,55 +25,43 @@ const Logs = () => {
   const [selectedAction, setSelectedAction] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Fetch logs
-  const { data: logs = mockLogs, isLoading } = useQuery({
-    queryKey: ['logs'],
-    queryFn: () => Promise.resolve(mockLogs),
+  // Fetch logs from API
+  const { data: logsResponse, isLoading } = useQuery({
+    queryKey: ['logs', selectedUser, selectedAction, dateRange, searchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedUser !== "all") params.append('user_id', selectedUser);
+      if (selectedAction !== "all") params.append('action', selectedAction);
+      if (dateRange.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
+      if (searchQuery) params.append('search', searchQuery);
+      
+      const response = await api.get(`/logs/list.php?${params.toString()}`);
+      return response.data;
+    },
   });
 
-  // Fetch users
-  const { data: users = mockUsers } = useQuery({
+  // Fetch users for filter
+  const { data: usersResponse } = useQuery({
     queryKey: ['users'],
-    queryFn: () => Promise.resolve(mockUsers),
+    queryFn: async () => {
+      const response = await api.get('/users/list.php');
+      return response.data;
+    },
   });
 
-  // Get unique action types
-  const actionTypes = [...new Set(logs.map(log => log.action))];
+  const logs = logsResponse?.data || [];
+  const users = usersResponse?.data || [];
 
-  // Filter logs based on selected filters
-  const filteredLogs = logs.filter(log => {
-    // Filter by user
-    if (selectedUser !== "all" && log.user.id.toString() !== selectedUser) {
-      return false;
-    }
-
-    // Filter by action
-    if (selectedAction !== "all" && log.action !== selectedAction) {
-      return false;
-    }
-
-    // Filter by date range
-    if (dateRange.from && new Date(log.timestamp) < dateRange.from) {
-      return false;
-    }
-    if (dateRange.to && new Date(log.timestamp) > dateRange.to) {
-      return false;
-    }
-
-    // Filter by search query
-    if (searchQuery && !log.details.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-
-    return true;
-  });
+  // Get unique action types from logs
+  const actionTypes = [...new Set(logs.map((log: any) => log.action))];
 
   // Export handlers
   const handleExportExcel = () => {
-    const exportData = filteredLogs.map(log => ({
+    const exportData = logs.map((log: any) => ({
       ID: log.id,
-      Zeitstempel: log.timestamp,
-      Benutzer: log.user.name,
+      Zeitstempel: log.created_at,
+      Benutzer: log.user_name || log.user_id,
       Aktion: getActionLabel(log.action),
       Details: log.details
     }));
@@ -99,10 +69,10 @@ const Logs = () => {
   };
 
   const handleExportPdf = () => {
-    const exportData = filteredLogs.map(log => ({
+    const exportData = logs.map((log: any) => ({
       ID: log.id,
-      Zeitstempel: log.timestamp,
-      Benutzer: log.user.name,
+      Zeitstempel: log.created_at,
+      Benutzer: log.user_name || log.user_id,
       Aktion: getActionLabel(log.action),
       Details: log.details
     }));
@@ -110,10 +80,10 @@ const Logs = () => {
   };
 
   const handleSendEmail = () => {
-    const exportData = filteredLogs.map(log => ({
+    const exportData = logs.map((log: any) => ({
       ID: log.id,
-      Zeitstempel: log.timestamp,
-      Benutzer: log.user.name,
+      Zeitstempel: log.created_at,
+      Benutzer: log.user_name || log.user_id,
       Aktion: getActionLabel(log.action),
       Details: log.details
     }));
@@ -160,7 +130,7 @@ const Logs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle Benutzer</SelectItem>
-                    {users.map(user => (
+                    {users.map((user: any) => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name}
                       </SelectItem>
@@ -178,7 +148,7 @@ const Logs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Alle Arten</SelectItem>
-                    {actionTypes.map(action => (
+                    {actionTypes.map((action: string) => (
                       <SelectItem key={action} value={action}>
                         {getActionLabel(action)}
                       </SelectItem>
@@ -273,16 +243,16 @@ const Logs = () => {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center">Lade Logs...</TableCell>
                     </TableRow>
-                  ) : filteredLogs.length === 0 ? (
+                  ) : logs.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center">Keine Logs gefunden</TableCell>
                     </TableRow>
                   ) : (
-                    filteredLogs.map(log => (
+                    logs.map((log: any) => (
                       <TableRow key={log.id}>
                         <TableCell>{log.id}</TableCell>
-                        <TableCell>{log.timestamp}</TableCell>
-                        <TableCell>{log.user.name}</TableCell>
+                        <TableCell>{log.created_at}</TableCell>
+                        <TableCell>{log.user_name || log.user_id}</TableCell>
                         <TableCell>{getActionLabel(log.action)}</TableCell>
                         <TableCell>{log.details}</TableCell>
                       </TableRow>

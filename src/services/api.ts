@@ -1,9 +1,8 @@
 
 import axios from 'axios';
 
-// API-Konfiguration je nach Umgebung
-const isDevelopment = import.meta.env.DEV;
-const API_BASE_URL = isDevelopment ? '/api' : '/keyeff_callpanel/backend/api';
+// API-Konfiguration für lokale Entwicklung
+const API_BASE_URL = '/backend/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -203,6 +202,14 @@ export const connectionService = {
   },
   getStatus: async (filialeId: string) => {
     const response = await api.get(`/connections/manage.php?filiale_id=${filialeId}`);
+    return response.data;
+  }
+};
+
+// Admin service for managing demo data
+export const adminService = {
+  resetData: async (operation: string) => {
+    const response = await api.post('/admin/reset.php', { operation });
     return response.data;
   }
 };

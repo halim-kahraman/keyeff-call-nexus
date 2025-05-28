@@ -7,8 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Trash2, RefreshCcw, AlertTriangle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { adminService } from "@/services/api";
 
 const AdminTools = () => {
   const { user } = useAuth();
@@ -45,19 +45,11 @@ const AdminTools = () => {
     setResult(null);
     
     try {
-      // In a real implementation, this would call a backend API endpoint
-      // For now, we'll simulate it with a timeout
-      const token = localStorage.getItem('token');
-      
-      // Hypothetical API call pattern - in a real app you'd create this API endpoint
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/reset.php`, 
-        { operation: deleteOperation },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await adminService.resetData(deleteOperation!);
       
       setResult({
-        success: true,
-        message: `Die ${deleteOperation === "all" ? "gesamten Testdaten" : 
+        success: response.success,
+        message: response.message || `Die ${deleteOperation === "all" ? "gesamten Testdaten" : 
                   deleteOperation === "customers" ? "Kundendaten" :
                   deleteOperation === "calls" ? "Anrufdaten" :
                   deleteOperation === "appointments" ? "Termindaten" : 
@@ -66,7 +58,7 @@ const AdminTools = () => {
       
       toast({
         title: "Operation erfolgreich",
-        description: `Die Daten wurden erfolgreich zurückgesetzt.`,
+        description: "Die Daten wurden erfolgreich zurückgesetzt.",
       });
     } catch (error) {
       console.error("Error deleting data:", error);
@@ -103,7 +95,7 @@ const AdminTools = () => {
             <CardHeader>
               <CardTitle>Testdaten löschen</CardTitle>
               <CardDescription>
-                Entfernen Sie Testdaten aus der Datenbank, wenn Sie das System in eine Produktionsumgebung überführen möchten.
+                Entfernen Sie Testdaten aus der Datenbank für die Produktionsumgebung.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -164,16 +156,16 @@ const AdminTools = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span>Testdaten:</span>
-                  <span className="font-medium">Vorhanden</span>
+                  <span>Verbindung:</span>
+                  <span className="font-medium text-green-600">Aktiv</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Letzte Datenbank-Optimierung:</span>
+                  <span>Letzte Optimierung:</span>
                   <span className="font-medium">Nie</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Datenbank-Größe:</span>
-                  <span className="font-medium">~2,4 MB</span>
+                  <span>Status:</span>
+                  <span className="font-medium text-green-600">Bereit</span>
                 </div>
               </div>
             </CardContent>
