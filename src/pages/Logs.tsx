@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -54,7 +53,13 @@ const Logs = () => {
   const users = usersResponse?.data || [];
 
   // Get unique action types from logs with proper typing
-  const actionTypes: string[] = [...new Set(logs.map((log: any) => log.action).filter((action: any): action is string => typeof action === 'string'))];
+  const actionTypes = Array.from(
+    new Set(
+      logs
+        .map((log: any) => log.action)
+        .filter((action: any): action is string => typeof action === 'string')
+    )
+  );
 
   // Export handlers
   const handleExportExcel = () => {
