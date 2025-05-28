@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 import { fileURLToPath, URL } from 'url';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }: { mode: string }) => ({
   base: mode === 'production' ? '/keyeff_callpanel/public/' : "/",
   server: {
     host: "::",
@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: 'http://localhost/keyeff_callpanel/backend',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
+        rewrite: (path: string) => path.replace(/^\/api/, '/api')
       }
     }
   },
@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => ({
           'ui': ['lucide-react', '@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
         },
       },
-      onwarn(warning, warn) {
+      onwarn(warning: any, warn: any) {
         if (warning.code === 'MISSING_EXPORT') return;
         warn(warning);
       }
