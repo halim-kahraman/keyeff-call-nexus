@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
@@ -17,12 +16,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if user is stored in localStorage
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+    
+    console.log('AuthProvider init - checking stored auth:', { 
+      hasUser: !!storedUser, 
+      hasToken: !!storedToken 
+    });
+    
+    if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log('AuthProvider - restoring user session:', parsedUser);
+        setUser(parsedUser);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     }
     setIsLoading(false);
@@ -83,7 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoading(true);
     try {
+      console.log('Verifying 2FA for user:', pendingUserId);
       const response = await authService.verify2FA(pendingUserId, code);
+      console.log('2FA verification response:', response);
       
       if (response.success) {
         // Ensure the user data has the correct UserRole type
@@ -92,11 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: response.data.user.role as UserRole
         };
         
+        console.log('2FA successful, setting user data:', userData);
+        
         // Store user data in state and local storage
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
+          console.log('Token stored successfully');
         }
         
         setNeedsVerification(false);
@@ -105,6 +119,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success("Anmeldung erfolgreich", {
           description: `Willkommen zurück, ${userData.name}!`
         });
+        
+        // Force a redirect to dashboard after successful login
+        console.log('Redirecting to dashboard after successful 2FA');
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('2FA error:', error);
@@ -185,6 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success("Abgemeldet", {
         description: "Sie wurden erfolgreich abgemeldet."
       });
+      
+      // Redirect to login after logout
+      window.location.href = '/login';
     }
   };
 

@@ -25,7 +25,11 @@ const Login = () => {
   const [resetLoading, setResetLoading] = useState(false);
 
   // Get the page user was trying to access before being redirected to login
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/dashboard";
+
+  useEffect(() => {
+    console.log('Login component - Auth state:', { isAuthenticated, needsVerification, from });
+  }, [isAuthenticated, needsVerification, from]);
 
   // Handle dialog open and close properly
   useEffect(() => {
@@ -103,8 +107,9 @@ const Login = () => {
     }
   };
 
-  // If user is authenticated, redirect to the page they tried to access
+  // If user is authenticated, redirect to the intended page
   if (isAuthenticated) {
+    console.log('User is authenticated, redirecting to:', from);
     return <Navigate to={from} replace />;
   }
 

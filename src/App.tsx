@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import RequireAuth from "@/context/RequireAuth";
 
 // Pages
+import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CallPanel from "./pages/CallPanel";
@@ -36,13 +37,16 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              {/* Landing/redirect page */}
+              <Route path="/" element={<Index />} />
+              
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Protected Routes */}
               <Route element={<RequireAuth>{() => <></>}</RequireAuth>}>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/call" element={<CallPanel />} />
                 <Route path="/call/:id" element={<CallPanel />} />
