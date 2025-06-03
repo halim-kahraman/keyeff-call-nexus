@@ -2,12 +2,18 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Handle Angular and React routing
+    # Handle Angular and React routing - improved for SPA
     RewriteBase /
-    RewriteRule ^index\.html$ - [L]
+    
+    # Don't rewrite files and directories
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.html [L]
+    
+    # Don't rewrite API calls
+    RewriteCond %{REQUEST_URI} !^/backend/
+    
+    # Rewrite everything else to index.html
+    RewriteRule ^(.*)$ /index.html [L,QSA]
 </IfModule>
 
 # Caching for static assets

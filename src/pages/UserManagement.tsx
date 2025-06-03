@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,53 +12,37 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, User, UserPlus, Edit, Trash2, UserCog } from "lucide-react";
-
-// Dummy data for demo
-const mockUsers = [
-  { id: 1, name: "Max Mustermann", email: "max@keyeff.de", role: "admin", filiale: "Zentrale", status: "active" },
-  { id: 2, name: "Maria Schmidt", email: "maria@keyeff.de", role: "telefonist", filiale: "Berlin", status: "active" },
-  { id: 3, name: "Peter Meyer", email: "peter@keyeff.de", role: "filialleiter", filiale: "München", status: "active" },
-  { id: 4, name: "Anna Weber", email: "anna@keyeff.de", role: "telefonist", filiale: "Hamburg", status: "inactive" },
-  { id: 5, name: "Thomas Klein", email: "thomas@keyeff.de", role: "telefonist", filiale: "Köln", status: "pending" }
-];
-
-// Dummy data for branches
-const mockFilialen = [
-  { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin" },
-  { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin" },
-  { id: "3", name: "München", address: "Münchner Str. 25, 80333 München" },
-  { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg" },
-  { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln" }
-];
+import { userService, filialeService } from "@/services/api";
 
 const UserManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<any>(null);
+  const queryClient = useQueryClient();
 
-  // Fetch users
-  const { data: users = mockUsers, isLoading } = useQuery({
+  // Fetch users from API
+  const { data: usersResponse, isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => Promise.resolve(mockUsers),
+    queryFn: userService.getUsers,
   });
+
+  const users = usersResponse?.data || [];
 
   // Fetch branches
-  const { data: filialenData } = useQuery({
+  const { data: filialen = [] } = useQuery({
     queryKey: ['filialen'],
-    queryFn: () => Promise.resolve(mockFilialen),
+    queryFn: async () => {
+      const response = await filialeService.getFilialen();
+      return response.data || [];
+    },
   });
-
-  // Ensure filialen is always an array, even if the API response structure changes
-  const filialen = Array.isArray(filialenData) ? filialenData : mockFilialen;
 
   // Add user mutation
   const { mutate: addUser } = useMutation({
-    mutationFn: (userData: any) => {
-      // In real app, call API to add user
-      return Promise.resolve({ ...userData, id: Date.now() });
-    },
+    mutationFn: userService.createUser,
     onSuccess: () => {
       setIsAddDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success("Benutzer erfolgreich erstellt");
     },
     onError: () => {
@@ -68,12 +52,10 @@ const UserManagement = () => {
 
   // Edit user mutation
   const { mutate: updateUser } = useMutation({
-    mutationFn: (userData: any) => {
-      // In real app, call API to update user
-      return Promise.resolve(userData);
-    },
+    mutationFn: ({ id, ...userData }: any) => userService.updateUser(id, userData),
     onSuccess: () => {
       setIsEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success("Benutzer erfolgreich aktualisiert");
     },
     onError: () => {
@@ -83,11 +65,9 @@ const UserManagement = () => {
 
   // Delete user mutation
   const { mutate: deleteUser } = useMutation({
-    mutationFn: (userId: number) => {
-      // In real app, call API to delete user
-      return Promise.resolve(userId);
-    },
+    mutationFn: userService.deleteUser,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success("Benutzer erfolgreich gelöscht");
     },
     onError: () => {
@@ -104,8 +84,7 @@ const UserManagement = () => {
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       role: formData.get('role') as string,
-      filiale: formData.get('filiale') as string,
-      status: 'pending'
+      filiale_id: formData.get('filiale') as string,
     };
     
     addUser(userData);
@@ -121,8 +100,7 @@ const UserManagement = () => {
       name: formData.get('name') as string,
       email: formData.get('email') as string,
       role: formData.get('role') as string,
-      filiale: formData.get('filiale') as string,
-      status: formData.get('status') as string
+      filiale_id: formData.get('filiale') as string,
     };
     
     updateUser(userData);
@@ -133,23 +111,24 @@ const UserManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (userId: number) => {
+  const handleDelete = (userId: string) => {
     if (window.confirm("Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?")) {
       deleteUser(userId);
     }
   };
   
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <span className="inline-flex items-center"><span className="status-indicator status-active"></span>Aktiv</span>;
-      case 'inactive':
-        return <span className="inline-flex items-center"><span className="status-indicator status-inactive"></span>Inaktiv</span>;
-      case 'pending':
-        return <span className="inline-flex items-center"><span className="status-indicator status-pending"></span>Ausstehend</span>;
-      default:
-        return status;
-    }
+    const statusClass = status === 'active' ? 'status-active' : 
+                       status === 'inactive' ? 'status-inactive' : 'status-pending';
+    const statusText = status === 'active' ? 'Aktiv' : 
+                      status === 'inactive' ? 'Inaktiv' : 'Ausstehend';
+    
+    return (
+      <span className="inline-flex items-center">
+        <span className={`status-indicator ${statusClass}`}></span>
+        {statusText}
+      </span>
+    );
   };
   
   const getRoleLabel = (role: string) => {
@@ -164,6 +143,57 @@ const UserManagement = () => {
         return role;
     }
   };
+
+  const filteredUsers = (role: string) => {
+    if (role === 'all') return users;
+    return users.filter((user: any) => user.role === role);
+  };
+
+  const renderUserTable = (userList: any[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>E-Mail</TableHead>
+          <TableHead>Rolle</TableHead>
+          <TableHead>Filiale</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Aktionen</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center">Lade Benutzer...</TableCell>
+          </TableRow>
+        ) : userList.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center">Keine Benutzer gefunden</TableCell>
+          </TableRow>
+        ) : (
+          userList.map((user: any) => (
+            <TableRow key={user.id}>
+              <TableCell className="font-medium">{user.name}</TableCell>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>{getRoleLabel(user.role)}</TableCell>
+              <TableCell>{user.filiale_name || user.filiale || '-'}</TableCell>
+              <TableCell>{getStatusBadge('active')}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} title="Bearbeiten">
+                    <Edit size={16} />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)} title="Löschen">
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <AppLayout title="Benutzerverwaltung" subtitle="Benutzerkonten verwalten und Berechtigungen zuweisen">
@@ -215,8 +245,8 @@ const UserManagement = () => {
                       <SelectValue placeholder="Filiale auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filialen.map(filiale => (
-                        <SelectItem key={filiale.id} value={filiale.name}>
+                      {filialen.map((filiale: any) => (
+                        <SelectItem key={filiale.id} value={filiale.id}>
                           {filiale.name}
                         </SelectItem>
                       ))}
@@ -244,45 +274,7 @@ const UserManagement = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="table-container">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Rolle</TableHead>
-                      <TableHead>Filiale</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aktionen</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center">Lade Benutzer...</TableCell>
-                      </TableRow>
-                    ) : (
-                      users.map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{getRoleLabel(user.role)}</TableCell>
-                          <TableCell>{user.filiale}</TableCell>
-                          <TableCell>{getStatusBadge(user.status)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} title="Bearbeiten">
-                                <Edit size={16} />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)} title="Löschen">
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                {renderUserTable(filteredUsers('all'))}
               </div>
             </CardContent>
           </Card>
@@ -292,37 +284,7 @@ const UserManagement = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="table-container">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Filiale</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aktionen</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.filter(user => user.role === 'admin').map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.filiale}</TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} title="Bearbeiten">
-                              <Edit size={16} />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)} title="Löschen">
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {renderUserTable(filteredUsers('admin'))}
               </div>
             </CardContent>
           </Card>
@@ -332,37 +294,7 @@ const UserManagement = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="table-container">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Filiale</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aktionen</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.filter(user => user.role === 'filialleiter').map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.filiale}</TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} title="Bearbeiten">
-                              <Edit size={16} />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)} title="Löschen">
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {renderUserTable(filteredUsers('filialleiter'))}
               </div>
             </CardContent>
           </Card>
@@ -372,37 +304,7 @@ const UserManagement = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="table-container">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Filiale</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aktionen</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.filter(user => user.role === 'telefonist').map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.filiale}</TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(user)} title="Bearbeiten">
-                              <Edit size={16} />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)} title="Löschen">
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {renderUserTable(filteredUsers('telefonist'))}
               </div>
             </CardContent>
           </Card>
@@ -457,29 +359,16 @@ const UserManagement = () => {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-filiale" className="text-right">Filiale</Label>
-                  <Select name="filiale" defaultValue={activeUser.filiale}>
+                  <Select name="filiale" defaultValue={activeUser.filiale_id}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Filiale auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filialen.map(filiale => (
-                        <SelectItem key={filiale.id} value={filiale.name}>
+                      {filialen.map((filiale: any) => (
+                        <SelectItem key={filiale.id} value={filiale.id}>
                           {filiale.name}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-status" className="text-right">Status</Label>
-                  <Select name="status" defaultValue={activeUser.status}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Status auswählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Aktiv</SelectItem>
-                      <SelectItem value="inactive">Inaktiv</SelectItem>
-                      <SelectItem value="pending">Ausstehend</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

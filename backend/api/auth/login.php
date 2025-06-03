@@ -1,6 +1,7 @@
 
 <?php
 require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../utils/mailer.php';
 
 use KeyEff\CallPanel\Models\User;
 use KeyEff\CallPanel\Models\Log;
@@ -43,6 +44,19 @@ $otp = $user->generateOTP();
 
 if (!$otp) {
     jsonResponse(false, 'Failed to generate OTP', null, 500);
+}
+
+// Send 2FA email using unified mailer
+try {
+    $emailSent = send2FAEmail($user->email, $user->name, $otp);
+    
+    if (!$emailSent) {
+        debugLog('Failed to send 2FA email', ['email' => $user->email]);
+        jsonResponse(false, 'Failed to send verification email', null, 500);
+    }
+} catch (Exception $e) {
+    debugLog('Exception sending 2FA email', ['error' => $e->getMessage()]);
+    jsonResponse(false, 'Failed to send verification email', null, 500);
 }
 
 // Log login attempt

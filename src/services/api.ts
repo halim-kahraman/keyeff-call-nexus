@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // API-Konfiguration für keyeff.local Setup
@@ -204,6 +205,42 @@ export const connectionService = {
   },
   getStatus: async (filialeId: string) => {
     const response = await api.get(`/connections/manage.php?filiale_id=${filialeId}`);
+    return response.data;
+  }
+};
+
+// User service - NEW
+export const userService = {
+  getUsers: async () => {
+    const response = await api.get('/users/list.php');
+    return response.data;
+  },
+  createUser: async (userData: any) => {
+    const response = await api.post('/users/create.php', userData);
+    return response.data;
+  },
+  updateUser: async (userId: string, userData: any) => {
+    const response = await api.put(`/users/update.php?id=${userId}`, userData);
+    return response.data;
+  },
+  deleteUser: async (userId: string) => {
+    const response = await api.delete(`/users/delete.php?id=${userId}`);
+    return response.data;
+  }
+};
+
+// Logs service - NEW
+export const logsService = {
+  getLogs: async (params?: any) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page);
+    if (params?.limit) searchParams.append('limit', params.limit);
+    if (params?.user_id) searchParams.append('user_id', params.user_id);
+    if (params?.action) searchParams.append('action', params.action);
+    if (params?.start_date) searchParams.append('start_date', params.start_date);
+    if (params?.end_date) searchParams.append('end_date', params.end_date);
+    
+    const response = await api.get(`/logs/list.php?${searchParams.toString()}`);
     return response.data;
   }
 };
