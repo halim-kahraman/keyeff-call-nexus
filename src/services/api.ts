@@ -130,8 +130,9 @@ export const campaignService = {
 
 // Settings service
 export const settingsService = {
-  getSettings: async (filialeId?: string | null) => {
+  getSettings: async (category: string, filialeId?: string | null) => {
     const params = new URLSearchParams();
+    params.append('category', category);
     if (filialeId) params.append('filiale_id', filialeId);
     
     const response = await api.get(`/settings/get.php?${params.toString()}`);
