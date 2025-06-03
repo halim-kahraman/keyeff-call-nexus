@@ -50,7 +50,7 @@ export default defineConfig(({ mode }: { mode: string }) => ({
     ]
   },
   build: {
-    outDir: 'dist',
+    outDir: 'webapp/public',
     assetsDir: 'assets',
     commonjsOptions: {
       include: [/node_modules/]

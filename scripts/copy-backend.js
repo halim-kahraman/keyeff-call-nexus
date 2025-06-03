@@ -20,29 +20,26 @@ const copyRecursive = (src, dest) => {
   });
 };
 
-console.log('Kopiere Backend-Dateien zur Produktionsstruktur...');
+console.log('Kopiere Backend-Dateien zur webapp-Struktur...');
 
-// Stelle sicher, dass das Zielverzeichnis existiert
-if (!existsSync('htdocs')) {
-  mkdirSync('htdocs', { recursive: true });
+// Stelle sicher, dass das webapp-Verzeichnis existiert
+if (!existsSync('webapp')) {
+  mkdirSync('webapp', { recursive: true });
 }
 
-if (!existsSync('htdocs/keyeff_callpanel')) {
-  mkdirSync('htdocs/keyeff_callpanel', { recursive: true });
-}
-
-// Kopiere Backend-Dateien direkt in keyeff_callpanel/backend
-copyRecursive('backend', 'htdocs/keyeff_callpanel/backend');
-console.log('Backend-Dateien erfolgreich nach htdocs/keyeff_callpanel/backend kopiert!');
+// Kopiere Backend-Dateien in webapp/backend
+copyRecursive('backend', 'webapp/backend');
+console.log('Backend-Dateien erfolgreich nach webapp/backend kopiert!');
 
 console.log('');
-console.log('Produktionsstruktur erstellt:');
-console.log('htdocs/keyeff_callpanel/');
+console.log('Webapp-Struktur erstellt:');
+console.log('webapp/');
 console.log('├── backend/ (PHP Backend)');
-console.log('└── public/  (Frontend Build Output - Document Root)');
+console.log('└── public/  (Frontend Build Output)');
 console.log('');
-console.log('Nächste Schritte für XAMPP:');
-console.log('1. Kopiere den gesamten htdocs/keyeff_callpanel Ordner in dein XAMPP htdocs Verzeichnis');
-console.log('2. Stelle sicher, dass PHP und MySQL in XAMPP aktiviert sind');
-console.log('3. Öffne http://localhost/keyeff_callpanel/public in deinem Browser');
-console.log('4. Konfiguriere die Datenbankverbindung in backend/config/database.php falls nötig');
+console.log('Deployment-Anweisungen:');
+console.log('1. Kopiere den gesamten webapp-Ordner auf deinen Server');
+console.log('2. Setze den Document Root auf webapp/public/');
+console.log('3. Stelle sicher, dass PHP und MySQL verfügbar sind');
+console.log('4. Konfiguriere die Datenbankverbindung in webapp/backend/config/database.php');
+console.log('5. Für lokale Tests: Kopiere webapp-Inhalt nach htdocs/keyeff/');
