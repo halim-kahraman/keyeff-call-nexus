@@ -1,281 +1,589 @@
 
-# KeyEff CallPanel - Server Installation Guide
+# KeyEff CallPanel - Production Server Installation Guide
 
-## Voraussetzungen
+## Overview
 
-### Server Requirements
-- PHP 8.0+ mit folgenden Extensions:
-  - mysqli
-  - json
-  - curl
-  - openssl
-- MySQL/MariaDB 8.0+
-- Apache/Nginx Webserver
-- SSL-Zertifikat (empfohlen)
+This guide covers the complete production deployment process using the new webapp structure created by `npm run build`.
 
-### VPN/SIP Requirements (optional)
-- OpenVPN Client
-- SIP Client Libraries
-- WebRTC Support
+## Server Requirements
 
-## Installation
+### Minimum Requirements
+- **Operating System**: Linux (Ubuntu 20.04+ recommended)
+- **Web Server**: Apache 2.4+ or Nginx 1.18+
+- **PHP**: 8.0+ with extensions:
+  - mysqli, json, curl, openssl, mbstring, zip
+- **Database**: MySQL 8.0+ or MariaDB 10.5+
+- **Memory**: 2GB RAM minimum, 4GB recommended
+- **Storage**: 10GB minimum, SSD recommended
+- **SSL**: Valid SSL certificate (Let's Encrypt recommended)
 
-### 1. Build erstellen
+### Optional Features
+- **VPN Support**: OpenVPN client for secure connections
+- **SIP Integration**: Asterisk or FreePBX compatibility
+- **Email**: SMTP server for notifications
+
+## Pre-Deployment Configuration
+
+### 1. Update Configuration Files
+
+**CRITICAL: Update these files BEFORE building for production:**
+
+#### Environment Configuration (.env)
+```env
+# Update with your production domain
+VITE_API_BASE_URL=https://your-domain.com/backend/api
+```
+
+#### Backend Configuration (backend/config/config.php)
+```php
+// Production URLs
+define('API_URL', 'https://your-domain.com/backend');
+define('APP_URL', 'https://your-domain.com');
+
+// CORS Origins for your domain
+function setCorsHeaders() {
+    $allowed_origins = [
+        'https://your-domain.com',
+        'https://www.your-domain.com'
+    ];
+    
+    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+        header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
+    } else {
+        header("Access-Control-Allow-Origin: https://your-domain.com");
+    }
+    
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+}
+
+// Security Configuration
+define('JWT_SECRET', 'your-unique-32-character-secret-key-here');
+define('DEBUG_MODE', false);  // IMPORTANT: Disable in production
+
+// Email Configuration (optional)
+define('MAIL_HOST', 'smtp.your-domain.com');
+define('MAIL_PORT', 587);
+define('MAIL_USERNAME', 'noreply@your-domain.com');
+define('MAIL_PASSWORD', 'your-email-password');
+define('MAIL_FROM', 'noreply@your-domain.com');
+```
+
+#### Database Configuration (backend/config/database.php)
+```php
+// Production database settings
+define('DB_SERVER', 'localhost');  // or your DB server IP
+define('DB_USERNAME', 'keyeff_prod_user');
+define('DB_PASSWORD', 'your-strong-production-password');
+define('DB_DATABASE', 'keyeff_production');
+```
+
+### 2. Build for Production
 ```bash
-# Entwicklungsumgebung
-npm install
+# Build with production configuration
 npm run build
 ```
 
-### 2. Server-Struktur anlegen
+This creates the deployment-ready `webapp/` structure:
 ```
-/var/www/keyeff/
-├── htdocs/
-│   ├── backend/ (NICHT öffentlich zugänglich)
-│   │   ├── api/
-│   │   ├── config/
-│   │   ├── models/
-│   │   └── sql/
-│   └── public/ (Document Root)
-│       ├── index.html
-│       ├── assets/
-│       └── api/ (Proxy zu backend)
+webapp/
+├── backend/              # Complete PHP backend
+│   ├── api/             # REST API endpoints
+│   ├── config/          # Configuration files
+│   ├── models/          # Database models
+│   ├── sql/             # Database schemas
+│   └── utils/           # Utility functions
+└── public/              # Frontend build (Document Root)
+    ├── index.html       # Main application
+    ├── assets/          # Compiled CSS/JS/images
+    └── .htaccess        # Apache rewrite rules
 ```
 
-### 3. Dateien übertragen
+## Server Installation
+
+### 1. Server Preparation
+
+#### Update System
 ```bash
-# Build-Dateien nach public/ kopieren
-cp -r htdocs/public/* /var/www/keyeff/htdocs/public/
-
-# Backend-Dateien nach backend/ kopieren
-cp -r htdocs/backend/* /var/www/keyeff/htdocs/backend/
+sudo apt update && sudo apt upgrade -y
 ```
 
-### 4. Apache Konfiguration
+#### Install Required Software
+```bash
+# Apache, PHP, MySQL
+sudo apt install apache2 php8.1 php8.1-mysql php8.1-curl php8.1-json php8.1-mbstring php8.1-zip mysql-server -y
+
+# Enable required Apache modules
+sudo a2enmod rewrite ssl headers
+sudo systemctl restart apache2
+```
+
+#### Secure MySQL Installation
+```bash
+sudo mysql_secure_installation
+```
+
+### 2. Database Setup
+
+#### Create Production Database
+```bash
+sudo mysql -u root -p
+
+CREATE DATABASE keyeff_production CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'keyeff_prod_user'@'localhost' IDENTIFIED BY 'your-strong-password-here';
+GRANT ALL PRIVILEGES ON keyeff_production.* TO 'keyeff_prod_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+#### Import Database Schema
+```bash
+# Upload and import your database schema
+mysql -u keyeff_prod_user -p keyeff_production < /path/to/webapp/backend/sql/database.sql
+
+# Import initial data (filialen, etc.)
+mysql -u keyeff_prod_user -p keyeff_production < /path/to/webapp/backend/sql/filialen.sql
+```
+
+### 3. File Deployment
+
+#### Upload webapp Folder
+```bash
+# Upload webapp folder to server
+# Recommended location: /var/www/your-domain.com/
+
+sudo mkdir -p /var/www/your-domain.com
+sudo chown -R $USER:www-data /var/www/your-domain.com
+
+# Upload webapp contents
+# Method 1: SCP
+scp -r webapp/* user@your-server:/var/www/your-domain.com/
+
+# Method 2: SFTP, FTP, or hosting panel file manager
+```
+
+#### Set Proper Permissions
+```bash
+# Set ownership
+sudo chown -R www-data:www-data /var/www/your-domain.com/
+
+# Set directory permissions
+sudo find /var/www/your-domain.com/ -type d -exec chmod 755 {} \;
+
+# Set file permissions
+sudo find /var/www/your-domain.com/ -type f -exec chmod 644 {} \;
+
+# Secure backend configuration
+sudo chmod 600 /var/www/your-domain.com/backend/config/database.php
+sudo chmod 750 /var/www/your-domain.com/backend/
+```
+
+### 4. Apache Virtual Host Configuration
+
+#### Create Virtual Host File
+```bash
+sudo nano /etc/apache2/sites-available/your-domain.com.conf
+```
+
+#### Virtual Host Configuration
 ```apache
+# HTTP Virtual Host (redirects to HTTPS)
 <VirtualHost *:80>
-    ServerName keyeff.example.com
-    DocumentRoot /var/www/keyeff/htdocs/public
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    DocumentRoot /var/www/your-domain.com/public
     
-    # Redirect HTTP to HTTPS
-    Redirect permanent / https://keyeff.example.com/
+    # Redirect all HTTP to HTTPS
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </VirtualHost>
 
+# HTTPS Virtual Host
 <VirtualHost *:443>
-    ServerName keyeff.example.com
-    DocumentRoot /var/www/keyeff/htdocs/public
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    DocumentRoot /var/www/your-domain.com/public
     
     # SSL Configuration
     SSLEngine on
-    SSLCertificateFile /path/to/certificate.crt
-    SSLCertificateKeyFile /path/to/private.key
+    SSLCertificateFile /etc/ssl/certs/your-domain.com.crt
+    SSLCertificateKeyFile /etc/ssl/private/your-domain.com.key
+    SSLCertificateChainFile /etc/ssl/certs/your-domain.com-chain.crt
     
     # Security Headers
     Header always set X-Content-Type-Options nosniff
     Header always set X-Frame-Options DENY
     Header always set X-XSS-Protection "1; mode=block"
-    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
     
-    # Backend API Proxy
-    ProxyPass /api/ http://localhost/backend/api/
-    ProxyPassReverse /api/ http://localhost/backend/api/
-    
-    # Deny access to backend directory
-    <Directory "/var/www/keyeff/htdocs/backend">
-        Require all denied
-    </Directory>
-    
-    # SPA Fallback
-    <Directory "/var/www/keyeff/htdocs/public">
-        Options -Indexes
+    # Document Root Configuration
+    <Directory "/var/www/your-domain.com/public">
+        Options -Indexes -FollowSymLinks
         AllowOverride All
         Require all granted
         
-        # React Router Support
-        RewriteEngine On
-        RewriteBase /
-        RewriteRule ^index\.html$ - [L]
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteCond %{REQUEST_FILENAME} !-d
-        RewriteRule . /index.html [L]
+        # Additional security
+        <Files "*.php">
+            Require all denied
+        </Files>
     </Directory>
+    
+    # Deny direct access to backend directory
+    <Directory "/var/www/your-domain.com/backend">
+        Require all denied
+    </Directory>
+    
+    # API Access Configuration
+    <Location "/backend/api">
+        # Allow API access from your domain only
+        SetEnvIf Origin "^https://your-domain\.com$" CORS_ALLOW_ORIGIN=$1
+        SetEnvIf Origin "^https://www\.your-domain\.com$" CORS_ALLOW_ORIGIN=$1
+        Header always set Access-Control-Allow-Origin %{CORS_ALLOW_ORIGIN}e env=CORS_ALLOW_ORIGIN
+        Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Header always set Access-Control-Allow-Credentials true
+    </Location>
+    
+    # Logging
+    ErrorLog ${APACHE_LOG_DIR}/your-domain.com_error.log
+    CustomLog ${APACHE_LOG_DIR}/your-domain.com_access.log combined
 </VirtualHost>
 ```
 
-### 5. .htaccess Dateien
-
-#### public/.htaccess
-```apache
-RewriteEngine On
-RewriteBase /
-
-# Handle Angular and React Router
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
-
-# Security Headers
-Header always set X-Content-Type-Options nosniff
-Header always set X-Frame-Options DENY
-Header always set X-XSS-Protection "1; mode=block"
-
-# Compression
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE text/html
-</IfModule>
-```
-
-#### backend/.htaccess
-```apache
-# Deny all access to backend directory
-<RequireAll>
-    Require all denied
-</RequireAll>
-```
-
-### 6. Datenbank Setup
+#### Enable Site and SSL
 ```bash
-# 1. Datenbank erstellen
-mysql -u root -p
-CREATE DATABASE keyeff_callpanel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'keyeff_user'@'localhost' IDENTIFIED BY 'secure_password';
-GRANT ALL PRIVILEGES ON keyeff_callpanel.* TO 'keyeff_user'@'localhost';
-FLUSH PRIVILEGES;
+# Enable the site
+sudo a2ensite your-domain.com.conf
 
-# 2. Schema importieren
-mysql -u keyeff_user -p keyeff_callpanel < backend/sql/database.sql
+# Disable default site
+sudo a2dissite 000-default.conf
 
-# 3. Migration ausführen
-mysql -u keyeff_user -p keyeff_callpanel < backend/sql/migration_001_templates_and_sessions.sql
+# Test configuration
+sudo apache2ctl configtest
+
+# Restart Apache
+sudo systemctl restart apache2
 ```
 
-### 7. Konfiguration anpassen
+### 5. SSL Certificate Setup
 
-#### backend/config/database.php
-```php
-<?php
-define('DB_SERVER', 'localhost');
-define('DB_USERNAME', 'keyeff_user');
-define('DB_PASSWORD', 'secure_password');
-define('DB_DATABASE', 'keyeff_callpanel');
-
-function getDBConnection() {
-    try {
-        $pdo = new PDO(
-            "mysql:host=" . DB_SERVER . ";dbname=" . DB_DATABASE . ";charset=utf8mb4",
-            DB_USERNAME,
-            DB_PASSWORD,
-            [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]
-        );
-        return $pdo;
-    } catch(PDOException $e) {
-        die("Connection failed: " . $e->getMessage());
-    }
-}
-?>
-```
-
-### 8. Verbindungskonfiguration (Optional)
+#### Using Let's Encrypt (Recommended)
 ```bash
-# Kopiere Template und passe an
-cp config-templates/connection-config.example.php backend/config/connection-config.php
+# Install Certbot
+sudo apt install certbot python3-certbot-apache -y
+
+# Obtain SSL certificate
+sudo certbot --apache -d your-domain.com -d www.your-domain.com
+
+# Test auto-renewal
+sudo certbot renew --dry-run
 ```
 
-### 9. Berechtigungen setzen
+#### Manual SSL Certificate
+If using a purchased SSL certificate:
 ```bash
-# Webserver User (meist www-data)
-chown -R www-data:www-data /var/www/keyeff/
-chmod -R 755 /var/www/keyeff/htdocs/public/
-chmod -R 750 /var/www/keyeff/htdocs/backend/
-chmod 600 /var/www/keyeff/htdocs/backend/config/database.php
+# Copy certificate files
+sudo cp your-domain.com.crt /etc/ssl/certs/
+sudo cp your-domain.com.key /etc/ssl/private/
+sudo cp your-domain.com-chain.crt /etc/ssl/certs/
+
+# Set permissions
+sudo chmod 644 /etc/ssl/certs/your-domain.com.crt
+sudo chmod 600 /etc/ssl/private/your-domain.com.key
+sudo chmod 644 /etc/ssl/certs/your-domain.com-chain.crt
 ```
 
-### 10. Systemd Service für VPN (Optional)
+### 6. PHP Configuration
+
+#### Optimize PHP Settings
+```bash
+sudo nano /etc/php/8.1/apache2/php.ini
+```
+
 ```ini
-# /etc/systemd/system/keyeff-vpn.service
-[Unit]
-Description=KeyEff VPN Connection
-After=network.target
+# Security Settings
+expose_php = Off
+display_errors = Off
+log_errors = On
+error_log = /var/log/php/error.log
 
-[Service]
-Type=simple
-User=www-data
-ExecStart=/usr/sbin/openvpn --config /var/www/keyeff/config/client.ovpn
-Restart=always
-RestartSec=5
+# Performance Settings
+memory_limit = 256M
+max_execution_time = 300
+max_input_time = 300
+post_max_size = 50M
+upload_max_filesize = 50M
 
-[Install]
-WantedBy=multi-user.target
+# Session Security
+session.cookie_secure = On
+session.cookie_httponly = On
+session.cookie_samesite = Strict
+session.use_strict_mode = On
+
+# File Upload Security
+file_uploads = On
+allow_url_fopen = Off
+allow_url_include = Off
 ```
 
-## Wartung
-
-### Logs überwachen
+#### Create PHP Error Log Directory
 ```bash
-# Apache Logs
-tail -f /var/log/apache2/error.log
-tail -f /var/log/apache2/access.log
-
-# PHP Logs
-tail -f /var/log/php8.1-fpm.log
+sudo mkdir -p /var/log/php
+sudo chown www-data:www-data /var/log/php
+sudo chmod 755 /var/log/php
 ```
 
-### Backup
+#### Restart Services
 ```bash
-# Datenbank Backup
-mysqldump -u keyeff_user -p keyeff_callpanel > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Dateien Backup
-tar -czf keyeff_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/www/keyeff/
+sudo systemctl restart apache2
+sudo systemctl restart mysql
 ```
 
-### Updates
+## Security Hardening
+
+### 1. Firewall Configuration
 ```bash
-# 1. Backup erstellen
-# 2. Neue Build-Dateien übertragen
-# 3. Datenbank-Migrationen ausführen
-# 4. Cache leeren (falls vorhanden)
+# Install and configure UFW
+sudo ufw enable
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow necessary ports
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+
+# Check status
+sudo ufw status
+```
+
+### 2. Fail2Ban Installation
+```bash
+# Install Fail2Ban
+sudo apt install fail2ban -y
+
+# Configure for Apache
+sudo nano /etc/fail2ban/jail.local
+```
+
+```ini
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[apache-auth]
+enabled = true
+
+[apache-badbots]
+enabled = true
+
+[apache-noscript]
+enabled = true
+
+[apache-overflows]
+enabled = true
+
+[ssh]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+```
+
+```bash
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+### 3. Additional Security Measures
+
+#### Disable Unnecessary Services
+```bash
+# Check running services
+sudo systemctl list-unit-files --state=enabled
+
+# Disable unnecessary services (example)
+sudo systemctl disable bluetooth
+sudo systemctl disable cups
+```
+
+#### Regular Updates
+```bash
+# Create update script
+sudo nano /usr/local/bin/security-updates.sh
+```
+
+```bash
+#!/bin/bash
+apt update
+apt upgrade -y
+apt autoremove -y
+apt autoclean
+```
+
+```bash
+sudo chmod +x /usr/local/bin/security-updates.sh
+
+# Add to crontab for weekly updates
+sudo crontab -e
+# Add line: 0 2 * * 0 /usr/local/bin/security-updates.sh
+```
+
+## Monitoring and Maintenance
+
+### 1. Log Monitoring
+```bash
+# Apache logs
+sudo tail -f /var/log/apache2/your-domain.com_error.log
+sudo tail -f /var/log/apache2/your-domain.com_access.log
+
+# PHP logs
+sudo tail -f /var/log/php/error.log
+
+# MySQL logs
+sudo tail -f /var/log/mysql/error.log
+```
+
+### 2. Performance Monitoring
+```bash
+# Install monitoring tools
+sudo apt install htop iotop nethogs -y
+
+# Check system resources
+htop
+df -h
+free -h
+```
+
+### 3. Backup Strategy
+
+#### Database Backup Script
+```bash
+sudo nano /usr/local/bin/backup-database.sh
+```
+
+```bash
+#!/bin/bash
+BACKUP_DIR="/var/backups/keyeff"
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_NAME="keyeff_production"
+DB_USER="keyeff_prod_user"
+DB_PASS="your-password"
+
+mkdir -p $BACKUP_DIR
+
+# Database backup
+mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/db_backup_$DATE.sql
+
+# File backup
+tar -czf $BACKUP_DIR/files_backup_$DATE.tar.gz /var/www/your-domain.com/
+
+# Keep only last 7 days
+find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+```
+
+```bash
+sudo chmod +x /usr/local/bin/backup-database.sh
+
+# Add to crontab for daily backups
+sudo crontab -e
+# Add line: 0 3 * * * /usr/local/bin/backup-database.sh
+```
+
+## Testing and Verification
+
+### 1. Functionality Tests
+```bash
+# Test website accessibility
+curl -I https://your-domain.com
+
+# Test API endpoints
+curl -X GET https://your-domain.com/backend/api/auth/login.php
+
+# Test SSL configuration
+openssl s_client -connect your-domain.com:443 -servername your-domain.com
+```
+
+### 2. Security Tests
+```bash
+# SSL test
+curl -I https://your-domain.com | grep -i "strict-transport-security"
+
+# Headers test
+curl -I https://your-domain.com | grep -i "x-frame-options"
+```
+
+### 3. Performance Tests
+```bash
+# Load testing (install apache2-utils first)
+sudo apt install apache2-utils -y
+ab -n 100 -c 10 https://your-domain.com/
 ```
 
 ## Troubleshooting
 
-### Häufige Probleme
-1. **API 500 Fehler**: Database-Verbindung prüfen
-2. **CORS Fehler**: Header Konfiguration prüfen
-3. **Routing Fehler**: .htaccess Regeln prüfen
-4. **VPN Probleme**: Zertifikate und Konfiguration prüfen
+### Common Issues and Solutions
 
-### Debug-Modus aktivieren
-```php
-// In backend/config/config.php
-define('DEBUG_MODE', true);
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-```
+#### 1. Website Not Loading
+- Check Apache status: `sudo systemctl status apache2`
+- Check DNS configuration
+- Verify Document Root path
+- Check file permissions
 
-## Sicherheit
+#### 2. API Connection Errors
+- Verify CORS configuration in `config.php`
+- Check API endpoint URLs
+- Review Apache error logs
+- Test database connection
 
-### Empfohlene Maßnahmen
-- Regelmäßige Updates
-- Starke Passwörter
-- Firewall Konfiguration
-- SSL/TLS Verschlüsselung
-- Backup-Strategie
-- Log-Monitoring
-- Intrusion Detection
+#### 3. SSL Certificate Issues
+- Verify certificate installation
+- Check certificate expiry: `openssl x509 -in /etc/ssl/certs/your-domain.com.crt -text -noout`
+- Test SSL configuration: `sudo apache2ctl configtest`
 
-### Firewall Regeln
-```bash
-# Nur HTTPS und SSH erlauben
-ufw allow 22/tcp
-ufw allow 443/tcp
-ufw deny 80/tcp
-ufw enable
-```
+#### 4. Database Connection Errors
+- Verify database credentials
+- Check MySQL service: `sudo systemctl status mysql`
+- Test connection: `mysql -u keyeff_prod_user -p keyeff_production`
+
+## Post-Deployment Checklist
+
+- [ ] Website loads correctly at https://your-domain.com
+- [ ] SSL certificate is valid and working
+- [ ] All API endpoints respond correctly
+- [ ] Login system works with 2FA
+- [ ] Database connections are stable
+- [ ] Security headers are properly set
+- [ ] Firewall is configured and active
+- [ ] Backups are scheduled and working
+- [ ] Monitoring is in place
+- [ ] Error logs are being generated
+- [ ] Performance is acceptable
+- [ ] All configuration files are secured
+
+## Maintenance Schedule
+
+### Daily
+- Monitor error logs
+- Check system resources
+- Verify backup completion
+
+### Weekly
+- Review access logs
+- Update system packages
+- Check SSL certificate status
+
+### Monthly
+- Review security logs
+- Test backup restoration
+- Performance optimization
+- Security audit
+
+This installation guide ensures a secure, performant, and maintainable production deployment of the KeyEff Call Panel.

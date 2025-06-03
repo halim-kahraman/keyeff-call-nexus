@@ -1,269 +1,478 @@
 
-# KeyEff Call Panel Installation Guide
+# KeyEff Call Panel - Complete Installation Guide
 
-Diese Anleitung hilft Ihnen dabei, die KeyEff Call Panel Plattform lokal zu installieren, zu konfigurieren und zu testen. Nach Abschluss können Sie die Anwendung auch in eine Produktionsumgebung überführen.
+This comprehensive guide covers local development setup, testing, and production deployment of the KeyEff Call Panel platform.
 
-## Inhaltsverzeichnis
+## Table of Contents
 
-1. [Voraussetzungen](#voraussetzungen)
-2. [Repository klonen](#repository-klonen)
-3. [Frontend einrichten](#frontend-einrichten)
-4. [Backend einrichten](#backend-einrichten)
-5. [Datenbank einrichten](#datenbank-einrichten)
-6. [Anwendung starten](#anwendung-starten)
-7. [Entwicklung und Tests](#entwicklung-und-tests)
-8. [Build für Produktion](#build-für-produktion)
-9. [Deployment auf lokalem Server](#deployment-auf-lokalem-server)
-10. [Fehlerbehebung](#fehlerbehebung)
+1. [Prerequisites](#prerequisites)
+2. [Local Development Setup](#local-development-setup)
+3. [Database Configuration](#database-configuration)
+4. [Development Testing](#development-testing)
+5. [Production Build Process](#production-build-process)
+6. [Production Deployment](#production-deployment)
+7. [URL Configuration for Production](#url-configuration-for-production)
+8. [Server Configuration](#server-configuration)
+9. [Security Setup](#security-setup)
+10. [Troubleshooting](#troubleshooting)
 
-## Voraussetzungen
+## Prerequisites
 
-Stellen Sie sicher, dass folgende Software installiert ist:
-
-- [Node.js](https://nodejs.org/) (Version 16.x oder höher)
-- [PHP](https://www.php.net/) (Version 8.0 oder höher)
-- [MySQL](https://www.mysql.com/) oder [MariaDB](https://mariadb.org/) (Version 10.x oder höher)
+### Development Environment
+- [Node.js](https://nodejs.org/) (Version 18.x or higher)
+- [PHP](https://www.php.net/) (Version 8.0 or higher) with extensions:
+  - mysqli, json, curl, openssl
+- [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) (Version 8.0+)
 - [Git](https://git-scm.com/)
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [XAMPP](https://www.apachefriends.org/) oder [WAMP](https://www.wampserver.com/) (für lokalen PHP-Server)
+- Local web server ([XAMPP](https://www.apachefriends.org/) or [WAMP](https://www.wampserver.com/))
 
-## Repository klonen
+### Production Environment
+- Web server (Apache/Nginx) with PHP 8.0+
+- MySQL/MariaDB database server
+- SSL certificate (required for production)
+- Domain name and DNS configuration
 
-1. Öffnen Sie Ihre Kommandozeile/Terminal
-2. Navigieren Sie zum gewünschten Installationsordner
-3. Führen Sie den Befehl aus:
+## Local Development Setup
 
+### 1. Clone Repository
 ```bash
-git clone https://github.com/ihr-repo/keyeff-call-panel.git
+git clone https://github.com/your-repo/keyeff-call-panel.git
 cd keyeff-call-panel
 ```
 
-## Frontend einrichten
-
-1. Öffnen Sie das Projekt in Visual Studio Code:
-
-```bash
-code .
-```
-
-2. Installieren Sie die Frontend-Abhängigkeiten:
-
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-3. Erstellen Sie eine `.env` Datei im Hauptverzeichnis des Projekts mit folgenden Inhalten:
-
+### 3. Configure Environment
+Create `.env` file in project root:
 ```env
-VITE_API_URL=http://localhost:8080
+VITE_API_BASE_URL=http://keyeff.local/backend/api
 ```
 
-## Backend einrichten
+### 4. Setup Local Web Server
 
-1. Navigieren Sie zum `backend`-Ordner im Projekt:
+**For XAMPP:**
+1. Copy `backend/` folder to `C:/xampp/htdocs/keyeff.local/backend/`
+2. Add to `C:/Windows/System32/drivers/etc/hosts`:
+   ```
+   127.0.0.1 keyeff.local
+   ```
+3. Configure Apache virtual host in `httpd-vhosts.conf`:
+   ```apache
+   <VirtualHost *:80>
+       ServerName keyeff.local
+       DocumentRoot "C:/xampp/htdocs/keyeff.local"
+       <Directory "C:/xampp/htdocs/keyeff.local">
+           AllowOverride All
+           Require all granted
+       </Directory>
+   </VirtualHost>
+   ```
 
+## Database Configuration
+
+### 1. Create Database
+```sql
+CREATE DATABASE keyeff_callpanel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'keyeff_user'@'localhost' IDENTIFIED BY 'secure_password_here';
+GRANT ALL PRIVILEGES ON keyeff_callpanel.* TO 'keyeff_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 2. Import Schema
 ```bash
-cd backend
+# Import main database structure
+mysql -u keyeff_user -p keyeff_callpanel < backend/sql/database.sql
+
+# Import sample data (optional for development)
+mysql -u keyeff_user -p keyeff_callpanel < backend/sql/filialen.sql
 ```
 
-2. Erstellen Sie eine Kopie der Konfigurationsvorlage:
-
-```bash
-cp config/config.sample.php config/config.php
-```
-
-3. Bearbeiten Sie `config/config.php` und aktualisieren Sie die Datenbank-Einstellungen:
-
+### 3. Configure Database Connection
+Edit `backend/config/database.php`:
 ```php
-// Datenbank-Konfiguration
 define('DB_SERVER', 'localhost');
-define('DB_USERNAME', 'ihr_username');
-define('DB_PASSWORD', 'ihr_passwort');
+define('DB_USERNAME', 'keyeff_user');
+define('DB_PASSWORD', 'secure_password_here');
 define('DB_DATABASE', 'keyeff_callpanel');
-
-// JWT Secret für Authentifizierung
-define('JWT_SECRET', 'ein_sicherer_zufaelliger_string');
-define('JWT_EXPIRE', 86400); // 24 Stunden in Sekunden
 ```
 
-4. Platzieren Sie den gesamten `backend`-Ordner in Ihrem lokalen Webserver-Verzeichnis:
-   - Bei XAMPP: `C:/xampp/htdocs/keyeff-backend`
-   - Bei WAMP: `C:/wamp/www/keyeff-backend`
+## Development Testing
 
-5. Konfigurieren Sie den Webserver, um CORS-Anfragen von Ihrem Frontend zu erlauben, indem Sie die `.htaccess` Datei anpassen oder eine erstellen, falls noch nicht vorhanden:
-
-```apache
-Header set Access-Control-Allow-Origin "*"
-Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header set Access-Control-Allow-Headers "Content-Type, Authorization"
-```
-
-## Datenbank einrichten
-
-1. Erstellen Sie eine neue MySQL-Datenbank:
-   
-   - Öffnen Sie phpMyAdmin (http://localhost/phpmyadmin)
-   - Erstellen Sie eine neue Datenbank namens `keyeff_callpanel`
-   - Wählen Sie die Datenbank aus
-
-2. Importieren Sie das Datenbankschema:
-   
-   - Gehen Sie zum Tab "Import"
-   - Wählen Sie die Datei `backend/sql/database.sql` aus
-   - Klicken Sie auf "Ausführen"
-
-3. Importieren Sie die Filialen-Daten:
-   
-   - Gehen Sie erneut zum Tab "Import"
-   - Wählen Sie die Datei `backend/sql/filialen.sql` aus
-   - Klicken Sie auf "Ausführen"
-
-4. Überprüfen Sie, ob die Tabellen korrekt erstellt wurden.
-
-## Anwendung starten
-
-### Frontend starten (Entwicklungsmodus)
-
-1. Navigieren Sie zum Hauptverzeichnis des Projekts
-2. Führen Sie den Befehl aus:
-
+### 1. Start Development Server
 ```bash
 npm run dev
 ```
+Application available at: `http://localhost:5173`
 
-3. Die Anwendung wird unter `http://localhost:5173` verfügbar sein
+### 2. Test API Connection
+Visit: `http://keyeff.local/backend/api/auth/login.php`
+Should return JSON response indicating method not allowed (normal for GET request).
 
-### Backend prüfen
-
-1. Öffnen Sie einen Browser und rufen Sie `http://localhost:8080/keyeff-backend/api/auth/verify.php` auf
-2. Sie sollten eine JSON-Antwort sehen, die anzeigt, dass der Server läuft
-
-## Entwicklung und Tests
-
-### Login-Daten für Tests
-
-Verwenden Sie die folgenden Anmeldeinformationen für Tests:
-
+### 3. Test Login
+Use development credentials:
 - **Admin**: admin@keyeff.de / password
-- **Telefonist**: telefonist@keyeff.de / password  
+- **Telefonist**: telefonist@keyeff.de / password
 - **Filialleiter**: filialleiter@keyeff.de / password
 
-### Änderungen am Frontend
+## Production Build Process
 
-Nachdem Sie Änderungen am Frontend-Code vorgenommen haben, werden diese automatisch durch den Vite Development Server aktualisiert.
+### 1. Update Configuration for Production
 
-### Änderungen am Backend
+**Important: Update these files BEFORE building for production:**
 
-Bei Änderungen an PHP-Dateien müssen Sie lediglich die Seite im Browser aktualisieren, um die Änderungen zu sehen.
+#### Update .env
+```env
+VITE_API_BASE_URL=https://your-domain.com/backend/api
+```
 
-### Änderungen an der Datenbank
+#### Update backend/config/config.php
+```php
+// Change these URLs to your production domain
+define('API_URL', 'https://your-domain.com/backend');
+define('APP_URL', 'https://your-domain.com');
 
-Wenn Sie Änderungen am Datenbankschema vornehmen:
+// Update CORS origins
+function setCorsHeaders() {
+    $allowed_origins = [
+        'https://your-domain.com',
+        'https://www.your-domain.com'  // Add www if used
+    ];
+    // ... rest of function
+}
 
-1. Aktualisieren Sie die Datei `backend/sql/database.sql`
-2. Führen Sie die entsprechenden SQL-Befehle manuell über phpMyAdmin aus
+// IMPORTANT: Change JWT secret for security
+define('JWT_SECRET', 'your-unique-secure-secret-key-here');
 
-## Build für Produktion
+// Disable debug mode in production
+define('DEBUG_MODE', false);
+```
 
-### Frontend build erstellen
+#### Update backend/config/database.php for Production
+```php
+define('DB_SERVER', 'your-production-db-host');
+define('DB_USERNAME', 'your-production-db-user');
+define('DB_PASSWORD', 'your-production-db-password');
+define('DB_DATABASE', 'your-production-db-name');
+```
 
-1. Navigieren Sie zum Hauptverzeichnis des Projekts
-2. Führen Sie den Befehl aus:
-
+### 2. Build for Production
 ```bash
 npm run build
 ```
 
-3. Die optimierten Dateien werden im `dist`-Verzeichnis erstellt
-
-## Deployment auf lokalem Server
-
-Um die Anwendung als Produktionsversion auf dem lokalen Server zu deployen und CORS-Probleme zu vermeiden:
-
-1. Erstellen Sie einen Build wie oben beschrieben
-2. Kopieren Sie den Inhalt des `dist`-Ordners in einen neuen Ordner im Webserver-Verzeichnis:
-   - Bei XAMPP: `C:/xampp/htdocs/keyeff`
-   - Bei WAMP: `C:/wamp/www/keyeff`
-
-3. Kopieren Sie den `backend`-Ordner in denselben Ordner:
-   - Bei XAMPP: `C:/xampp/htdocs/keyeff/backend`
-   - Bei WAMP: `C:/wamp/www/keyeff/backend`
-
-4. Erstellen Sie eine `.htaccess` Datei im Hauptverzeichnis (`keyeff`) mit folgendem Inhalt:
-
-```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /keyeff/
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /keyeff/index.html [L]
-</IfModule>
+This creates the `webapp/` folder with:
+```
+webapp/
+├── backend/     # Complete PHP backend
+└── public/      # Frontend build (Document Root)
 ```
 
-5. Aktualisieren Sie die `.env` Datei im Hauptverzeichnis Ihres Projekts bevor Sie den Build erstellen:
+## Production Deployment
 
+### 1. Server Setup
+
+**Upload Files:**
+- Upload entire `webapp/` folder to your server
+- Common location: `/var/www/html/webapp/` or `/public_html/webapp/`
+
+**Set Document Root:**
+- Point your domain's Document Root to `webapp/public/`
+- NOT to `webapp/` - the public folder must be the web root!
+
+### 2. Database Setup on Production Server
+
+```bash
+# Create production database
+mysql -u root -p
+CREATE DATABASE your_production_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'prod_user'@'localhost' IDENTIFIED BY 'strong_password';
+GRANT ALL PRIVILEGES ON your_production_db.* TO 'prod_user'@'localhost';
+
+# Import schema
+mysql -u prod_user -p your_production_db < webapp/backend/sql/database.sql
+```
+
+### 3. File Permissions
+```bash
+# Set proper permissions
+chown -R www-data:www-data /var/www/html/webapp/
+chmod -R 755 /var/www/html/webapp/public/
+chmod -R 750 /var/www/html/webapp/backend/
+chmod 600 /var/www/html/webapp/backend/config/database.php
+```
+
+## URL Configuration for Production
+
+### Critical URLs to Update
+
+When moving from development to production (your-domain.com), update these locations:
+
+#### 1. Frontend Configuration (.env)
 ```env
-VITE_API_URL=/keyeff
+# BEFORE BUILD - Update this first!
+VITE_API_BASE_URL=https://your-domain.com/backend/api
 ```
 
-6. Erstellen Sie den Build erneut und kopieren Sie ihn wie in den Schritten 1-2 beschrieben.
+#### 2. Backend Configuration (backend/config/config.php)
+```php
+// API and App URLs
+define('API_URL', 'https://your-domain.com/backend');
+define('APP_URL', 'https://your-domain.com');
 
-7. Die Anwendung ist nun unter `http://localhost/keyeff` verfügbar und die API unter `http://localhost/keyeff/backend/api`.
-
-## Dummy-Daten löschen (für Produktionsumgebung)
-
-Sobald die Entwicklungs- und Testphase abgeschlossen ist, können Sie alle Dummy-Daten aus der Datenbank entfernen, bevor Sie in die Produktion wechseln:
-
-1. Verwenden Sie das neu erstellte Admin-Tool zum Löschen von Dummy-Daten (zugänglich nur für Admin-Benutzer)
-2. Oder führen Sie die folgenden SQL-Befehle aus:
-
-```sql
--- Dummy-Kunden löschen
-DELETE FROM customers WHERE import_source = 'manual' AND id > 3;
-
--- Dummy-Anrufe löschen
-TRUNCATE TABLE call_logs;
-
--- Dummy-Termine löschen
-TRUNCATE TABLE appointments;
-
--- Dummy-Kampagnen löschen
-TRUNCATE TABLE campaigns;
-TRUNCATE TABLE campaign_customers;
-
--- Reset der Auto-Increment-Werte
-ALTER TABLE call_logs AUTO_INCREMENT = 1;
-ALTER TABLE appointments AUTO_INCREMENT = 1;
-ALTER TABLE campaigns AUTO_INCREMENT = 1;
+// CORS Origins
+$allowed_origins = [
+    'https://your-domain.com',
+    'https://www.your-domain.com'  // if using www subdomain
+];
 ```
 
-## Fehlerbehebung
+#### 3. Database Configuration (backend/config/database.php)
+```php
+define('DB_SERVER', 'your-production-server');     // Often 'localhost' or IP
+define('DB_USERNAME', 'your-production-username');
+define('DB_PASSWORD', 'your-production-password');
+define('DB_DATABASE', 'your-production-database');
+```
 
-### Frontend kann nicht mit Backend kommunizieren
+### Important Notes:
+- **Always update URLs BEFORE running `npm run build`**
+- If you change URLs after building, you must rebuild
+- Use HTTPS in production (required for security)
+- Ensure www and non-www versions are handled consistently
 
-1. Überprüfen Sie die `.env` Datei und stellen Sie sicher, dass `VITE_API_URL` korrekt gesetzt ist
-2. Vergewissern Sie sich, dass Ihr Backend-Server läuft
-3. Überprüfen Sie die CORS-Konfiguration in der `.htaccess` Datei des Backends
+## Server Configuration
 
-### Datenbank-Verbindungsfehler
+### Apache Configuration
 
-1. Überprüfen Sie die Datenbank-Einstellungen in `backend/config/config.php`
-2. Stellen Sie sicher, dass der MySQL/MariaDB-Server läuft
-3. Überprüfen Sie, ob die Datenbank `keyeff_callpanel` existiert
+#### Virtual Host Example
+```apache
+<VirtualHost *:80>
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    Redirect permanent / https://your-domain.com/
+</VirtualHost>
 
-### PHP-Fehler
+<VirtualHost *:443>
+    ServerName your-domain.com
+    ServerAlias www.your-domain.com
+    DocumentRoot /var/www/html/webapp/public
+    
+    # SSL Configuration
+    SSLEngine on
+    SSLCertificateFile /path/to/your/certificate.crt
+    SSLCertificateKeyFile /path/to/your/private.key
+    SSLCertificateChainFile /path/to/your/chain.crt
+    
+    # Security Headers
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    
+    # Document Root Configuration
+    <Directory "/var/www/html/webapp/public">
+        Options -Indexes
+        AllowOverride All
+        Require all granted
+        
+        # React Router Support (already in .htaccess)
+        RewriteEngine On
+        RewriteBase /
+        RewriteRule ^index\.html$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [L]
+    </Directory>
+    
+    # Deny access to backend via web (security)
+    <Directory "/var/www/html/webapp/backend">
+        Require all denied
+    </Directory>
+</VirtualHost>
+```
 
-1. Aktivieren Sie die PHP-Fehleranzeige für die Entwicklung:
-   - Bearbeiten Sie die PHP-Konfiguration (php.ini)
-   - Setzen Sie `display_errors = On` und `error_reporting = E_ALL`
-2. Überprüfen Sie die Webserver-Logs für detaillierte Fehlerinformationen
+### Nginx Configuration
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
+    return 301 https://your-domain.com$request_uri;
+}
 
-### Die Anwendung wird nach dem Build nicht korrekt angezeigt
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com www.your-domain.com;
+    root /var/www/html/webapp/public;
+    index index.html;
+    
+    # SSL Configuration
+    ssl_certificate /path/to/your/certificate.crt;
+    ssl_certificate_key /path/to/your/private.key;
+    
+    # Security Headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+    
+    # React Router Support
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # API Backend
+    location /backend/ {
+        # Internal access only - not directly accessible
+        deny all;
+    }
+}
+```
 
-1. Überprüfen Sie, ob alle Dateien korrekt in das Webserver-Verzeichnis kopiert wurden
-2. Stellen Sie sicher, dass die `.htaccess` Datei korrekt konfiguriert ist
-3. Löschen Sie den Browser-Cache oder öffnen Sie die Seite im Inkognito-Modus
+## Security Setup
 
-Bei weiteren Problemen, überprüfen Sie die Konsolenausgabe des Browsers (F12) auf JavaScript-Fehler oder die Netzwerk-Anfragen auf API-Fehler.
+### 1. SSL Certificate
+```bash
+# Using Let's Encrypt (free)
+certbot --apache -d your-domain.com -d www.your-domain.com
+```
+
+### 2. Security Configuration
+```php
+// In backend/config/config.php
+// Change default JWT secret
+define('JWT_SECRET', 'your-unique-32-character-secret-key');
+
+// Disable debug mode
+define('DEBUG_MODE', false);
+
+// Enable security headers
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+```
+
+### 3. Database Security
+- Use strong passwords (minimum 16 characters)
+- Limit database user privileges
+- Regular backups
+- Monitor access logs
+
+### 4. Firewall Configuration
+```bash
+# Example UFW rules
+ufw allow 22/tcp    # SSH
+ufw allow 80/tcp    # HTTP (redirects to HTTPS)
+ufw allow 443/tcp   # HTTPS
+ufw enable
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. API Connection Errors
+**Symptoms**: Frontend can't connect to backend
+**Solutions**:
+- Check if URLs in `.env` and `config.php` match
+- Verify CORS configuration
+- Check SSL certificate validity
+- Ensure backend folder has correct permissions
+
+#### 2. Database Connection Errors
+**Symptoms**: "Database connection failed"
+**Solutions**:
+- Verify database credentials in `database.php`
+- Check if MySQL service is running
+- Ensure database exists and user has privileges
+- Check firewall settings
+
+#### 3. Routing Issues
+**Symptoms**: Page refresh shows 404 errors
+**Solutions**:
+- Verify `.htaccess` file exists in `public/` folder
+- Check Apache mod_rewrite is enabled
+- Ensure Document Root points to `webapp/public/`
+
+#### 4. Permission Errors
+**Symptoms**: "Permission denied" errors
+**Solutions**:
+```bash
+# Fix permissions
+chown -R www-data:www-data /var/www/html/webapp/
+chmod -R 755 /var/www/html/webapp/public/
+chmod -R 750 /var/www/html/webapp/backend/
+```
+
+#### 5. SSL Issues
+**Symptoms**: "Not secure" warnings, HTTPS errors
+**Solutions**:
+- Verify SSL certificate installation
+- Check certificate chain completeness
+- Ensure all URLs use HTTPS
+- Test SSL configuration: `openssl s_client -connect your-domain.com:443`
+
+### Debug Steps
+
+1. **Check Apache/Nginx Logs**:
+   ```bash
+   tail -f /var/log/apache2/error.log
+   tail -f /var/log/nginx/error.log
+   ```
+
+2. **Test API Endpoints**:
+   ```bash
+   curl -X GET https://your-domain.com/backend/api/auth/login.php
+   ```
+
+3. **Database Connection Test**:
+   ```php
+   // Create test file in webapp/backend/
+   <?php
+   require_once 'config/database.php';
+   $conn = getDBConnection();
+   echo "Database connected successfully!";
+   ?>
+   ```
+
+### Getting Help
+
+1. Check server error logs
+2. Enable debug mode temporarily
+3. Test individual components
+4. Verify all configuration files
+5. Contact hosting provider for server-specific issues
+
+## Post-Deployment Checklist
+
+- [ ] Frontend loads correctly at your-domain.com
+- [ ] All API endpoints respond correctly
+- [ ] Login system works with 2FA
+- [ ] Database connections are stable
+- [ ] SSL certificate is valid and working
+- [ ] All URLs are HTTPS
+- [ ] Security headers are set
+- [ ] Backups are configured
+- [ ] Monitoring is in place
+- [ ] DNS is properly configured
+- [ ] Email notifications work (if configured)
+
+## Maintenance
+
+### Regular Tasks
+- **Daily**: Monitor error logs
+- **Weekly**: Check SSL certificate expiry
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Full backup and disaster recovery test
+
+### Update Process
+1. Test updates in staging environment
+2. Backup production database and files
+3. Update code and configuration
+4. Run database migrations if needed
+5. Clear caches and restart services
+6. Verify functionality
+
+This installation guide ensures a smooth transition from development to production deployment.

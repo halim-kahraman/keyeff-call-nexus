@@ -1,73 +1,170 @@
-# Welcome to your Lovable project
 
-## Project info
+# KeyEff Call Panel - Professional Telemarketing Platform
 
-**URL**: https://lovable.dev/projects/32c9d0c4-f43e-4451-8238-2194d1a7c1ce
+## Project Overview
 
-## How can I edit this code?
+KeyEff Call Panel is a comprehensive web-based communication and sales management tool designed for internal telemarketing operations. The platform provides GDPR-compliant customer contact tracking, integrated SIP calling, appointment management, and detailed analytics.
 
-There are several ways of editing your application.
+## Project Structure
 
-**Use Lovable**
+```
+keyeff-call-panel/
+├── webapp/                     # Production build output
+│   ├── backend/               # PHP Backend API
+│   │   ├── api/              # REST API endpoints
+│   │   ├── config/           # Configuration files
+│   │   ├── models/           # Database models
+│   │   └── sql/              # Database schemas
+│   └── public/               # Frontend build (Document Root)
+│       ├── index.html        # Main application
+│       ├── assets/           # Compiled CSS/JS
+│       └── .htaccess         # Apache configuration
+├── src/                      # React source code
+├── backend/                  # PHP source files
+└── scripts/                  # Build scripts
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/32c9d0c4-f43e-4451-8238-2194d1a7c1ce) and start prompting.
+## Technologies Used
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: PHP 8.0+, MySQL/MariaDB
+- **Build System**: Vite with custom build scripts
+- **Authentication**: JWT with 2FA
+- **Communication**: WebRTC, SIP integration
 
-**Use your preferred IDE**
+## Quick Start
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Development Setup
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+1. **Clone and Install**:
+```bash
 git clone <YOUR_GIT_URL>
+cd keyeff-call-panel
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Configure Environment**:
+```bash
+# Create .env file
+echo "VITE_API_BASE_URL=http://keyeff.local/backend/api" > .env
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. **Start Development**:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Production Build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Build for production
+npm run build
 
-**Use GitHub Codespaces**
+# This creates:
+# webapp/
+# ├── backend/    (Complete PHP backend)
+# └── public/     (Frontend build - set as Document Root)
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Deployment Guide
 
-## What technologies are used for this project?
+### For Production Server (your-domain.com)
 
-This project is built with:
+**Step 1: Update Configuration URLs**
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Before building for production, update these files:
 
-## How can I deploy this project?
+1. **Update .env**:
+```env
+VITE_API_BASE_URL=https://your-domain.com/backend/api
+```
 
-Simply open [Lovable](https://lovable.dev/projects/32c9d0c4-f43e-4451-8238-2194d1a7c1ce) and click on Share -> Publish.
+2. **Update backend/config/config.php**:
+```php
+define('API_URL', 'https://your-domain.com/backend');
+define('APP_URL', 'https://your-domain.com');
 
-## Can I connect a custom domain to my Lovable project?
+// Update CORS origins
+$allowed_origins = [
+    'https://your-domain.com',
+    'https://www.your-domain.com'  // if using www
+];
+```
 
-Yes, you can!
+3. **Update backend/config/database.php**:
+```php
+define('DB_SERVER', 'your-server-hostname');
+define('DB_USERNAME', 'your-production-username');
+define('DB_PASSWORD', 'your-production-password');
+define('DB_DATABASE', 'your-production-database');
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+**Step 2: Build and Deploy**
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```bash
+# 1. Build with production settings
+npm run build
+
+# 2. Upload webapp/ folder to your server
+# 3. Set Document Root to webapp/public/
+# 4. Import database schema from webapp/backend/sql/
+```
+
+**Step 3: Server Configuration**
+
+- Set Document Root to: `/path/to/webapp/public/`
+- Ensure PHP 8.0+ with mysqli, json, curl extensions
+- Configure SSL certificate for HTTPS
+- Set proper file permissions (755 for directories, 644 for files)
+
+### Apache Virtual Host Example
+
+```apache
+<VirtualHost *:443>
+    ServerName your-domain.com
+    DocumentRoot /var/www/webapp/public
+    
+    SSLEngine on
+    SSLCertificateFile /path/to/certificate.crt
+    SSLCertificateKeyFile /path/to/private.key
+    
+    # Security headers
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set Strict-Transport-Security "max-age=31536000"
+    
+    <Directory "/var/www/webapp/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+## Development vs Production URLs
+
+### Development (Local):
+- Frontend: `http://localhost:5173`
+- Backend API: `http://keyeff.local/backend/api` (via proxy)
+- Database: `localhost:3306`
+
+### Production (your-domain.com):
+- Frontend: `https://your-domain.com`
+- Backend API: `https://your-domain.com/backend/api`
+- Database: `your-server:3306`
+
+## Security Considerations
+
+- Always use HTTPS in production
+- Change JWT_SECRET in backend/config/config.php
+- Use strong database passwords
+- Configure proper file permissions
+- Enable PHP security settings
+- Regular security updates
+
+## Support
+
+For issues and feature requests, please check the documentation in the `INSTALL.md` file or contact the development team.
+
+## License
+
+Professional license - Internal use only.
