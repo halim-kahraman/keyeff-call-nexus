@@ -11,13 +11,16 @@ export default defineConfig(({ mode }: { mode: string }) => ({
   server: {
     host: "::",
     port: 8080,
-    proxy: {
-      '/api': {
-        target: 'http://keyeff.local/backend',
-        changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api/, '/api')
+    // Proxy nur im Development-Modus
+    ...(mode === 'development' && {
+      proxy: {
+        '/api': {
+          target: 'http://keyeff.local/backend',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api/, '/api')
+        }
       }
-    }
+    })
   },
   plugins: [
     react(),

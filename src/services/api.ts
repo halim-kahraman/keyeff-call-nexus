@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // API-Konfiguration für keyeff.local Setup
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// Im Development-Modus: /api (wird über Vite Proxy weitergeleitet)
+// In Produktion: vollständige URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.MODE === 'development' ? '/api' : 'http://keyeff.local/backend/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
