@@ -218,7 +218,7 @@ const Statistics = () => {
                       fill="#8884d8"
                       dataKey="count"
                     >
-                      {chartData.calls_by_outcome.map((_entry, index) => (
+                      {chartData.calls_by_outcome.map((_entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

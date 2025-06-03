@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // API-Konfiguration für keyeff.local Setup
@@ -172,6 +171,18 @@ export const filialeService = {
   getFilialen: async () => {
     const response = await api.get('/filialen/list.php');
     return response.data;
+  },
+  createFiliale: async (filialeData: any) => {
+    const response = await api.post('/filialen/create.php', filialeData);
+    return response.data;
+  },
+  updateFiliale: async (filialeId: string, filialeData: any) => {
+    const response = await api.put(`/filialen/update.php?id=${filialeId}`, filialeData);
+    return response.data;
+  },
+  deleteFiliale: async (filialeId: string) => {
+    const response = await api.delete(`/filialen/delete.php?id=${filialeId}`);
+    return response.data;
   }
 };
 
@@ -241,6 +252,14 @@ export const logsService = {
     if (params?.end_date) searchParams.append('end_date', params.end_date);
     
     const response = await api.get(`/logs/list.php?${searchParams.toString()}`);
+    return response.data;
+  }
+};
+
+// Dashboard service - NEW
+export const dashboardService = {
+  getDashboardStats: async () => {
+    const response = await api.get('/statistics/dashboard.php');
     return response.data;
   }
 };

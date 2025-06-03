@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Calendar, CheckCircle, Clock, Users, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardService } from "@/services/api";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -13,22 +15,27 @@ const Dashboard = () => {
   const isFilialleiter = user?.role === "filialleiter";
   
   useEffect(() => {
-    // Debug
     console.log("Dashboard rendered with user:", user);
   }, [user]);
 
-  // Mock data for dashboard
-  const stats = {
-    dailyCalls: isTelefonist ? 12 : 47,
-    dailyTarget: isTelefonist ? 20 : 80,
-    appointments: isTelefonist ? 5 : 18,
-    successRate: isTelefonist ? 42 : 38,
-    upcomingAppointments: 7,
-    pendingCallbacks: 4,
-    expiringContracts: 12,
+  // Fetch real dashboard statistics from database
+  const { data: statsResponse, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => dashboardService.getDashboardStats(),
+  });
+
+  const stats = statsResponse?.data || {
+    daily_calls: 0,
+    daily_target: isTelefonist ? 20 : 80,
+    appointments: 0,
+    success_rate: 0,
+    upcoming_appointments: 0,
+    pending_callbacks: 0,
+    expiring_contracts: 0,
+    active_users: 0
   };
 
-  const progressPercentage = (stats.dailyCalls / stats.dailyTarget) * 100;
+  const progressPercentage = stats.daily_target > 0 ? (stats.daily_calls / stats.daily_target) * 100 : 0;
 
   return (
     <AppLayout 
@@ -43,13 +50,19 @@ const Dashboard = () => {
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">{stats.dailyCalls} / {stats.dailyTarget}</div>
-            <Progress value={progressPercentage} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {progressPercentage >= 100
-                ? "Tagesziel erreicht! 🎉"
-                : `${Math.round(progressPercentage)}% des Tagesziels erreicht`}
-            </p>
+            <div className="text-2xl font-bold mb-2">
+              {isLoading ? 'Lädt...' : `${stats.daily_calls} / ${stats.daily_target}`}
+            </div>
+            {!isLoading && (
+              <>
+                <Progress value={progressPercentage} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {progressPercentage >= 100
+                    ? "Tagesziel erreicht! 🎉"
+                    : `${Math.round(progressPercentage)}% des Tagesziels erreicht`}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -59,7 +72,9 @@ const Dashboard = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.appointments}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? 'Lädt...' : stats.appointments}
+            </div>
             <p className="text-xs text-muted-foreground">Heute vereinbarte Termine</p>
           </CardContent>
         </Card>
@@ -70,7 +85,9 @@ const Dashboard = () => {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate}%</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? 'Lädt...' : `${stats.success_rate}%`}
+            </div>
             <p className="text-xs text-muted-foreground">Anrufe mit positivem Ergebnis</p>
           </CardContent>
         </Card>
@@ -81,7 +98,9 @@ const Dashboard = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.upcomingAppointments}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? 'Lädt...' : stats.upcoming_appointments}
+            </div>
             <p className="text-xs text-muted-foreground">In den nächsten 7 Tagen</p>
           </CardContent>
         </Card>
@@ -93,7 +112,9 @@ const Dashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? 'Lädt...' : stats.active_users}
+              </div>
               <p className="text-xs text-muted-foreground">Heute eingeloggte Nutzer</p>
             </CardContent>
           </Card>
@@ -105,61 +126,50 @@ const Dashboard = () => {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.expiringContracts}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? 'Lädt...' : stats.expiring_contracts}
+            </div>
             <p className="text-xs text-muted-foreground">In den nächsten 30 Tagen</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Nächste Aufgaben</h2>
-        <div className="bg-card rounded-lg border shadow-sm">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Rückruf: Müller GmbH</h3>
-                <p className="text-sm text-muted-foreground">Termin zur Vertragsverlängerung</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">Heute, 14:30 Uhr</p>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-keyeff-100 text-keyeff-800 mt-1">
-                  Hohe Priorität
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Schmidt Elektro</h3>
-                <p className="text-sm text-muted-foreground">Ausstehende Angebotsbestätigung</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">Morgen, 10:00 Uhr</p>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-keyeff-100 text-keyeff-800 mt-1">
-                  Medium Priorität
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Bäckerei Hoffmann</h3>
-                <p className="text-sm text-muted-foreground">Vertrag läuft in 14 Tagen ab</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">23.05.2025</p>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mt-1">
-                  Geplant
-                </span>
+      {!isLoading && stats.pending_callbacks > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Ausstehende Rückrufe</h2>
+          <div className="bg-card rounded-lg border shadow-sm">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">{stats.pending_callbacks} Rückrufe ausstehend</h3>
+                  <p className="text-sm text-muted-foreground">Termine die heute bearbeitet werden sollten</p>
+                </div>
+                <div className="text-right">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    Hohe Priorität
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {!isLoading && (stats.daily_calls === 0 && stats.appointments === 0) && (
+        <div className="mt-8">
+          <div className="bg-card rounded-lg border shadow-sm p-8 text-center">
+            <h2 className="text-xl font-bold mb-2">Willkommen im KeyEff Call Panel</h2>
+            <p className="text-muted-foreground mb-4">
+              {isTelefonist ? 'Starten Sie Ihren ersten Anruf für heute!' : 'Überwachen Sie die Aktivitäten Ihres Teams.'}
+            </p>
+            {isTelefonist && (
+              <p className="text-sm text-muted-foreground">
+                Ihr Tagesziel: {stats.daily_target} Anrufe
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };

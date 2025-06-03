@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,35 +11,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Building, PlusCircle, Edit, Trash2, Map } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-
-// Dummy data for demo
-const mockFilialen = [
-  { id: "1", name: "Zentrale", address: "Hauptstr. 1, 10115 Berlin", phoneNumber: "+49 30 1234567", email: "zentrale@keyeff.de" },
-  { id: "2", name: "Berlin", address: "Berliner Str. 15, 10115 Berlin", phoneNumber: "+49 30 9876543", email: "berlin@keyeff.de" },
-  { id: "3", name: "München", address: "Münchner Str. 25, 80333 München", phoneNumber: "+49 89 1234567", email: "muenchen@keyeff.de" },
-  { id: "4", name: "Hamburg", address: "Hamburger Str. 35, 20095 Hamburg", phoneNumber: "+49 40 1234567", email: "hamburg@keyeff.de" },
-  { id: "5", name: "Köln", address: "Kölner Str. 45, 50667 Köln", phoneNumber: "+49 221 1234567", email: "koeln@keyeff.de" }
-];
+import { filialeService } from "@/services/api";
 
 const Filialen = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeFiliale, setActiveFiliale] = useState<any>(null);
+  const queryClient = useQueryClient();
 
-  // Fetch branches
-  const { data: filialen = mockFilialen, isLoading } = useQuery({
+  // Fetch branches from database
+  const { data: filialen = [], isLoading } = useQuery({
     queryKey: ['filialen'],
-    queryFn: () => Promise.resolve(mockFilialen),
+    queryFn: async () => {
+      const response = await filialeService.getFilialen();
+      return response.data || [];
+    },
   });
 
   // Add branch mutation
   const { mutate: addFiliale } = useMutation({
-    mutationFn: (filialeData: any) => {
-      // In real app, call API to add branch
-      return Promise.resolve({ ...filialeData, id: Date.now().toString() });
-    },
+    mutationFn: (filialeData: any) => filialeService.createFiliale(filialeData),
     onSuccess: () => {
       setIsAddDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['filialen'] });
       toast.success("Filiale erfolgreich erstellt");
     },
     onError: () => {
@@ -49,12 +43,10 @@ const Filialen = () => {
 
   // Edit branch mutation
   const { mutate: updateFiliale } = useMutation({
-    mutationFn: (filialeData: any) => {
-      // In real app, call API to update branch
-      return Promise.resolve(filialeData);
-    },
+    mutationFn: (filialeData: any) => filialeService.updateFiliale(filialeData.id, filialeData),
     onSuccess: () => {
       setIsEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['filialen'] });
       toast.success("Filiale erfolgreich aktualisiert");
     },
     onError: () => {
@@ -64,11 +56,9 @@ const Filialen = () => {
 
   // Delete branch mutation
   const { mutate: deleteFiliale } = useMutation({
-    mutationFn: (filialeId: string) => {
-      // In real app, call API to delete branch
-      return Promise.resolve(filialeId);
-    },
+    mutationFn: (filialeId: string) => filialeService.deleteFiliale(filialeId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['filialen'] });
       toast.success("Filiale erfolgreich gelöscht");
     },
     onError: () => {
@@ -84,8 +74,6 @@ const Filialen = () => {
     const filialeData = {
       name: formData.get('name') as string,
       address: formData.get('address') as string,
-      phoneNumber: formData.get('phoneNumber') as string,
-      email: formData.get('email') as string,
     };
     
     addFiliale(filialeData);
@@ -100,8 +88,6 @@ const Filialen = () => {
       id: activeFiliale.id,
       name: formData.get('name') as string,
       address: formData.get('address') as string,
-      phoneNumber: formData.get('phoneNumber') as string,
-      email: formData.get('email') as string,
     };
     
     updateFiliale(filialeData);
@@ -148,14 +134,6 @@ const Filialen = () => {
                   <Label htmlFor="address" className="text-right">Adresse</Label>
                   <Textarea id="address" name="address" className="col-span-3" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phoneNumber" className="text-right">Telefon</Label>
-                  <Input id="phoneNumber" name="phoneNumber" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">E-Mail</Label>
-                  <Input id="email" name="email" type="email" className="col-span-3" />
-                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Filiale erstellen</Button>
@@ -171,10 +149,10 @@ const Filialen = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Adresse</TableHead>
-                  <TableHead>Telefon</TableHead>
-                  <TableHead>E-Mail</TableHead>
+                  <TableHead>Erstellt am</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
                 </TableRow>
               </TableHeader>
@@ -183,13 +161,17 @@ const Filialen = () => {
                   <TableRow>
                     <TableCell colSpan={5} className="text-center">Lade Filialen...</TableCell>
                   </TableRow>
+                ) : filialen.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">Keine Filialen vorhanden</TableCell>
+                  </TableRow>
                 ) : (
-                  filialen.map(filiale => (
+                  filialen.map((filiale: any) => (
                     <TableRow key={filiale.id}>
+                      <TableCell>{filiale.id}</TableCell>
                       <TableCell className="font-medium">{filiale.name}</TableCell>
                       <TableCell>{filiale.address}</TableCell>
-                      <TableCell>{filiale.phoneNumber}</TableCell>
-                      <TableCell>{filiale.email}</TableCell>
+                      <TableCell>{new Date(filiale.created_at).toLocaleDateString('de-DE')}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(filiale)} title="Bearbeiten">
@@ -239,25 +221,6 @@ const Filialen = () => {
                     defaultValue={activeFiliale.address} 
                     className="col-span-3" 
                     required 
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-phoneNumber" className="text-right">Telefon</Label>
-                  <Input 
-                    id="edit-phoneNumber" 
-                    name="phoneNumber" 
-                    defaultValue={activeFiliale.phoneNumber} 
-                    className="col-span-3" 
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-email" className="text-right">E-Mail</Label>
-                  <Input 
-                    id="edit-email" 
-                    name="email" 
-                    type="email" 
-                    defaultValue={activeFiliale.email} 
-                    className="col-span-3" 
                   />
                 </div>
               </div>
