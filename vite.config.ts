@@ -7,13 +7,13 @@ import { fileURLToPath, URL } from "url";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }: { mode: string }) => ({
-  base: mode === 'production' ? '/keyeff_callpanel/public/' : "/",
+  base: "/",
   server: {
     host: "::",
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost/keyeff_callpanel/backend',
+        target: 'http://keyeff.local/backend',
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/api/, '/api')
       }
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }: { mode: string }) => ({
     ]
   },
   build: {
-    outDir: 'htdocs/keyeff_callpanel/public',
+    outDir: 'dist',
     assetsDir: 'assets',
     commonjsOptions: {
       include: [/node_modules/]

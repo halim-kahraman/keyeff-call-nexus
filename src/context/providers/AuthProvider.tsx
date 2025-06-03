@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
@@ -56,23 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNeedsVerification(true);
         setPendingUserId(response.data.user_id);
         
-        // Only show one toast for successful OTP sending
         toast.success("2FA-Code gesendet", {
           description: "Ein Bestätigungscode wurde an Ihre E-Mail-Adresse gesendet."
         });
-        
-        // For demo purposes, show the OTP
-        if (response.data.otp) {
-          console.log('Demo OTP for login:', response.data.otp);
-          toast.info(`Demo OTP: ${response.data.otp}`, {
-            description: "Nur für Demozwecke!"
-          });
-        }
       }
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Only show one toast notification for the error
       toast.error("Anmeldung fehlgeschlagen", {
         description: "Bitte überprüfen Sie Ihre Anmeldedaten"
       });
@@ -122,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Force a redirect to dashboard after successful login
         console.log('Redirecting to dashboard after successful 2FA');
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('2FA error:', error);
@@ -143,14 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.success("Zurücksetzen-Code gesendet", {
           description: "Falls die E-Mail in unserem System existiert, wurde ein Code gesendet."
         });
-        
-        // For demo, return the code
-        if (response.data?.reset_code) {
-          console.log('Demo reset code:', response.data.reset_code);
-          toast.info(`Demo Reset-Code: ${response.data.reset_code}`, {
-            description: "Nur für Demozwecke!"
-          });
-        }
         
         return response;
       }

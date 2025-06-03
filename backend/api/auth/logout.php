@@ -1,6 +1,9 @@
 
 <?php
 require_once __DIR__ . '/../../config/config.php';
+
+use KeyEff\CallPanel\Models\Log;
+
 require_once __DIR__ . '/../../models/Log.php';
 
 // Check if authorization header exists

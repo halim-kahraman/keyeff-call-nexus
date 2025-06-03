@@ -1,3 +1,4 @@
+
 import React, { useState, FormEvent, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +26,7 @@ const Login = () => {
   const [resetLoading, setResetLoading] = useState(false);
 
   // Get the page user was trying to access before being redirected to login
-  const from = location.state?.from?.pathname || "/dashboard";
+  const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
     console.log('Login component - Auth state:', { isAuthenticated, needsVerification, from });
@@ -62,10 +63,11 @@ const Login = () => {
     try {
       const result = await resetPassword(resetEmail);
       console.log("Reset password result:", result);
-      if (result && result.data && result.data.reset_code) {
+      if (result && result.success) {
         setResetStep("code");
-        setResetCode(result.data.reset_code);
-        console.log("Reset code received:", result.data.reset_code);
+        toast.success("Reset-Code gesendet", {
+          description: "Falls die E-Mail in unserem System existiert, wurde ein Code gesendet."
+        });
       }
     } catch (error) {
       console.error("Error requesting password reset:", error);
@@ -313,13 +315,6 @@ const Login = () => {
             )}
           </DialogContent>
         </Dialog>
-        
-        <div className="text-center text-sm text-muted-foreground">
-          <p>DEMO ANMELDEDATEN:</p>
-          <p>Admin: admin@keyeff.de / password</p>
-          <p>Telefonist: telefonist@keyeff.de / password</p>
-          <p>Filialleiter: filialleiter@keyeff.de / password</p>
-        </div>
       </div>
     </div>
   );

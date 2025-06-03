@@ -4,9 +4,9 @@
 define('APP_NAME', 'KeyEff Call Panel');
 define('APP_VERSION', '1.0.0');
 
-// Lokale Produktions-Konfiguration
-define('API_URL', 'http://localhost/keyeff_callpanel/backend');
-define('APP_URL', 'http://localhost/keyeff_callpanel/public');
+// Produktions-Konfiguration für keyeff.local
+define('API_URL', 'http://keyeff.local/backend');
+define('APP_URL', 'http://keyeff.local');
 
 // JWT Secret for Token Generation
 define('JWT_SECRET', 'KeyEff_SecretKey_Change_This_In_Production');
@@ -27,19 +27,16 @@ date_default_timezone_set('Europe/Berlin');
 // Debug mode für lokale Entwicklung
 define('DEBUG_MODE', true);
 
-// CORS-Headers für lokale Entwicklung setzen
+// CORS-Headers für deine Umgebung setzen
 function setCorsHeaders() {
     $allowed_origins = [
-        'http://localhost:8080', 
-        'http://localhost:3000',
-        'http://localhost/keyeff_callpanel/public',
-        'http://localhost/keyeff_callpanel'
+        'http://keyeff.local'
     ];
     
     if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
         header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
     } else {
-        header("Access-Control-Allow-Origin: http://localhost/keyeff_callpanel/public");
+        header("Access-Control-Allow-Origin: http://keyeff.local");
     }
     
     header('Access-Control-Allow-Credentials: true');
