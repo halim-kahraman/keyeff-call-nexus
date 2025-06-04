@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { useConnectionService } from './useConnectionService';
+import { useConnectionService, Connection } from './useConnectionService';
 
 interface ConnectionData {
   vpn?: { server: string; username: string; };
