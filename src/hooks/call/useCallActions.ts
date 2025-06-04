@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -56,9 +55,11 @@ export const useCallActions = (props: UseCallActionsProps) => {
       console.log('Starting call...', { selectedPhoneNumber, selectedContact });
       setCallDuration(0);
       setCallResult(null);
-      // Start call timer
+      // Start call timer - we need to handle this differently since setCallDuration expects a number
+      let currentDuration = 0;
       const timer = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
+        currentDuration += 1;
+        setCallDuration(currentDuration);
       }, 1000);
       setCallResult({ timer });
     } else {
