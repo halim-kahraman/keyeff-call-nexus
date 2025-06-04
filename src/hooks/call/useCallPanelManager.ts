@@ -1,16 +1,8 @@
 
 export const useCallPanelManager = () => {
-  console.log('DEBUG: useCallPanelManager - ULTRA MINIMAL VERSION');
+  console.log('useCallPanelManager: Ultra basic version');
   
   return {
-    // Absolute minimum state
-    isLoading: false,
-    isConnected: false,
-    activeTab: "manual",
-    
-    // Absolute minimum handlers (empty functions)
-    setActiveTab: () => {},
-    handleConnect: () => Promise.resolve(),
-    handleDisconnect: () => Promise.resolve()
+    isLoading: false
   };
 };
