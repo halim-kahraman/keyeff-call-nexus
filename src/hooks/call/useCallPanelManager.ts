@@ -2,9 +2,10 @@
 import { useState } from 'react';
 
 export const useCallPanelManager = () => {
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   return {
-    isLoading
+    isLoading,
+    setIsLoading
   };
 };
