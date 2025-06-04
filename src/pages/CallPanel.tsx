@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { ConnectionStatusCard } from "@/components/call/ConnectionStatusCard";
@@ -6,7 +5,7 @@ import { CallControlPanel } from "@/components/call/CallControlPanel";
 import { CallResultPanel } from "@/components/call/CallResultPanel";
 import { PhoneInterface } from "@/components/call/PhoneInterface";
 import { WarningCard } from "@/components/call/WarningCard";
-import { useCallPanelManager } from "./call/CallPanelManager";
+import { useCallPanelManager } from "@/hooks/call/useCallPanelManager";
 
 const CallPanel = () => {
   const {
