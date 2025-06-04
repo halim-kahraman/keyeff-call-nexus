@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -11,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDays, format, isSameDay } from "date-fns";
 import { de } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Mock appointment types
 const appointmentTypes = [
@@ -78,7 +77,6 @@ const CalendarPage = () => {
   const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNewAppointment, setIsNewAppointment] = useState(false);
-  const { toast } = useToast();
 
   const todaysAppointments = appointments.filter(appt => 
     isSameDay(appt.date, selectedDate)
@@ -108,16 +106,14 @@ const CalendarPage = () => {
     
     if (isNewAppointment) {
       setAppointments([...appointments, currentAppointment]);
-      toast({
-        title: "Termin erstellt",
+      toast.success("Termin erstellt", {
         description: "Der Termin wurde erfolgreich erstellt und dem Kalender hinzugefügt.",
       });
     } else {
       setAppointments(appointments.map(appt => 
         appt.id === currentAppointment.id ? currentAppointment : appt
       ));
-      toast({
-        title: "Termin aktualisiert",
+      toast.success("Termin aktualisiert", {
         description: "Die Änderungen am Termin wurden gespeichert.",
       });
     }
@@ -134,10 +130,8 @@ const CalendarPage = () => {
     setAppointments(appointments.filter(appt => appt.id !== currentAppointment.id));
     setIsSheetOpen(false);
     
-    toast({
-      title: "Termin gelöscht",
+    toast.error("Termin gelöscht", {
       description: "Der Termin wurde erfolgreich aus dem Kalender entfernt.",
-      variant: "destructive",
     });
   };
 

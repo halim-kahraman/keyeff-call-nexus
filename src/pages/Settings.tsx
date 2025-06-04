@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { settingsService, filialeService } from "@/services/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -15,7 +15,6 @@ import { Loader2, TestTube } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("api");
   const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState<string | null>(null);
@@ -70,17 +69,14 @@ const Settings = () => {
       filiale_id: selectedFiliale
     }),
     onSuccess: () => {
-      toast({
-        title: "Erfolg",
+      toast.success("Erfolg", {
         description: "Einstellungen wurden erfolgreich gespeichert."
       });
       refetch();
     },
     onError: (error: any) => {
-      toast({
-        title: "Fehler",
+      toast.error("Fehler", {
         description: "Fehler beim Speichern der Einstellungen: " + (error.response?.data?.message || error.message),
-        variant: "destructive"
       });
     }
   });
@@ -122,16 +118,18 @@ const Settings = () => {
           throw new Error('Unbekannter Test-Typ');
       }
 
-      toast({
-        title: response.success ? "Test erfolgreich" : "Test fehlgeschlagen",
-        description: response.message,
-        variant: response.success ? "default" : "destructive"
-      });
+      if (response.success) {
+        toast.success("Test erfolgreich", {
+          description: response.message
+        });
+      } else {
+        toast.error("Test fehlgeschlagen", {
+          description: response.message
+        });
+      }
     } catch (error: any) {
-      toast({
-        title: "Test fehlgeschlagen",
-        description: error.response?.data?.message || error.message,
-        variant: "destructive"
+      toast.error("Test fehlgeschlagen", {
+        description: error.response?.data?.message || error.message
       });
     } finally {
       setIsTesting(null);

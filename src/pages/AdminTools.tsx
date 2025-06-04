@@ -5,14 +5,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Trash2, RefreshCcw, AlertTriangle, CheckCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { adminService } from "@/services/api";
 
 const AdminTools = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteOperation, setDeleteOperation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,8 +55,7 @@ const AdminTools = () => {
                   "Kampagnendaten"} wurden erfolgreich gelöscht.`
       });
       
-      toast({
-        title: "Operation erfolgreich",
+      toast.success("Operation erfolgreich", {
         description: "Die Daten wurden erfolgreich zurückgesetzt.",
       });
     } catch (error) {
@@ -67,10 +65,8 @@ const AdminTools = () => {
         message: "Beim Löschen der Daten ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
       });
       
-      toast({
-        title: "Fehler",
+      toast.error("Fehler", {
         description: "Beim Löschen der Daten ist ein Fehler aufgetreten.",
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);

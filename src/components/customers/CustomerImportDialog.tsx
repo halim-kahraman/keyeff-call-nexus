@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Campaign } from "@/types/customer";
 import * as XLSX from "xlsx";
 
@@ -27,8 +26,6 @@ export const CustomerImportDialog = ({ open, onOpenChange, campaignList }: Custo
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   
-  const { toast } = useToast();
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setImportFile(file || null);
@@ -54,43 +51,29 @@ export const CustomerImportDialog = ({ open, onOpenChange, campaignList }: Custo
   
   const handleImport = () => {
     if (!importFile) {
-      toast({
-        title: "Fehler",
-        description: "Bitte wählen Sie eine Datei aus",
-        variant: "destructive"
-      });
+      toast.error("Bitte wählen Sie eine Datei aus");
       return;
     }
     
     if (createNewCampaign && !newCampaignName) {
-      toast({
-        title: "Fehler",
-        description: "Bitte geben Sie einen Namen für die neue Kampagne ein",
-        variant: "destructive"
-      });
+      toast.error("Bitte geben Sie einen Namen für die neue Kampagne ein");
       return;
     }
     
     if (!createNewCampaign && !selectedCampaign) {
-      toast({
-        title: "Fehler",
-        description: "Bitte wählen Sie eine Kampagne aus",
-        variant: "destructive"
-      });
+      toast.error("Bitte wählen Sie eine Kampagne aus");
       return;
     }
     
     // Mock import process
-    toast({
-      title: "Import gestartet",
+    toast.success("Import gestartet", {
       description: "Die Daten werden importiert. Dieser Vorgang kann einige Minuten dauern."
     });
     
     // In a real application, we would send the file to the server here
     // For demo purposes, we'll simulate success after 2 seconds
     setTimeout(() => {
-      toast({
-        title: "Import erfolgreich",
+      toast.success("Import erfolgreich", {
         description: `${importPreview ? importPreview.length : 5} Kunden wurden erfolgreich importiert.`
       });
       onOpenChange(false);

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface BranchSelectionDialogProps {
   open: boolean;
@@ -17,15 +17,10 @@ export function BranchSelectionDialog({
   onBranchSelected 
 }: BranchSelectionDialogProps) {
   const [selectedBranch, setSelectedBranch] = useState<string>("");
-  const { toast } = useToast();
 
   const handleConfirm = () => {
     if (!selectedBranch) {
-      toast({
-        title: "Fehler",
-        description: "Bitte wählen Sie eine Filiale aus.",
-        variant: "destructive",
-      });
+      toast.error("Bitte wählen Sie eine Filiale aus.");
       return;
     }
 

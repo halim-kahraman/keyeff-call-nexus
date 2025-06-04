@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Phone, Calendar, File, FileText } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 // Mock customer data
@@ -128,7 +127,6 @@ const Contacts = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Filter customers based on search and status
@@ -154,16 +152,14 @@ const Contacts = () => {
   };
 
   const handleCall = (customer: any) => {
-    toast({
-      title: "Anruf wird gestartet",
+    toast.success("Anruf wird gestartet", {
       description: `Rufe ${customer.name} unter ${customer.phone} an...`
     });
     navigate("/call", { state: { customer } });
   };
 
   const handleSchedule = (customer: any) => {
-    toast({
-      title: "Termin planen",
+    toast.success("Termin planen", {
       description: `Öffne Kalender für ${customer.name}...`
     });
     navigate("/calendar");
