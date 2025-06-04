@@ -47,8 +47,7 @@ export const useCallPanelManager = () => {
     setSelectedContract,
     setCustomerFromNav,
     setContactIdFromNav,
-    setFilialeId,
-    ...restState
+    setFilialeId
   } = callState;
 
   const callActions = useCallActions({
@@ -104,30 +103,13 @@ export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Returning hook data');
 
   return {
-    // State from useCallState
-    ...restState,
-    filialeId,
-    isPanelReady,
-    selectedPhoneNumber,
-    selectedContact,
-    callResult,
-    callNotes,
-    callOutcome,
-    callDuration,
-    selectedCampaign,
-    customerFromNav,
+    // All state from useCallState
+    ...callState,
     
     // Connection state
     connections,
     isConnecting,
     isConnected,
-    
-    // Setters from useCallState
-    setSelectedPhoneNumber,
-    setSelectedContact,
-    setSelectedContract,
-    setCallNotes,
-    setCallOutcome,
     
     // Actions from useCallActions
     ...callActions,
