@@ -37,6 +37,9 @@ export interface CallPanelActions {
   setIsPanelReady: (ready: boolean) => void;
   setCustomerFromNav: (customer: any) => void;
   setContactIdFromNav: (id: string | null) => void;
+  setIsLoading: (loading: boolean) => void;
+  setCampaigns: (campaigns: any[]) => void;
+  setCustomers: (customers: any[]) => void;
   handleFilialeSelected: (branchId: string) => void;
   clearCustomerSelection: () => void;
   handleCallStart: () => void;

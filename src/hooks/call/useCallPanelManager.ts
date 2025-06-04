@@ -5,9 +5,8 @@ import { useConnectionManager } from '@/hooks/connection/useConnectionManager';
 import { useCallState } from '@/hooks/call/useCallState';
 import { useCallActions } from '@/hooks/call/useCallActions';
 import { toast } from 'sonner';
-import { CallPanelManagerReturn } from '@/types/callPanel';
 
-export const useCallPanelManager = (): CallPanelManagerReturn => {
+export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Hook starting');
   
   const { user } = useAuth();
@@ -126,13 +125,13 @@ export const useCallPanelManager = (): CallPanelManagerReturn => {
     campaigns: callState.campaigns,
     customers: callState.customers,
     
-    // Setter functions
+    // Setter functions - ALL FROM CALLSTATE
     setFilialeId,
     setIsPanelReady,
     setActiveTab: callState.setActiveTab,
     setSelectedPhoneNumber,
     setSelectedContact,
-    setSelectedContract,
+    setSelectedContract: callState.setSelectedContract,
     setCallResult,
     setCallNotes,
     setCallOutcome,
@@ -141,7 +140,10 @@ export const useCallPanelManager = (): CallPanelManagerReturn => {
     setSelectedFiliale: callState.setSelectedFiliale,
     setSelectedCampaign: callState.setSelectedCampaign,
     setCustomerFromNav,
-    setContactIdFromNav,
+    setContactIdFromNav: callState.setContactIdFromNav,
+    setIsLoading: callState.setIsLoading,
+    setCampaigns: callState.setCampaigns,
+    setCustomers: callState.setCustomers,
     
     // Connection state
     connections,
