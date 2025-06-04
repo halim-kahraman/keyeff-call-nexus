@@ -53,7 +53,7 @@ export const PhoneInterface = ({
             onCallEnd={onCallEnd}
             phoneNumber={selectedPhoneNumber}
             customer={customerFromNav}
-            contactId={contactIdFromNav}
+            contactId={contactIdFromNav || undefined}
             campaignScript={selectedCampaign ? "Kampagnen-Skript wird geladen..." : undefined}
           />
         </CardContent>
