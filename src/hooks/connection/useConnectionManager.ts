@@ -1,14 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { useConnectionService, Connection } from './useConnectionService';
-
-interface ConnectionData {
-  vpn?: { server: string; username: string; };
-  sip?: { server: string; username: string; password: string; };
-  webrtc?: { iceServers: any[]; };
-}
+import { useConnectionService } from './useConnectionService';
+import { Connection, ConnectionData } from '@/types/connection';
 
 export const useConnectionManager = () => {
   const { user } = useAuth();
