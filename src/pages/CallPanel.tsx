@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "@/context/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { useQuery } from "@tanstack/react-query";

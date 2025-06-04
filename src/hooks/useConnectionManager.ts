@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 interface Connection {
