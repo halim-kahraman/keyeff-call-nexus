@@ -26,6 +26,8 @@ export interface CallPanelActions {
   setSelectedPhoneNumber: (number: string) => void;
   setSelectedContact: (contact: any) => void;
   setSelectedContract: (contract: any) => void;
+  setCallResult: (result: any) => void;
+  setCallDuration: (duration: number) => void;
   setCallNotes: (notes: string) => void;
   setCallOutcome: (outcome: string) => void;
   setIsFilialSelectionOpen: (open: boolean) => void;

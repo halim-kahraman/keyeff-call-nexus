@@ -5,8 +5,9 @@ import { useConnectionManager } from '@/hooks/connection/useConnectionManager';
 import { useCallState } from '@/hooks/call/useCallState';
 import { useCallActions } from '@/hooks/call/useCallActions';
 import { toast } from 'sonner';
+import { CallPanelManagerReturn } from '@/types/callPanel';
 
-export const useCallPanelManager = () => {
+export const useCallPanelManager = (): CallPanelManagerReturn => {
   console.log('useCallPanelManager: Hook starting');
   
   const { user } = useAuth();
@@ -104,7 +105,7 @@ export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Returning hook data');
 
   return {
-    // ALL state from useCallState - COMPLETE return
+    // State properties
     filialeId,
     isCallActive: callState.isCallActive,
     isPanelReady,
@@ -125,7 +126,7 @@ export const useCallPanelManager = () => {
     campaigns: callState.campaigns,
     customers: callState.customers,
     
-    // ALL setters from useCallState - COMPLETE setters
+    // Setter functions
     setFilialeId,
     setIsPanelReady,
     setActiveTab: callState.setActiveTab,
@@ -147,7 +148,7 @@ export const useCallPanelManager = () => {
     isConnecting,
     isConnected,
     
-    // Actions from useCallActions
+    // Action functions
     handleCallStart: callActions.handleCallStart,
     handleCallEnd: callActions.handleCallEnd,
     handleFilialeSelected: callActions.handleFilialeSelected,

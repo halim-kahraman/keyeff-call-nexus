@@ -88,7 +88,7 @@ export const useCallState = () => {
     campaigns,
     customers,
     
-    // Setters
+    // All setter functions
     setFilialeId,
     setIsPanelReady,
     setActiveTab,
