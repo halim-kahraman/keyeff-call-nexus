@@ -126,8 +126,22 @@ if ($role === 'admin') {
     $active_users = $stmt_active_users->get_result()->fetch_assoc()['count'];
 }
 
-// Get expiring contracts (mock data for now)
-$expiring_contracts = 12;
+// Get expiring contracts from database
+$sql_expiring = "
+    SELECT COUNT(*) as count 
+    FROM customers c
+    WHERE c.contract_end_date IS NOT NULL 
+    AND c.contract_end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+";
+if ($role === 'filialleiter') {
+    $sql_expiring .= " AND c.filiale_id = ?";
+    $stmt_expiring = $conn->prepare($sql_expiring);
+    $stmt_expiring->bind_param("s", $filiale);
+} else {
+    $stmt_expiring = $conn->prepare($sql_expiring);
+}
+$stmt_expiring->execute();
+$expiring_contracts = $stmt_expiring->get_result()->fetch_assoc()['count'];
 
 jsonResponse(true, 'Dashboard statistics retrieved successfully', [
     'daily_calls' => (int)$today_calls,
@@ -136,7 +150,7 @@ jsonResponse(true, 'Dashboard statistics retrieved successfully', [
     'success_rate' => (int)$success_rate,
     'upcoming_appointments' => (int)$upcoming_appointments,
     'pending_callbacks' => (int)$pending_callbacks,
-    'expiring_contracts' => $expiring_contracts,
+    'expiring_contracts' => (int)$expiring_contracts,
     'active_users' => (int)$active_users
 ]);
 ?>

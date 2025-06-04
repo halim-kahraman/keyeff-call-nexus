@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { customerService } from "@/services/api";
+import { customerService, campaignService } from "@/services/api";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { NewCustomerDialog } from "@/components/customers/NewCustomerDialog";
 import { CustomerRow } from "@/components/customers/CustomerRow";
@@ -32,7 +31,6 @@ const Customers = () => {
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
   const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
-  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
   const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   
   const { toast } = useToast();
@@ -52,14 +50,17 @@ const Customers = () => {
   const handleFilialeSelected = (branchId: string) => {
     setSelectedFiliale(branchId);
     setIsFilialSelectionOpen(false);
-    
-    // TODO: Fetch campaigns for this filiale
-    // For now using mock data
-    setCampaignList([
-      { id: 1, name: "Frühjahrsaktion 2025", description: "Vertragsverlängerungen für Q2 2025" },
-      { id: 2, name: "Neukunden München", description: "Neukunden aus Messe März 2025" }
-    ]);
   };
+
+  // Query for real campaigns from database
+  const { data: campaignsResponse } = useQuery({
+    queryKey: ['campaigns', selectedFiliale],
+    queryFn: () => campaignService.getCampaigns(selectedFiliale),
+    enabled: !needsFilialSelection,
+  });
+
+  const campaignList: Campaign[] = Array.isArray(campaignsResponse?.data) ? 
+    campaignsResponse.data : [];
 
   // Query for customers
   const { data: customersData, isLoading } = useQuery({
@@ -69,7 +70,8 @@ const Customers = () => {
   });
 
   // Make sure customers is always an array
-  const customers: Customer[] = Array.isArray(customersData) ? customersData : [];
+  const customers: Customer[] = Array.isArray(customersData?.data) ? 
+    customersData.data : [];
 
   // Filter customers based on search and status
   const filteredCustomers = customers.filter((customer: Customer) => {
@@ -236,7 +238,7 @@ const Customers = () => {
       <Card>
         <CardHeader>
           <CardTitle>Kundenliste</CardTitle>
-          <CardDescription>{filteredCustomers.length} Kunden gefunden</CardDescription>
+          <CardDescription>{customers.length} Kunden gefunden</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -250,7 +252,7 @@ const Customers = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => (
+              {customers.map((customer) => (
                 <CustomerRow
                   key={customer.id}
                   customer={customer}
@@ -259,7 +261,7 @@ const Customers = () => {
                   onSchedule={handleSchedule}
                 />
               ))}
-              {filteredCustomers.length === 0 && (
+              {customers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     Keine Kunden gefunden
