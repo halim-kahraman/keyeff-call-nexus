@@ -1,6 +1,6 @@
+
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import React from 'react';
 
 interface UseCallActionsProps {
   filialeId: number | null;
@@ -12,7 +12,7 @@ interface UseCallActionsProps {
   selectedCampaign: string | null;
   callOutcome: string;
   callNotes: string;
-  setCallDuration: React.Dispatch<React.SetStateAction<number>>;
+  setCallDuration: (duration: number) => void;
   setCallResult: (result: any) => void;
   setCallNotes: (notes: string) => void;
   setCallOutcome: (outcome: string) => void;
@@ -25,28 +25,30 @@ interface UseCallActionsProps {
   isConnected: boolean;
 }
 
-export const useCallActions = ({
-  filialeId,
-  selectedPhoneNumber,
-  selectedContact,
-  callDuration,
-  callResult,
-  customerFromNav,
-  selectedCampaign,
-  callOutcome,
-  callNotes,
-  setCallDuration,
-  setCallResult,
-  setCallNotes,
-  setCallOutcome,
-  setSelectedPhoneNumber,
-  setSelectedContact,
-  setSelectedContract,
-  setCustomerFromNav,
-  setContactIdFromNav,
-  setFilialeId,
-  isConnected
-}: UseCallActionsProps) => {
+export const useCallActions = (props: UseCallActionsProps) => {
+  const {
+    filialeId,
+    selectedPhoneNumber,
+    selectedContact,
+    callDuration,
+    callResult,
+    customerFromNav,
+    selectedCampaign,
+    callOutcome,
+    callNotes,
+    setCallDuration,
+    setCallResult,
+    setCallNotes,
+    setCallOutcome,
+    setSelectedPhoneNumber,
+    setSelectedContact,
+    setSelectedContract,
+    setCustomerFromNav,
+    setContactIdFromNav,
+    setFilialeId,
+    isConnected
+  } = props;
+
   const navigate = useNavigate();
 
   const handleCallStart = () => {
