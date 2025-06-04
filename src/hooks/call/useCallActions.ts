@@ -1,6 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import React from 'react';
 
 interface UseCallActionsProps {
   filialeId: number | null;
@@ -12,7 +13,7 @@ interface UseCallActionsProps {
   selectedCampaign: string | null;
   callOutcome: string;
   callNotes: string;
-  setCallDuration: (duration: number) => void;
+  setCallDuration: React.Dispatch<React.SetStateAction<number>>;
   setCallResult: (result: any) => void;
   setCallNotes: (notes: string) => void;
   setCallOutcome: (outcome: string) => void;
