@@ -36,7 +36,7 @@ export const useConnectionManager = () => {
   // Fetch current connections
   const fetchConnections = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token'); // Fixed: use 'token' instead of 'auth_token'
       const response = await fetch('/api/connections/manage.php', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -57,7 +57,7 @@ export const useConnectionManager = () => {
     setIsConnecting(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token'); // Fixed: use 'token' instead of 'auth_token'
       
       // Start VPN connection
       await startConnection(filialeId, 'vpn', {
@@ -106,7 +106,7 @@ export const useConnectionManager = () => {
 
   // Start individual connection
   const startConnection = async (filialeId: number, type: string, connectionData: ConnectionData) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token'); // Fixed: use 'token' instead of 'auth_token'
     
     const response = await fetch('/api/connections/manage.php', {
       method: 'POST',
@@ -137,7 +137,7 @@ export const useConnectionManager = () => {
 
   // Update connection status
   const updateConnectionStatus = async (sessionId: string, status: string) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token'); // Fixed: use 'token' instead of 'auth_token'
     
     await fetch('/api/connections/manage.php', {
       method: 'PUT',
@@ -157,7 +157,7 @@ export const useConnectionManager = () => {
   // Disconnect from filiale
   const disconnectFromFiliale = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token'); // Fixed: use 'token' instead of 'auth_token'
       
       for (const connection of connections) {
         if (connection.status === 'connected') {

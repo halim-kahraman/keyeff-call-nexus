@@ -28,6 +28,44 @@ class User {
         $this->otp = new UserOTP($this->repository);
     }
     
+    // Static method to verify JWT token
+    public static function verifyToken($token) {
+        if (!$token) {
+            return false;
+        }
+        
+        try {
+            // Split token into parts
+            $tokenParts = explode('.', $token);
+            if (count($tokenParts) !== 3) {
+                return false;
+            }
+            
+            list($header, $payload, $signature) = $tokenParts;
+            
+            // Verify signature
+            $expectedSignature = base64_encode(hash_hmac('sha256', $header . '.' . $payload, JWT_SECRET, true));
+            
+            if (!hash_equals($expectedSignature, $signature)) {
+                return false;
+            }
+            
+            // Decode payload
+            $decodedPayload = json_decode(base64_decode($payload), true);
+            
+            // Check expiration
+            if (isset($decodedPayload['exp']) && $decodedPayload['exp'] < time()) {
+                return false;
+            }
+            
+            return $decodedPayload;
+            
+        } catch (Exception $e) {
+            debugLog('Token verification error', $e->getMessage());
+            return false;
+        }
+    }
+    
     // Create user
     public function create($name, $email, $password, $role, $filiale = null, $filiale_id = null) {
         return $this->repository->create($name, $email, $password, $role, $filiale, $filiale_id);

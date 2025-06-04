@@ -7,7 +7,7 @@ import { User, AuthContextType, PasswordResetResponse, UserRole } from "./types/
 // Create context with undefined initial value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// useAuth hook - direkt hier implementiert um circular imports zu vermeiden
+// useAuth hook - directly implemented here to avoid circular imports
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -22,6 +22,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [needsVerification, setNeedsVerification] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [isProcessingLogin, setIsProcessingLogin] = useState(false);
+
+  // Add updateUser function that was missing
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -211,7 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verify2FA,
       needsVerification,
       resetPassword,
-      confirmResetPassword
+      confirmResetPassword,
+      updateUser
     }}>
       {children}
     </AuthContext.Provider>
