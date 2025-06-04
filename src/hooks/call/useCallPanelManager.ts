@@ -5,9 +5,8 @@ import { useConnectionManager } from '@/hooks/connection/useConnectionManager';
 import { useCallState } from '@/hooks/call/useCallState';
 import { useCallActions } from '@/hooks/call/useCallActions';
 import { toast } from 'sonner';
-import { CallPanelManagerReturn } from '@/types/callPanel';
 
-export const useCallPanelManager = (): CallPanelManagerReturn => {
+export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Hook starting');
   
   const { user } = useAuth();
@@ -106,9 +105,6 @@ export const useCallPanelManager = (): CallPanelManagerReturn => {
 
   return {
     // State properties - ALL FROM CALLSTATE
-    filialeId: callState.filialeId,
-    isCallActive: callState.isCallActive,
-    isPanelReady: callState.isPanelReady,
     activeTab: callState.activeTab,
     selectedPhoneNumber: callState.selectedPhoneNumber,
     selectedContact: callState.selectedContact,
@@ -125,10 +121,11 @@ export const useCallPanelManager = (): CallPanelManagerReturn => {
     isLoading: callState.isLoading,
     campaigns: callState.campaigns,
     customers: callState.customers,
+    filialeId: callState.filialeId,
+    isCallActive: callState.isCallActive,
+    isPanelReady: callState.isPanelReady,
     
     // Setter functions - ALL FROM CALLSTATE
-    setFilialeId: callState.setFilialeId,
-    setIsPanelReady: callState.setIsPanelReady,
     setActiveTab: callState.setActiveTab,
     setSelectedPhoneNumber: callState.setSelectedPhoneNumber,
     setSelectedContact: callState.setSelectedContact,
@@ -145,6 +142,8 @@ export const useCallPanelManager = (): CallPanelManagerReturn => {
     setIsLoading: callState.setIsLoading,
     setCampaigns: callState.setCampaigns,
     setCustomers: callState.setCustomers,
+    setFilialeId: callState.setFilialeId,
+    setIsPanelReady: callState.setIsPanelReady,
     
     // Connection state
     connections,
