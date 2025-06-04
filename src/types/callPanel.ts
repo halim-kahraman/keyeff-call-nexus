@@ -53,9 +53,3 @@ export interface CallPanelActions {
   handleDisconnect: () => Promise<void>;
   fetchConnections: () => Promise<void>;
 }
-
-export interface CallPanelManagerReturn extends CallPanelState, CallPanelStateSetters, CallPanelActions {
-  connections: any[];
-  isConnecting: boolean;
-  isConnected: boolean;
-}
