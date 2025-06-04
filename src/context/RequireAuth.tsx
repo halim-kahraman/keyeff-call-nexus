@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 import { User } from "./types/auth.types";
 
 interface RequireAuthProps {
-  children: ReactNode | ((props: { user: User }) => ReactNode);
+  children?: ReactNode;
   allowedRoles?: string[];
 }
 
@@ -24,12 +24,10 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedRoles }) => 
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Return the outlet (child routes) wrapped in the children function if provided
+  // Return children if provided, otherwise return Outlet for nested routes
   return (
     <>
-      {typeof children === 'function' && user 
-        ? children({ user }) 
-        : children}
+      {children}
       <Outlet />
     </>
   );

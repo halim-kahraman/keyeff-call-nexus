@@ -44,30 +44,24 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
-              {/* Protected Routes */}
-              <Route element={<RequireAuth>{() => <></>}</RequireAuth>}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/call" element={<CallPanel />} />
-                <Route path="/call/:id" element={<CallPanel />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/statistics" element={<Statistics />} />
-                
-                {/* Admin Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin']}>{() => <></>}</RequireAuth>}>
-                  <Route path="/admin/tools" element={<AdminTools />} />
-                  <Route path="/admin/users" element={<UserManagement />} />
-                  <Route path="/admin/filialen" element={<Filialen />} />
-                  <Route path="/admin/logs" element={<Logs />} />
-                </Route>
-                
-                {/* Admin or Filialleiter Routes */}
-                <Route element={<RequireAuth allowedRoles={['admin', 'filialleiter']}>{() => <></>}</RequireAuth>}>
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/templates" element={<Templates />} />
-                  <Route path="/whatsapp-templates" element={<WhatsAppTemplates />} />
-                </Route>
-              </Route>
+              {/* Protected Routes - General Users */}
+              <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+              <Route path="/customers" element={<RequireAuth><Customers /></RequireAuth>} />
+              <Route path="/call" element={<RequireAuth><CallPanel /></RequireAuth>} />
+              <Route path="/call/:id" element={<RequireAuth><CallPanel /></RequireAuth>} />
+              <Route path="/calendar" element={<RequireAuth><Calendar /></RequireAuth>} />
+              <Route path="/statistics" element={<RequireAuth><Statistics /></RequireAuth>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin/tools" element={<RequireAuth allowedRoles={['admin']}><AdminTools /></RequireAuth>} />
+              <Route path="/admin/users" element={<RequireAuth allowedRoles={['admin']}><UserManagement /></RequireAuth>} />
+              <Route path="/admin/filialen" element={<RequireAuth allowedRoles={['admin']}><Filialen /></RequireAuth>} />
+              <Route path="/admin/logs" element={<RequireAuth allowedRoles={['admin']}><Logs /></RequireAuth>} />
+              
+              {/* Admin or Filialleiter Routes */}
+              <Route path="/settings" element={<RequireAuth allowedRoles={['admin', 'filialleiter']}><Settings /></RequireAuth>} />
+              <Route path="/templates" element={<RequireAuth allowedRoles={['admin', 'filialleiter']}><Templates /></RequireAuth>} />
+              <Route path="/whatsapp-templates" element={<RequireAuth allowedRoles={['admin', 'filialleiter']}><WhatsAppTemplates /></RequireAuth>} />
               
               {/* Catch all route for 404 */}
               <Route path="*" element={<NotFound />} />
