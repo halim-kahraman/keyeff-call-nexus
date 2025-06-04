@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,10 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { userService, filialeService } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface User {
   id: number;
@@ -27,7 +27,6 @@ const UserManagement: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -51,17 +50,10 @@ const UserManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setIsCreateDialogOpen(false);
-      toast({
-        title: "Erfolg",
-        description: "Benutzer wurde erstellt.",
-      });
+      toast.success('Benutzer wurde erstellt');
     },
     onError: () => {
-      toast({
-        title: "Fehler",
-        description: "Benutzer konnte nicht erstellt werden.",
-        variant: "destructive",
-      });
+      toast.error('Benutzer konnte nicht erstellt werden');
     }
   });
 
@@ -70,10 +62,7 @@ const UserManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditUser(null);
-      toast({
-        title: "Erfolg",
-        description: "Benutzer wurde aktualisiert.",
-      });
+      toast.success('Benutzer wurde aktualisiert');
     }
   });
 
@@ -82,10 +71,7 @@ const UserManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setDeleteUserId(null);
-      toast({
-        title: "Erfolg",
-        description: "Benutzer wurde gelöscht.",
-      });
+      toast.success('Benutzer wurde gelöscht');
     }
   });
 
