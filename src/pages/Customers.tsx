@@ -1,300 +1,507 @@
-import { useState, useEffect } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Upload,
-  Plus,
-  Search
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { customerService, campaignService } from "@/services/api";
-import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
-import { NewCustomerDialog } from "@/components/customers/NewCustomerDialog";
-import { CustomerRow } from "@/components/customers/CustomerRow";
-import { CustomerDetailsSheet } from "@/components/customers/CustomerDetailsSheet";
-import { CustomerImportDialog } from "@/components/customers/CustomerImportDialog";
-import { Customer, Campaign } from "@/types/customer";
+import React, { useState, useEffect } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Button,
+  Input,
+  Select,
+  SelectItem,
+  Tooltip,
+  Textarea,
+  Pagination,
+  PaginationSize,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  useDisclosure,
+  Dialog,
+  DialogHeader,
+  DialogBody,
+  DialogFooter,
+  Chip,
+  ChipProps,
+  Checkbox,
+  SortDescriptor,
+  SortDirection,
+  useSortableColumn,
+  TableHeaderProps,
+  Spinner
+} from "@nextui-org/react";
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { SearchIcon } from "@/components/icons/SearchIcon";
+import { VerticalDotsIcon } from "@/components/icons/VerticalDotsIcon";
+import { EditIcon } from "@/components/icons/EditIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
+import { EyeIcon } from "@/components/icons/EyeIcon";
+import { CSVIcon } from "@/components/icons/CSVIcon";
+import { ExcelIcon } from "@/components/icons/ExcelIcon";
+import { PDFIcon } from "@/components/icons/PDFIcon";
+import { toast } from 'react-hot-toast';
+import { customerService, campaignService, filialeService } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportUtils';
+import { NewCustomerDialog } from '@/components/customers/NewCustomerDialog';
+import { UpdateCustomerDialog } from '@/components/customers/UpdateCustomerDialog';
+import { DeleteCustomerDialog } from '@/components/customers/DeleteCustomerDialog';
+import { CustomerDetailsDialog } from '@/components/customers/CustomerDetailsDialog';
+
+interface Customer {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  priority: 'high' | 'medium' | 'low';
+  notes: string;
+  filiale_id: number | null;
+  campaign_id: number | null;
+  imported_by: number | null;
+  import_source: string;
+  last_contact: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+const INITIAL_VISIBLE_COLUMNS = ["name", "company", "email", "city", "priority", "actions"];
+
+const statusOptions = [
+  { label: "Hoch", value: "high" },
+  { label: "Mittel", value: "medium" },
+  { label: "Niedrig", value: "low" },
+];
+
+const defaultContent = "Keine Notizen vorhanden";
 
 const Customers = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [filterValue, setFilterValue] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<Set<string>>([]);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: "name",
+    direction: "ascending",
+  });
+  const [page, setPage] = useState(1);
+  const [selectedKeys, setSelectedKeys] = useState<React.Key>(new Set([]));
+  const [visibleColumns, setVisibleColumns] = React.useState<Set<string>>(new Set(INITIAL_VISIBLE_COLUMNS));
+
+  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onOpenChange: onDetailsOpenChange } = useDisclosure();
+  const { isOpen: isCreateDialogOpen, onOpen: onCreateDialogOpen, onOpenChange: onCreateDialogOpenChange } = useDisclosure();
+  const { isOpen: isUpdateDialogOpen, onOpen: onUpdateDialogOpen, onOpenChange: onUpdateDialogOpenChange } = useDisclosure();
+  const { isOpen: isDeleteDialogOpen, onOpen: onDeleteDialogOpen, onOpenChange: onDeleteDialogOpenChange } = useDisclosure();
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
-  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
-  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
-  
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  // Determine if user needs to select filiale
-  const needsFilialSelection = user && user.role === 'admin' && !selectedFiliale;
+  const [isAllSelected, setIsAllSelected] = useState(false);
 
-  useEffect(() => {
-    if (needsFilialSelection) {
-      setIsFilialSelectionOpen(true);
+  const queryClient = useQueryClient();
+
+  const { data: customers = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => customerService.getCustomers()
+  });
+
+  const { data: filialen = [], isLoading: filialenLoading, error: filialenError } = useQuery({
+    queryKey: ['filialen'],
+    queryFn: () => filialeService.getFilialen()
+  });
+
+  const { data: campaigns = [], isLoading: campaignsLoading, error: campaignsError } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: () => campaignService.getCampaigns(),
+    onError: (error: any) => {
+      console.error('Error fetching campaigns:', error);
     }
-  }, [needsFilialSelection]);
-
-  // Handle filiale selection
-  const handleFilialeSelected = (branchId: string) => {
-    setSelectedFiliale(branchId);
-    setIsFilialSelectionOpen(false);
-  };
-
-  // Query for real campaigns from database
-  const { data: campaignsResponse } = useQuery({
-    queryKey: ['campaigns', selectedFiliale],
-    queryFn: () => campaignService.getCampaigns(selectedFiliale),
-    enabled: !needsFilialSelection,
   });
 
-  const campaignList: Campaign[] = Array.isArray(campaignsResponse?.data) ? 
-    campaignsResponse.data : [];
+  const hasSearchFilter = Boolean(filterValue);
 
-  // Query for customers
-  const { data: customersData, isLoading } = useQuery({
-    queryKey: ['customers', selectedFiliale, selectedCampaign],
-    queryFn: () => customerService.getCustomers(selectedFiliale, selectedCampaign),
-    enabled: !needsFilialSelection,
-  });
+  const headerColumns = React.useMemo(() => {
+    const columns = [
+      { key: "name", label: "Name" },
+      { key: "company", label: "Firma" },
+      { key: "email", label: "Email" },
+      { key: "address", label: "Adresse" },
+      { key: "city", label: "Stadt" },
+      { key: "postal_code", label: "PLZ" },
+      { key: "priority", label: "Priorität" },
+      { key: "notes", label: "Notizen" },
+      { key: "filiale_id", label: "Filiale" },
+      { key: "campaign_id", label: "Kampagne" },
+      { key: "imported_by", label: "Importiert von" },
+      { key: "import_source", label: "Importquelle" },
+      { key: "last_contact", label: "Letzter Kontakt" },
+      { key: "created_at", label: "Erstellt am" },
+      { key: "updated_at", label: "Aktualisiert am" },
+      { key: "actions", label: "Aktionen" },
+    ];
 
-  // Make sure customers is always an array
-  const customers: Customer[] = Array.isArray(customersData?.data) ? 
-    customersData.data : [];
+    return columns.filter((column) =>
+      visibleColumns.size === 0 ?
+        INITIAL_VISIBLE_COLUMNS.includes(column.key) :
+        visibleColumns.has(column.key)
+    );
+  }, [visibleColumns]);
 
-  // Filter customers based on search and status
-  const filteredCustomers = customers.filter((customer: Customer) => {
-    const matchesSearch = 
-      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (customer.primary_phones && customer.primary_phones.includes(searchQuery)) ||
-      (customer.company && customer.company.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesStatus = 
-      statusFilter === "all" || 
-      (customer.contract_statuses && customer.contract_statuses.split(',').some((status: string) => status === statusFilter));
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredItems = React.useMemo(() => {
+    let filteredCustomers = [...customers];
 
-  const handleCustomerClick = (customer: Customer) => {
-    // Fetch full customer details
-    customerService.getCustomerDetails(customer.id.toString())
-      .then((data: Customer) => {
-        setSelectedCustomer(data);
-        setIsDetailSheetOpen(true);
-      })
-      .catch(error => {
-        toast({
-          title: "Fehler",
-          description: "Kunde konnte nicht geladen werden",
-          variant: "destructive"
-        });
-      });
-  };
+    if (hasSearchFilter) {
+      filteredCustomers = filteredCustomers.filter((customer) =>
+        customer.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+        customer.company?.toLowerCase().includes(filterValue.toLowerCase()) ||
+        customer.email?.toLowerCase().includes(filterValue.toLowerCase()) ||
+        customer.city?.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
 
-  const handleCall = (customer: Customer, contactId = null) => {
-    toast({
-      title: "Anruf wird gestartet",
-      description: `Rufe ${customer.name} an...`
+    if (selectedStatus.size > 0) {
+      filteredCustomers = filteredCustomers.filter((customer) =>
+        selectedStatus.has(customer.priority)
+      );
+    }
+
+    return filteredCustomers;
+  }, [customers, filterValue, selectedStatus]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItems.slice(start, end);
+  }, [filteredItems, page, rowsPerPage]);
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a: any, b: any) => {
+      const first = a[sortDescriptor.column as string];
+      const second = b[sortDescriptor.column as string];
+      const cmp = first < second ? -1 : first > second ? 1 : 0;
+
+      return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
-    navigate("/call", { 
-      state: { 
-        customer,
-        contactId
-      } 
-    });
-  };
+  }, [items, sortDescriptor]);
 
-  const handleSchedule = (customer: Customer, contractId = null) => {
-    toast({
-      title: "Termin planen",
-      description: `Öffne Kalender für ${customer.name}...`
-    });
-    navigate("/calendar", { 
-      state: { 
-        customer,
-        contractId 
-      } 
-    });
-  };
+  const tableColumns = React.useMemo(() => {
+    const columns = [
+      { key: "name", label: "Name" },
+      { key: "company", label: "Firma" },
+      { key: "email", label: "Email" },
+      { key: "city", label: "Stadt" },
+      { key: "priority", label: "Priorität" },
+      { key: "actions", label: "Aktionen" },
+    ];
 
-  // Handler for new customer button
-  const handleNewCustomerClick = () => {
-    setIsNewCustomerDialogOpen(true);
-  };
+    return columns.filter((column) =>
+      visibleColumns.size === 0 ?
+        INITIAL_VISIBLE_COLUMNS.includes(column.key) :
+        visibleColumns.has(column.key)
+    );
+  }, [visibleColumns]);
 
-  if (isLoading) {
+  const renderCell = React.useCallback((customer: Customer, columnKey: React.Key): React.ReactNode => {
+    switch (columnKey) {
+      case "name":
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-small capitalize">{customer.name}</p>
+          </div>
+        );
+      case "company":
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-small capitalize">{customer.company}</p>
+          </div>
+        );
+      case "email":
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-small">{customer.email}</p>
+          </div>
+        );
+      case "city":
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-small capitalize">{customer.city}</p>
+          </div>
+        );
+      case "priority":
+        const statusColorMap: { [key: string]: ChipProps["color"] } = {
+          high: "danger",
+          medium: "warning",
+          low: "success",
+        };
+        return (
+          <Chip className="capitalize" color={statusColorMap[customer.priority]} size="sm" variant="flat">
+            {customer.priority}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="relative flex justify-end items-center gap-2">
+            <Tooltip content="Details">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50" onClick={() => {
+                setSelectedCustomer(customer);
+                onDetailsOpen();
+              }}>
+                <EyeIcon />
+              </span>
+            </Tooltip>
+            <Tooltip content="Bearbeiten">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50" onClick={() => {
+                setSelectedCustomer(customer);
+                onUpdateDialogOpen();
+              }}>
+                <EditIcon />
+              </span>
+            </Tooltip>
+            <Tooltip content="Löschen">
+              <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => {
+                setSelectedCustomer(customer);
+                onDeleteDialogOpen();
+              }}>
+                <DeleteIcon />
+              </span>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return null;
+    }
+  }, []);
+
+  const onRowsPerPageChange = React.useCallback((e: any) => {
+    setRowsPerPage(Number(e.target.value));
+    setPage(1);
+  }, []);
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value === "") {
+      setFilterValue("");
+    } else {
+      setFilterValue(value);
+    }
+    setPage(1);
+  }, []);
+
+  const onStatusChange = React.useCallback((value: Set<string>) => {
+    setSelectedStatus(value);
+    setPage(1);
+  }, []);
+
+  const topContent = React.useMemo(() => {
     return (
-      <AppLayout 
-        title="Kunden" 
-        subtitle="Kunden und Verträge verwalten"
-        showCallButton={true}
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-keyeff-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Kundendaten werden geladen...</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-end">
+          <Input
+            isClearable
+            className="w-full sm:max-w-[44%]"
+            placeholder="Suche nach Name, Firma oder Email..."
+            startContent={<SearchIcon className="text-default-300" />}
+            value={filterValue}
+            onClear={() => setFilterValue("")}
+            onValueChange={onSearchChange}
+          />
+          <Button className="bg-foreground text-background" onPress={onCreateDialogOpen}>
+            <PlusIcon />
+            Neuen Kunden hinzufügen
+          </Button>
+        </div>
+        <div className="flex justify-between items-center">
+          <Select
+            label="Priorität"
+            className="w-full sm:max-w-[26%]"
+            placeholder="Filtern nach Priorität"
+            selectedKeys={selectedStatus}
+            onChange={onStatusChange}
+          >
+            {statusOptions.map((status) => (
+              <SelectItem key={status.value} value={status.value}>
+                {status.label}
+              </SelectItem>
+            ))}
+          </Select>
+          <div className="hidden md:flex gap-2">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  endContent={<VerticalDotsIcon className="text-default-300" />}
+                  variant="flat"
+                >
+                  Spalten
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Spalten"
+                closeOnSelect={false}
+                selectionMode="multiple"
+                selectedKeys={visibleColumns}
+                onSelectionChange={setVisibleColumns}
+              >
+                {headerColumns.map((column) => (
+                  <DropdownItem key={column.key} className="capitalize">
+                    {column.label}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  endContent={<VerticalDotsIcon className="text-default-300" />}
+                  variant="flat"
+                >
+                  Export
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Static Actions">
+                <DropdownItem key="csv" onClick={() => exportToCSV(customers, 'customers')}>
+                  CSV Export
+                  <CSVIcon size={16} className="ml-1 text-default-500" />
+                </DropdownItem>
+                <DropdownItem key="excel" onClick={() => exportToExcel(customers, 'customers')}>
+                  Excel Export
+                  <ExcelIcon size={16} className="ml-1 text-default-500" />
+                </DropdownItem>
+                <DropdownItem key="pdf" onClick={() => exportToPDF(customers, 'customers')}>
+                  PDF Export
+                  <PDFIcon size={16} className="ml-1 text-default-500" />
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </div>
         </div>
-      </AppLayout>
+      </div>
     );
-  }
+  }, [
+    filterValue,
+    selectedStatus,
+    onSearchChange,
+    onStatusChange,
+    headerColumns,
+    customers,
+    onCreateDialogOpen
+  ]);
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="primary"
+          page={page}
+          total={pages}
+          onChange={(page) => setPage(page)}
+        />
+        <span className="text-small text-default-500">
+          {filteredItems.length} Einträge
+        </span>
+      </div>
+    );
+  }, [selectedKeys, filialen, page, pages, filteredItems.length, rowsPerPage]);
+
+  const Slots = {
+    loading: (
+      <TableRow>
+        <TableCell colSpan={tableColumns.length + 1}>
+          <div className="flex items-center justify-center space-x-2">
+            <Spinner size="lg" />
+            <span className="text-gray-500">Lade Daten...</span>
+          </div>
+        </TableCell>
+      </TableRow>
+    ),
+    empty: (
+      <TableRow>
+        <TableCell colSpan={tableColumns.length + 1}>
+          Keine Einträge gefunden.
+        </TableCell>
+      </TableRow>
+    ),
+  };
 
   return (
-    <AppLayout 
-      title="Kunden" 
-      subtitle="Kunden und Verträge verwalten"
-      showCallButton={true}
-    >
-      {needsFilialSelection && (
-        <BranchSelectionDialog 
-          open={isFilialSelectionOpen} 
-          onOpenChange={setIsFilialSelectionOpen}
-          onBranchSelected={handleFilialeSelected}
-        />
-      )}
-      
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-            <div>
-              <CardTitle>Kundensuche</CardTitle>
-              <CardDescription>Durchsuchen Sie alle Kunden nach Name, Telefon oder Firma</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importieren
-              </Button>
-              <Button 
-                variant="default" 
-                className="bg-keyeff-500 hover:bg-keyeff-600"
-                onClick={handleNewCustomerClick}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Neu
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-grow">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Suche nach Namen, Telefonnummer oder Firma..." 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Status filtern" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Status</SelectItem>
-                  <SelectItem value="Aktiv">Aktiv</SelectItem>
-                  <SelectItem value="Gekündigt">Gekündigt</SelectItem>
-                  <SelectItem value="Inaktiv">Inaktiv</SelectItem>
-                  <SelectItem value="In Bearbeitung">In Bearbeitung</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {selectedFiliale && campaignList.length > 0 && (
-                <Select value={selectedCampaign || ""} onValueChange={setSelectedCampaign}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Kampagne filtern" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Alle Kampagnen</SelectItem>
-                    {campaignList.map((campaign: Campaign) => (
-                      <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                        {campaign.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Kundenliste</CardTitle>
-          <CardDescription>{customers.length} Kunden gefunden</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Kontakt</TableHead>
-                <TableHead>Verträge</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aktionen</TableHead>
-              </TableRow>
+    <>
+      <Table
+        aria-label="Kundenliste"
+        isHeaderSticky
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        topContent={topContent}
+        topContentPlacement="outside"
+        selectionMode="single"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      >
+        <TableHead>
+          {tableColumns.map((column) => (
+            <TableHeader key={column.key} sortable={column.key !== "actions"} >
+              {column.label}
             </TableHeader>
-            <TableBody>
-              {customers.map((customer) => (
-                <CustomerRow
-                  key={customer.id}
-                  customer={customer}
-                  onCustomerClick={handleCustomerClick}
-                  onCall={handleCall}
-                  onSchedule={handleSchedule}
-                />
+          ))}
+        </TableHead>
+        <TableBody
+          items={sortedItems}
+          isLoading={isLoading}
+          emptyContent={Slots.empty}
+          loadingContent={Slots.loading}
+        >
+          {(item) => (
+            <TableRow key={item.id}>
+              {tableColumns.map((columnKey) => (
+                <TableCell key={`${item.id}-${columnKey.key}`}>
+                  {renderCell(item, columnKey.key)}
+                </TableCell>
               ))}
-              {customers.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    Keine Kunden gefunden
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
-      <CustomerImportDialog
-        open={isImportDialogOpen}
-        onOpenChange={setIsImportDialogOpen}
-        campaignList={campaignList}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <NewCustomerDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={onCreateDialogOpenChange}
+        onSuccess={() => {
+          refetch();
+        }}
+        filialen={filialen}
+        campaigns={campaigns}
       />
-      
-      <NewCustomerDialog 
-        open={isNewCustomerDialogOpen}
-        onOpenChange={setIsNewCustomerDialogOpen}
-        filialeId={selectedFiliale}
-        campaignId={selectedCampaign}
-      />
-      
-      <CustomerDetailsSheet
-        open={isDetailSheetOpen}
-        onOpenChange={setIsDetailSheetOpen}
+
+      <UpdateCustomerDialog
+        isOpen={isUpdateDialogOpen}
+        onOpenChange={onUpdateDialogOpenChange}
         customer={selectedCustomer}
-        onCall={handleCall}
-        onSchedule={handleSchedule}
+        onSuccess={() => {
+          refetch();
+        }}
+        filialen={filialen}
+        campaigns={campaigns}
       />
-    </AppLayout>
+
+      <DeleteCustomerDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={onDeleteDialogOpenChange}
+        customer={selectedCustomer}
+        onSuccess={() => {
+          refetch();
+        }}
+      />
+
+      <CustomerDetailsDialog
+        isOpen={isDetailsOpen}
+        onOpenChange={onDetailsOpenChange}
+        customer={selectedCustomer}
+      />
+    </>
   );
-};
+}
 
 export default Customers;

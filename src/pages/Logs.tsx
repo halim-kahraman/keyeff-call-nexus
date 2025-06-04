@@ -1,275 +1,263 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Download, Send } from "lucide-react";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
-import { exportToExcel, exportToPdf, sendDataByEmail } from "@/utils/exportUtils";
-import api from "@/services/api";
+import React, { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TableContainer,
+  Paper,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton
+} from '@mui/material';
+import { Delete as DeleteIcon, Edit as EditIcon, Email as EmailIcon } from '@mui/icons-material';
+import { useQuery } from 'react-query';
+import { logsService } from '@/services/api';
+import { toast } from 'react-hot-toast';
+import { CSVLink } from 'react-csv';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { sendDataByEmail } from '@/utils/exportUtils';
 
-const Logs = () => {
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
+interface LogEntry {
+  id: number;
+  user_id: number;
+  action: string;
+  entity: string;
+  entity_id: number;
+  details: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+}
+
+const Logs: React.FC = () => {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editLog, setEditLog] = useState<LogEntry | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteLogId, setDeleteLogId] = useState<number | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportEmail, setExportEmail] = useState('');
+
+  const { data: logs = [], isLoading, error } = useQuery({
+    queryKey: ['logs'],
+    queryFn: () => logsService.getLogs()
   });
-  const [selectedUser, setSelectedUser] = useState<string>("all");
-  const [selectedAction, setSelectedAction] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Fetch logs from API
-  const { data: logsResponse, isLoading } = useQuery({
-    queryKey: ['logs', selectedUser, selectedAction, dateRange, searchQuery],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedUser !== "all") params.append('user_id', selectedUser);
-      if (selectedAction !== "all") params.append('action', selectedAction);
-      if (dateRange.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
-      if (dateRange.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
-      if (searchQuery) params.append('search', searchQuery);
-      
-      const response = await api.get(`/logs/list.php?${params.toString()}`);
-      return response.data;
-    },
-  });
+  if (isLoading) return <div>Lade Protokolle...</div>;
+  if (error) return <div>Fehler beim Laden der Protokolle: {error.message}</div>;
 
-  // Fetch users for filter
-  const { data: usersResponse } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => {
-      const response = await api.get('/users/list.php');
-      return response.data;
-    },
-  });
-
-  const logs = logsResponse?.data || [];
-  const users = usersResponse?.data || [];
-
-  // Get unique action types from logs with proper typing
-  const actionTypes: string[] = Array.from(
-    new Set(
-      logs
-        .map((log: any) => log.action)
-        .filter((action: any): action is string => typeof action === 'string')
-    )
-  );
-
-  // Export handlers
-  const handleExportExcel = () => {
-    const exportData = logs.map((log: any) => ({
-      ID: log.id,
-      Zeitstempel: log.created_at,
-      Benutzer: log.user_name || log.user_id,
-      Aktion: getActionLabel(log.action),
-      Details: log.details
-    }));
-    exportToExcel(exportData, 'Logs_Export', 'Logs');
+  const handleEditClick = (log: LogEntry) => {
+    setEditLog(log);
+    setIsEditDialogOpen(true);
   };
 
-  const handleExportPdf = () => {
-    const exportData = logs.map((log: any) => ({
-      ID: log.id,
-      Zeitstempel: log.created_at,
-      Benutzer: log.user_name || log.user_id,
-      Aktion: getActionLabel(log.action),
-      Details: log.details
-    }));
-    exportToPdf(exportData, 'Logs_Export', 'System Logs');
+  const handleDeleteClick = (id: number) => {
+    setDeleteLogId(id);
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleSendEmail = () => {
-    const exportData = logs.map((log: any) => ({
-      ID: log.id,
-      Zeitstempel: log.created_at,
-      Benutzer: log.user_name || log.user_id,
-      Aktion: getActionLabel(log.action),
-      Details: log.details
-    }));
-    sendDataByEmail(exportData, 'admin@keyeff.de', 'Log Export', 'Anbei finden Sie den angeforderten Log-Export.');
+  const confirmDelete = () => {
+    // Implement delete logic here
+    console.log('Deleting log with ID:', deleteLogId);
+    setIsDeleteDialogOpen(false);
+    toast.success('Protokoll erfolgreich gelöscht');
   };
 
-  // Helper function to get readable action labels
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'login':
-        return 'Anmeldung';
-      case 'logout':
-        return 'Abmeldung';
-      case 'view_customer':
-        return 'Kunde angesehen';
-      case 'update_customer':
-        return 'Kunde aktualisiert';
-      case 'call_log':
-        return 'Anruf protokolliert';
-      case 'export_report':
-        return 'Bericht exportiert';
-      case 'system_settings':
-        return 'Systemeinstellungen';
-      default:
-        return action;
+  const handleExportClick = () => {
+    setExportDialogOpen(true);
+  };
+
+  const handleExportToCSV = () => {
+    const csvData = logs.map(log => ({
+      ID: log.id,
+      BenutzerID: log.user_id,
+      Aktion: log.action,
+      Entität: log.entity,
+      EntitätID: log.entity_id,
+      Details: log.details,
+      IPAdresse: log.ip_address,
+      BenutzerAgent: log.user_agent,
+      ErstelltAm: log.created_at
+    }));
+    return csvData;
+  };
+
+  const handleExportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Protokolldaten', 10, 10);
+
+    const tableColumn = ['ID', 'BenutzerID', 'Aktion', 'Entität', 'Details', 'Erstellt Am'];
+    const tableRows: string[][] = [];
+
+    logs.forEach(log => {
+      const createdAtFormatted = format(new Date(log.created_at), 'dd.MM.yyyy HH:mm', { locale: de });
+      const logData = [
+        log.id.toString(),
+        log.user_id.toString(),
+        log.action,
+        log.entity,
+        log.details,
+        createdAtFormatted
+      ];
+      tableRows.push(logData);
+    });
+
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20
+    });
+
+    doc.save('protokolle.pdf');
+  };
+
+  const handleSendByEmail = async () => {
+    if (!exportEmail) {
+      toast.error('Bitte gib eine E-Mail-Adresse ein.');
+      return;
     }
+
+    const filename = 'protokolle.csv';
+    const csvData = handleExportToCSV();
+
+    try {
+      await sendDataByEmail(csvData, filename, exportEmail);
+      toast.success('E-Mail erfolgreich versendet!');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Fehler beim Senden der E-Mail.');
+    }
+
+    setExportDialogOpen(false);
   };
 
   return (
-    <AppLayout title="Logs" subtitle="Logs für Datenschutz und Compliance">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Log-Filter</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* User filter */}
-              <div className="space-y-2">
-                <Label htmlFor="user-filter">Benutzer</Label>
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
-                  <SelectTrigger id="user-filter">
-                    <SelectValue placeholder="Alle Benutzer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle Benutzer</SelectItem>
-                    {users.map((user: any) => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+    <div>
+      <h1>Protokolle</h1>
+      <Button variant="contained" color="primary" onClick={handleExportClick}>
+        Exportieren
+      </Button>
+      <TableContainer component={Paper}>
+        <Table aria-label="Protokolltabelle">
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Benutzer</TableCell>
+              <TableCell>Aktion</TableCell>
+              <TableCell>Entität</TableCell>
+              <TableCell>Details</TableCell>
+              <TableCell>IP Adresse</TableCell>
+              <TableCell>Benutzer Agent</TableCell>
+              <TableCell>Erstellt am</TableCell>
+              <TableCell>Aktionen</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {logs.map(log => (
+              <TableRow key={log.id}>
+                <TableCell>{log.id}</TableCell>
+                <TableCell>{log.user_id}</TableCell>
+                <TableCell>{log.action}</TableCell>
+                <TableCell>{log.entity}</TableCell>
+                <TableCell>{log.details}</TableCell>
+                <TableCell>{log.ip_address}</TableCell>
+                <TableCell>{log.user_agent}</TableCell>
+                <TableCell>{log.created_at}</TableCell>
+                <TableCell>
+                  <IconButton aria-label="edit" onClick={() => handleEditClick(log)}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton aria-label="delete" onClick={() => handleDeleteClick(log.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-              {/* Action filter */}
-              <div className="space-y-2">
-                <Label htmlFor="action-filter">Art</Label>
-                <Select value={selectedAction} onValueChange={setSelectedAction}>
-                  <SelectTrigger id="action-filter">
-                    <SelectValue placeholder="Alle Arten" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle Arten</SelectItem>
-                    {actionTypes.map((action: string) => (
-                      <SelectItem key={action} value={action}>
-                        {getActionLabel(action)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)}>
+        <DialogTitle>Protokoll bearbeiten</DialogTitle>
+        <DialogContent>
+          {editLog && (
+            <>
+              <TextField
+                margin="dense"
+                label="Aktion"
+                fullWidth
+                value={editLog.action}
+                onChange={e => setEditLog({ ...editLog, action: e.target.value })}
+              />
+              {/* Add more fields as needed */}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsEditDialogOpen(false)}>Abbrechen</Button>
+          <Button color="primary" onClick={() => setIsEditDialogOpen(false)}>
+            Speichern
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              {/* Date range filter */}
-              <div className="space-y-2">
-                <Label>Zeitraum</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "dd.MM.yyyy")} -{" "}
-                            {format(dateRange.to, "dd.MM.yyyy")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "dd.MM.yyyy")
-                        )
-                      ) : (
-                        <span>Zeitraum auswählen</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange as any}
-                      locale={de}
-                      className="rounded-md border"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)}>
+        <DialogTitle>Protokoll löschen?</DialogTitle>
+        <DialogContent>Möchten Sie diesen Protokolleintrag wirklich löschen?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsDeleteDialogOpen(false)}>Abbrechen</Button>
+          <Button color="secondary" onClick={confirmDelete}>
+            Löschen
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              {/* Search filter */}
-              <div className="space-y-2">
-                <Label htmlFor="search">Suche</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="search"
-                    placeholder="In Details suchen..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Export buttons */}
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={handleExportExcel}>
-                <Download className="mr-2 h-4 w-4" />
-                Excel Export
-              </Button>
-              <Button variant="outline" onClick={handleExportPdf}>
-                <Download className="mr-2 h-4 w-4" />
-                PDF Export
-              </Button>
-              <Button variant="outline" onClick={handleSendEmail}>
-                <Send className="mr-2 h-4 w-4" />
-                Per E-Mail senden
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Zeitstempel</TableHead>
-                    <TableHead>Benutzer</TableHead>
-                    <TableHead>Art</TableHead>
-                    <TableHead>Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center">Lade Logs...</TableCell>
-                    </TableRow>
-                  ) : logs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center">Keine Logs gefunden</TableCell>
-                    </TableRow>
-                  ) : (
-                    logs.map((log: any) => (
-                      <TableRow key={log.id}>
-                        <TableCell>{log.id}</TableCell>
-                        <TableCell>{log.created_at}</TableCell>
-                        <TableCell>{log.user_name || log.user_id}</TableCell>
-                        <TableCell>{getActionLabel(log.action)}</TableCell>
-                        <TableCell>{log.details}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </AppLayout>
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)}>
+        <DialogTitle>Daten exportieren</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="E-Mail Adresse"
+            type="email"
+            fullWidth
+            value={exportEmail}
+            onChange={e => setExportEmail(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <IconButton onClick={handleSendByEmail}>
+                  <EmailIcon />
+                </IconButton>
+              )
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setExportDialogOpen(false)}>Abbrechen</Button>
+          <CSVLink
+            data={handleExportToCSV()}
+            filename={'protokolle.csv'}
+            onClick={() => toast.success('CSV-Datei wird heruntergeladen!')}
+          >
+            <Button color="primary">Als CSV exportieren</Button>
+          </CSVLink>
+          <Button color="primary" onClick={handleExportToPDF}>
+            Als PDF exportieren
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
   );
 };
 

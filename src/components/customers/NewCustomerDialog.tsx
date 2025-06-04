@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -45,13 +44,10 @@ export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }:
   };
 
   // Create customer mutation
-  const { mutate: createCustomer } = useMutation({
-    mutationFn: customerService.createCustomer,
-    onMutate: () => {
-      setIsSubmitting(true);
-    },
+  const createCustomerMutation = useMutation({
+    mutationFn: (customerData: any) => customerService.createCustomer(customerData),
     onSuccess: () => {
-      toast.success("Kunde erfolgreich angelegt");
+      toast.success('Kunde erfolgreich erstellt');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setFormData({
         name: "",
@@ -68,11 +64,7 @@ export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }:
       onOpenChange(false);
     },
     onError: (error: any) => {
-      console.error("Error creating customer:", error);
-      toast.error("Fehler beim Anlegen des Kunden");
-    },
-    onSettled: () => {
-      setIsSubmitting(false);
+      toast.error('Fehler beim Erstellen des Kunden');
     }
   });
 
@@ -86,7 +78,7 @@ export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }:
     }
     
     // Submit customer data
-    createCustomer({
+    createCustomerMutation.mutate({
       ...formData,
       filiale_id: filialeId || undefined,
       campaign_id: campaignId || undefined

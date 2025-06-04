@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -114,4 +113,11 @@ export const exportToCSV = (data: any[], filename: string) => {
   
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   saveAs(blob, `${filename}.csv`);
+};
+
+export const sendDataByEmail = async (data: any[], filename: string, email: string) => {
+  // Implementation for sending data by email
+  console.log('Sending data by email:', { filename, email, dataCount: data.length });
+  // This would typically integrate with your email service
+  return Promise.resolve(true);
 };
