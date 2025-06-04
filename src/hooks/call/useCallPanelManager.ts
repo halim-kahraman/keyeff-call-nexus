@@ -108,11 +108,26 @@ export const useCallPanelManager = () => {
     ...restState,
     filialeId,
     isPanelReady,
+    selectedPhoneNumber,
+    selectedContact,
+    callResult,
+    callNotes,
+    callOutcome,
+    callDuration,
+    selectedCampaign,
+    customerFromNav,
     
     // Connection state
     connections,
     isConnecting,
     isConnected,
+    
+    // Setters from useCallState
+    setSelectedPhoneNumber,
+    setSelectedContact,
+    setSelectedContract,
+    setCallNotes,
+    setCallOutcome,
     
     // Actions from useCallActions
     ...callActions,
