@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Connection, ConnectionData } from '@/types/connection';
 
-export { Connection, ConnectionData };
+export type { Connection, ConnectionData };
 
 export const useConnectionService = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
