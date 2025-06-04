@@ -2,19 +2,16 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 const Unauthorized = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
-    toast({
-      title: "Zugriff verweigert",
-      description: "Sie haben keine Berechtigung für diese Seite.",
-      variant: "destructive",
+    toast.error("Zugriff verweigert", {
+      description: "Sie haben keine Berechtigung für diese Seite."
     });
-  }, [toast]);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
