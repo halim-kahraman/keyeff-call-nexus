@@ -111,8 +111,13 @@ export const useCallPanelManager = () => {
     isConnecting,
     isConnected,
     
-    // Actions from useCallActions
-    ...callActions,
+    // Actions from useCallActions (destructured to avoid conflicts)
+    handleCallStart: callActions.handleCallStart,
+    handleCallEnd: callActions.handleCallEnd,
+    handleFilialeSelected: callActions.handleFilialeSelected,
+    clearCustomerSelection: callActions.clearCustomerSelection,
+    handleSaveCallLog: callActions.handleSaveCallLog,
+    formatCallDuration: callActions.formatCallDuration,
     
     // Connection handlers
     handleConnect,
