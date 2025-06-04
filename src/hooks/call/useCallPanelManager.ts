@@ -104,15 +104,53 @@ export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Returning hook data');
 
   return {
-    // State properties - ALL FROM CALLSTATE
-    ...callState,
+    // State properties - ALL FROM CALLSTATE (ALLE FUNKTIONEN ERHALTEN)
+    activeTab: callState.activeTab,
+    selectedPhoneNumber: callState.selectedPhoneNumber,
+    selectedContact: callState.selectedContact,
+    selectedContract: callState.selectedContract,
+    callResult: callState.callResult,
+    callNotes: callState.callNotes,
+    callOutcome: callState.callOutcome,
+    callDuration: callState.callDuration,
+    isFilialSelectionOpen: callState.isFilialSelectionOpen,
+    selectedFiliale: callState.selectedFiliale,
+    selectedCampaign: callState.selectedCampaign,
+    customerFromNav: callState.customerFromNav,
+    contactIdFromNav: callState.contactIdFromNav,
+    isLoading: callState.isLoading,
+    campaigns: callState.campaigns,
+    customers: callState.customers,
+    filialeId: callState.filialeId,
+    isCallActive: callState.isCallActive,
+    isPanelReady: callState.isPanelReady,
     
-    // Connection state
+    // Setter functions - ALL FROM CALLSTATE (ALLE SETTER ERHALTEN)
+    setActiveTab: callState.setActiveTab,
+    setSelectedPhoneNumber: callState.setSelectedPhoneNumber,
+    setSelectedContact: callState.setSelectedContact,
+    setSelectedContract: callState.setSelectedContract,
+    setCallResult: callState.setCallResult,
+    setCallNotes: callState.setCallNotes,
+    setCallOutcome: callState.setCallOutcome,
+    setCallDuration: callState.setCallDuration,
+    setIsFilialSelectionOpen: callState.setIsFilialSelectionOpen,
+    setSelectedFiliale: callState.setSelectedFiliale,
+    setSelectedCampaign: callState.setSelectedCampaign,
+    setCustomerFromNav: callState.setCustomerFromNav,
+    setContactIdFromNav: callState.setContactIdFromNav,
+    setIsLoading: callState.setIsLoading,
+    setCampaigns: callState.setCampaigns,
+    setCustomers: callState.setCustomers,
+    setFilialeId: callState.setFilialeId,
+    setIsPanelReady: callState.setIsPanelReady,
+    
+    // Connection state (ALLE CONNECTION EIGENSCHAFTEN ERHALTEN)
     connections,
     isConnecting,
     isConnected,
     
-    // Action functions
+    // Action functions (ALLE ACTION FUNKTIONEN ERHALTEN)
     handleCallStart: callActions.handleCallStart,
     handleCallEnd: callActions.handleCallEnd,
     handleFilialeSelected: callActions.handleFilialeSelected,
@@ -120,7 +158,7 @@ export const useCallPanelManager = () => {
     handleSaveCallLog: callActions.handleSaveCallLog,
     formatCallDuration: callActions.formatCallDuration,
     
-    // Connection handlers
+    // Connection handlers (ALLE CONNECTION HANDLER ERHALTEN)
     handleConnect,
     handleDisconnect,
     fetchConnections
