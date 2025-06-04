@@ -1,13 +1,10 @@
 
 import React from 'react';
 
-const CallPanel: React.FC = () => {
-  console.log('CallPanel: Basic version loaded');
-  
+const CallPanel = () => {
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">Call Panel - Basic Test</h1>
-      <p className="text-gray-600">This is a basic test version.</p>
+    <div>
+      <h1>Call Panel</h1>
     </div>
   );
 };
