@@ -1,4 +1,6 @@
 
+// Komplett auskommentiert für Fehlerdiagnose
+/*
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -157,5 +159,15 @@ export const useCallActions = (props: UseCallActionsProps) => {
     clearCustomerSelection,
     handleSaveCallLog,
     formatCallDuration
+  };
+};
+*/
+
+// Minimale Version für Test
+export const useCallActions = () => {
+  console.log('DEBUG: useCallActions MINIMAL VERSION LOADED');
+  return {
+    handleCallStart: () => {},
+    handleCallEnd: () => {}
   };
 };

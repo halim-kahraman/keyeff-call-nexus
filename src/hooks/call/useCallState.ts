@@ -1,4 +1,6 @@
 
+// Komplett auskommentiert für Fehlerdiagnose
+/*
 import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -113,5 +115,15 @@ export const useCallState = () => {
     setIsLoading,
     setCampaigns,
     setCustomers
+  };
+};
+*/
+
+// Minimale Version für Test
+export const useCallState = () => {
+  console.log('DEBUG: useCallState MINIMAL VERSION LOADED');
+  return {
+    filialeId: null,
+    setFilialeId: () => {}
   };
 };
