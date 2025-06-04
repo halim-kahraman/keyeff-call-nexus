@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WebRTCClient } from "@/components/sip/WebRTCClient";
@@ -8,7 +7,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,7 +31,6 @@ const CallPanel = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   
   const location = useLocation();
-  const { toast } = useToast();
   const { user } = useAuth();
   const { connections, isConnecting, isConnected, connectToFiliale, disconnectFromFiliale } = useConnectionManager();
   
@@ -50,22 +48,18 @@ const CallPanel = () => {
     setIsFilialSelectionOpen(false);
     
     // Start connection process
-    toast({
-      title: "Verbindung wird hergestellt...",
+    toast.info("Verbindung wird hergestellt...", {
       description: "VPN, SIP und WebRTC werden initialisiert.",
     });
     
     try {
       await connectToFiliale(parseInt(filialeId), `Filiale ${filialeId}`);
-      toast({
-        title: "Verbindung hergestellt",
-        description: `Erfolgreich mit Filiale verbunden.`,
+      toast.success("Verbindung hergestellt", {
+        description: "Erfolgreich mit Filiale verbunden.",
       });
     } catch (error) {
-      toast({
-        title: "Verbindungsfehler",
+      toast.error("Verbindungsfehler", {
         description: "Fehler beim Herstellen der Verbindung zur Filiale.",
-        variant: "destructive"
       });
     }
   };
@@ -80,19 +74,15 @@ const CallPanel = () => {
   // Handle call start - only allowed if connected
   const handleCallStart = () => {
     if (!isConnected) {
-      toast({
-        title: "Keine Verbindung",
+      toast.error("Keine Verbindung", {
         description: "Eine Verbindung zur Filiale muss hergestellt werden, bevor Anrufe getätigt werden können.",
-        variant: "destructive"
       });
       return;
     }
 
     if (!selectedPhoneNumber) {
-      toast({
-        title: "Keine Telefonnummer",
+      toast.error("Keine Telefonnummer", {
         description: "Bitte geben Sie eine Telefonnummer ein.",
-        variant: "destructive"
       });
       return;
     }
@@ -136,8 +126,7 @@ const CallPanel = () => {
       });
 
       if (response.ok) {
-        toast({
-          title: "Anruf gespeichert",
+        toast.success("Anruf gespeichert", {
           description: "Der Anruf wurde erfolgreich protokolliert.",
         });
         
@@ -150,10 +139,8 @@ const CallPanel = () => {
         throw new Error('Failed to save call log');
       }
     } catch (error) {
-      toast({
-        title: "Fehler",
+      toast.error("Fehler", {
         description: "Der Anruf konnte nicht gespeichert werden.",
-        variant: "destructive"
       });
     }
   };
