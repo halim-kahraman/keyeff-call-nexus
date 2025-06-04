@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-const CallPanel = () => {
+const CallPanel: React.FC = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Call Panel</h1>
