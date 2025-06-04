@@ -7,7 +7,11 @@ import { useCallActions } from '@/hooks/call/useCallActions';
 import { toast } from 'sonner';
 
 export const useCallPanelManager = () => {
+  console.log('useCallPanelManager: Hook starting');
+  
   const { user } = useAuth();
+  console.log('useCallPanelManager: User:', user);
+  
   const { 
     connections, 
     isConnecting, 
@@ -17,7 +21,11 @@ export const useCallPanelManager = () => {
     fetchConnections
   } = useConnectionManager();
   
+  console.log('useCallPanelManager: Connection state:', { isConnecting, isConnected });
+  
   const callState = useCallState();
+  console.log('useCallPanelManager: Call state:', callState);
+  
   const {
     filialeId,
     isPanelReady,
@@ -30,11 +38,14 @@ export const useCallPanelManager = () => {
     isConnected
   });
 
+  console.log('useCallPanelManager: Call actions created');
+
   useEffect(() => {
     setIsPanelReady(isConnected && callState.isCallActive);
   }, [isConnected, callState.isCallActive, setIsPanelReady]);
 
   const handleConnect = async () => {
+    console.log('useCallPanelManager: handleConnect called');
     if (filialeId) {
       const filialeNameForConnection = user?.filiale ? user.filiale.toString() : undefined;
       const success = await connectToFiliale(filialeId, filialeNameForConnection);
@@ -49,9 +60,12 @@ export const useCallPanelManager = () => {
   };
 
   const handleDisconnect = async () => {
+    console.log('useCallPanelManager: handleDisconnect called');
     await disconnectFromFiliale();
     setIsPanelReady(false);
   };
+
+  console.log('useCallPanelManager: Returning hook data');
 
   return {
     // State from useCallState
