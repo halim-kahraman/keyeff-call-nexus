@@ -12,11 +12,14 @@ import { toast } from "sonner";
 interface NewCustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+  filialen: any[];
+  campaigns: any[];
   filialeId?: string | null;
   campaignId?: string | null;
 }
 
-export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }: NewCustomerDialogProps) {
+export function NewCustomerDialog({ open, onOpenChange, onSuccess, filialen, campaigns, filialeId, campaignId }: NewCustomerDialogProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -61,6 +64,7 @@ export function NewCustomerDialog({ open, onOpenChange, filialeId, campaignId }:
         notes: "",
         priority: "medium"
       });
+      onSuccess();
       onOpenChange(false);
     },
     onError: (error: any) => {

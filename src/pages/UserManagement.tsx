@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -67,7 +66,7 @@ const UserManagement: React.FC = () => {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => userService.updateUser(id, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => userService.updateUser(id.toString(), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditUser(null);
@@ -79,7 +78,7 @@ const UserManagement: React.FC = () => {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: userService.deleteUser,
+    mutationFn: (userId: number) => userService.deleteUser(userId.toString()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setDeleteUserId(null);
