@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'filialleiter' | 'mitarbeiter';
+export type UserRole = 'admin' | 'filialleiter' | 'mitarbeiter' | 'telefonist';
 
 export interface User {
   id: string;
@@ -26,5 +26,5 @@ export interface AuthContextType {
   verify2FA: (code: string) => Promise<void>;
   resetPassword: (email: string) => Promise<PasswordResetResponse | null>;
   confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<PasswordResetResponse | null>;
-  updateUser?: (user: User) => void; // Added missing updateUser method
+  updateUser?: (user: User) => void;
 }
