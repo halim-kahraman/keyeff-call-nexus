@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 import { ConnectionStatusCard } from "@/components/call/ConnectionStatusCard";
@@ -8,132 +9,158 @@ import { WarningCard } from "@/components/call/WarningCard";
 import { useCallPanelManager } from "@/hooks/call/useCallPanelManager";
 
 const CallPanel = () => {
-  const {
-    // State
-    activeTab,
-    selectedPhoneNumber,
-    selectedContact,
-    selectedContract,
-    callResult,
-    callNotes,
-    callOutcome,
-    callDuration,
-    isFilialSelectionOpen,
-    selectedFiliale,
-    selectedCampaign,
-    customerFromNav,
-    contactIdFromNav,
-    connections,
-    isConnecting,
-    isConnected,
-    campaigns,
-    customers,
-    isLoading,
-    
-    // Setters
-    setActiveTab,
-    setSelectedPhoneNumber,
-    setSelectedContact,
-    setSelectedContract,
-    setCallNotes,
-    setCallOutcome,
-    setIsFilialSelectionOpen,
-    setSelectedCampaign,
-    
-    // Handlers
-    handleFilialeSelected,
-    clearCustomerSelection,
-    handleCallStart,
-    handleCallEnd,
-    handleSaveCallLog,
-    formatCallDuration,
-    handleConnect,
-    handleDisconnect,
-  } = useCallPanelManager();
+  console.log('DEBUG: CallPanel component starting...');
+  
+  try {
+    console.log('DEBUG: About to call useCallPanelManager...');
+    const callPanelData = useCallPanelManager();
+    console.log('DEBUG: useCallPanelManager returned successfully:', Object.keys(callPanelData));
 
-  if (isLoading) {
+    const {
+      // State
+      activeTab,
+      selectedPhoneNumber,
+      selectedContact,
+      selectedContract,
+      callResult,
+      callNotes,
+      callOutcome,
+      callDuration,
+      isFilialSelectionOpen,
+      selectedFiliale,
+      selectedCampaign,
+      customerFromNav,
+      contactIdFromNav,
+      connections,
+      isConnecting,
+      isConnected,
+      campaigns,
+      customers,
+      isLoading,
+      
+      // Setters
+      setActiveTab,
+      setSelectedPhoneNumber,
+      setSelectedContact,
+      setSelectedContract,
+      setCallNotes,
+      setCallOutcome,
+      setIsFilialSelectionOpen,
+      setSelectedCampaign,
+      
+      // Handlers
+      handleFilialeSelected,
+      clearCustomerSelection,
+      handleCallStart,
+      handleCallEnd,
+      handleSaveCallLog,
+      formatCallDuration,
+      handleConnect,
+      handleDisconnect,
+    } = callPanelData;
+
+    console.log('DEBUG: All properties destructured successfully');
+
+    if (isLoading) {
+      console.log('DEBUG: Rendering loading state...');
+      return (
+        <AppLayout title="Anrufe" subtitle="Telefonzentrale">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </AppLayout>
+      );
+    }
+
+    console.log('DEBUG: About to render main CallPanel content...');
+
+    return (
+      <AppLayout title="Anrufe" subtitle="Telefonzentrale">
+        {/* Connection Status Bar */}
+        <div className="mb-6">
+          <ConnectionStatusCard
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+            selectedFiliale={selectedFiliale}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
+        </div>
+
+        {/* Warning if not connected */}
+        <div className="mb-6">
+          <WarningCard isConnected={isConnected} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Call Controls and Results */}
+          <div className="space-y-6">
+            <CallControlPanel
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              selectedPhoneNumber={selectedPhoneNumber}
+              setSelectedPhoneNumber={setSelectedPhoneNumber}
+              selectedContact={selectedContact}
+              setSelectedContact={setSelectedContact}
+              selectedContract={selectedContract}
+              setSelectedContract={setSelectedContract}
+              selectedCampaign={selectedCampaign}
+              setSelectedCampaign={setSelectedCampaign}
+              customerFromNav={customerFromNav}
+              customers={customers}
+              campaigns={campaigns}
+              selectedFiliale={selectedFiliale}
+              isConnected={isConnected}
+              clearCustomerSelection={clearCustomerSelection}
+            />
+            
+            <CallResultPanel
+              callResult={callResult}
+              callDuration={callDuration}
+              callOutcome={callOutcome}
+              setCallOutcome={setCallOutcome}
+              callNotes={callNotes}
+              setCallNotes={setCallNotes}
+              onSaveCallLog={handleSaveCallLog}
+              formatCallDuration={formatCallDuration}
+            />
+          </div>
+          
+          {/* Right Column - Phone Interface and Customer Info */}
+          <div className="space-y-6">
+            <PhoneInterface
+              isConnected={isConnected}
+              selectedPhoneNumber={selectedPhoneNumber}
+              customerFromNav={customerFromNav}
+              contactIdFromNav={contactIdFromNav}
+              selectedCampaign={selectedCampaign}
+              onCallStart={handleCallStart}
+              onCallEnd={handleCallEnd}
+            />
+          </div>
+        </div>
+
+        <BranchSelectionDialog
+          open={isFilialSelectionOpen}
+          onOpenChange={setIsFilialSelectionOpen}
+          onBranchSelected={handleFilialeSelected}
+        />
+      </AppLayout>
+    );
+  } catch (error) {
+    console.error('DEBUG: Error in CallPanel component:', error);
     return (
       <AppLayout title="Anrufe" subtitle="Telefonzentrale">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Ein Fehler ist aufgetreten beim Laden des Call Panels</p>
+            <p className="text-sm text-gray-600">Bitte überprüfen Sie die Konsole für weitere Details</p>
+          </div>
         </div>
       </AppLayout>
     );
   }
-
-  return (
-    <AppLayout title="Anrufe" subtitle="Telefonzentrale">
-      {/* Connection Status Bar */}
-      <div className="mb-6">
-        <ConnectionStatusCard
-          isConnected={isConnected}
-          isConnecting={isConnecting}
-          selectedFiliale={selectedFiliale}
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-        />
-      </div>
-
-      {/* Warning if not connected */}
-      <div className="mb-6">
-        <WarningCard isConnected={isConnected} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Call Controls and Results */}
-        <div className="space-y-6">
-          <CallControlPanel
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            selectedPhoneNumber={selectedPhoneNumber}
-            setSelectedPhoneNumber={setSelectedPhoneNumber}
-            selectedContact={selectedContact}
-            setSelectedContact={setSelectedContact}
-            selectedContract={selectedContract}
-            setSelectedContract={setSelectedContract}
-            selectedCampaign={selectedCampaign}
-            setSelectedCampaign={setSelectedCampaign}
-            customerFromNav={customerFromNav}
-            customers={customers}
-            campaigns={campaigns}
-            selectedFiliale={selectedFiliale}
-            isConnected={isConnected}
-            clearCustomerSelection={clearCustomerSelection}
-          />
-          
-          <CallResultPanel
-            callResult={callResult}
-            callDuration={callDuration}
-            callOutcome={callOutcome}
-            setCallOutcome={setCallOutcome}
-            callNotes={callNotes}
-            setCallNotes={setCallNotes}
-            onSaveCallLog={handleSaveCallLog}
-            formatCallDuration={formatCallDuration}
-          />
-        </div>
-        
-        {/* Right Column - Phone Interface and Customer Info */}
-        <div className="space-y-6">
-          <PhoneInterface
-            isConnected={isConnected}
-            selectedPhoneNumber={selectedPhoneNumber}
-            customerFromNav={customerFromNav}
-            contactIdFromNav={contactIdFromNav}
-            selectedCampaign={selectedCampaign}
-            onCallStart={handleCallStart}
-            onCallEnd={handleCallEnd}
-          />
-        </div>
-      </div>
-
-      <BranchSelectionDialog
-        open={isFilialSelectionOpen}
-        onOpenChange={setIsFilialSelectionOpen}
-        onBranchSelected={handleFilialeSelected}
-      />
-    </AppLayout>
-  );
 };
 
 export default CallPanel;
+
