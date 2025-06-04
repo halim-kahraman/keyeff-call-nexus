@@ -1,326 +1,216 @@
+
 import React, { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Alert,
-  Snackbar,
-  AlertColor
-} from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
-import { useQuery, useMutation } from 'react-query';
-import { userService } from '@/services/api';
-import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import { userService, filialeService } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: string;
-  filiale: string;
+  filiale_id: number;
+  filiale_name?: string;
+  created_at: string;
 }
 
 const UserManagement: React.FC = () => {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('');
-  const [password, setPassword] = useState('');
-  const [filiale, setFiliale] = useState('');
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success');
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: users = [], isLoading, error, refetch } = useQuery({
+  const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => userService.getUsers()
+    queryFn: async () => {
+      const response = await userService.getUsers();
+      return response.data || [];
+    }
   });
 
-  const handleOpenEditDialog = (user: User) => {
-    setSelectedUser(user);
-    setName(user.name);
-    setEmail(user.email);
-    setRole(user.role);
-    setFiliale(user.filiale);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleCloseEditDialog = () => {
-    setIsEditDialogOpen(false);
-    setSelectedUser(null);
-  };
-
-  const handleOpenCreateDialog = () => {
-    setIsCreateDialogOpen(true);
-  };
-
-  const handleCloseCreateDialog = () => {
-    setIsCreateDialogOpen(false);
-  };
-
-  const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setName(event.target.value);
-  };
-
-  const handleChangeEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(event.target.value);
-  };
-
-  const handleChangeRole = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRole(event.target.value);
-  };
-
-  const handleChangePassword = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(event.target.value);
-  };
-  const handleChangeFiliale = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFiliale(event.target.value);
-  };
+  const { data: filialen = [] } = useQuery({
+    queryKey: ['filialen'],
+    queryFn: async () => {
+      const response = await filialeService.getFilialen();
+      return response.data || [];
+    }
+  });
 
   const createUserMutation = useMutation({
-    mutationFn: (userData: any) => userService.createUser(userData),
+    mutationFn: userService.createUser,
     onSuccess: () => {
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       setIsCreateDialogOpen(false);
-      toast.success('Benutzer erfolgreich erstellt');
+      toast({
+        title: "Erfolg",
+        description: "Benutzer wurde erstellt.",
+      });
     },
-    onError: (error: any) => {
-      toast.error('Fehler beim Erstellen des Benutzers');
+    onError: () => {
+      toast({
+        title: "Fehler",
+        description: "Benutzer konnte nicht erstellt werden.",
+        variant: "destructive",
+      });
     }
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: (userData: any) => userService.updateUser(selectedUser!.id, userData),
+    mutationFn: ({ id, data }: { id: number; data: any }) => userService.updateUser(id, data),
     onSuccess: () => {
-      refetch();
-      setIsEditDialogOpen(false);
-      toast.success('Benutzer erfolgreich aktualisiert');
-    },
-    onError: (error: any) => {
-      toast.error('Fehler beim Aktualisieren des Benutzers');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setEditUser(null);
+      toast({
+        title: "Erfolg",
+        description: "Benutzer wurde aktualisiert.",
+      });
     }
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: (userId: string) => userService.deleteUser(userId),
+    mutationFn: userService.deleteUser,
     onSuccess: () => {
-      refetch();
-      toast.success('Benutzer erfolgreich gelöscht');
-    },
-    onError: (error: any) => {
-      toast.error('Fehler beim Löschen des Benutzers');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setDeleteUserId(null);
+      toast({
+        title: "Erfolg",
+        description: "Benutzer wurde gelöscht.",
+      });
     }
   });
 
-  const handleCreateUser = () => {
-    createUserMutation.mutate({ name, email, role, password, filiale });
-  };
-
-  const handleUpdateUser = () => {
-    updateUserMutation.mutate({ name, email, role, filiale, password });
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    deleteUserMutation.mutate(userId);
-  };
-
-  const handleSnackbarClose = (event: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') {
-      return;
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'admin': return 'destructive';
+      case 'filialleiter': return 'default';
+      case 'telefonist': return 'secondary';
+      default: return 'outline';
     }
-    setSnackbarOpen(false);
   };
 
   if (isLoading) {
-    return <Alert severity="info">Benutzer werden geladen...</Alert>;
-  }
-
-  if (error) {
-    return <Alert severity="error">Fehler beim Laden der Benutzer.</Alert>;
+    return (
+      <AppLayout title="Benutzerverwaltung" subtitle="Benutzer und Rollen verwalten">
+        <div>Lade Benutzer...</div>
+      </AppLayout>
+    );
   }
 
   return (
-    <Box>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<AddIcon />}
-        onClick={handleOpenCreateDialog}
-        sx={{ mb: 2 }}
-      >
-        Benutzer erstellen
-      </Button>
-
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="Benutzertabelle">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>E-Mail</TableCell>
-              <TableCell>Rolle</TableCell>
-              <TableCell>Filiale</TableCell>
-              <TableCell align="right">Aktionen</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                <TableCell component="th" scope="row">
-                  {user.name}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{user.filiale}</TableCell>
-                <TableCell align="right">
-                  <IconButton aria-label="edit" onClick={() => handleOpenEditDialog(user)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton aria-label="delete" onClick={() => handleDeleteUser(user.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Dialog open={isEditDialogOpen} onClose={handleCloseEditDialog}>
-        <DialogTitle>Benutzer bearbeiten</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Name"
-            type="text"
-            fullWidth
-            value={name}
-            onChange={handleChangeName}
-          />
-          <TextField
-            margin="dense"
-            label="E-Mail"
-            type="email"
-            fullWidth
-            value={email}
-            onChange={handleChangeEmail}
-          />
-          <TextField
-            margin="dense"
-            label="Filiale"
-            type="text"
-            fullWidth
-            value={filiale}
-            onChange={handleChangeFiliale}
-          />
-          <FormControl fullWidth margin="dense">
-            <InputLabel id="role-select-label">Rolle</InputLabel>
-            <Select
-              labelId="role-select-label"
-              id="role-select"
-              value={role}
-              label="Rolle"
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="filialleiter">Filialleiter</MenuItem>
-              <MenuItem value="telefonist">Telefonist</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label="Passwort"
-            type="password"
-            fullWidth
-            onChange={handleChangePassword}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditDialog}>Abbrechen</Button>
-          <Button onClick={handleUpdateUser}>Speichern</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={isCreateDialogOpen} onClose={handleCloseCreateDialog}>
-        <DialogTitle>Benutzer erstellen</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Name"
-            type="text"
-            fullWidth
-            value={name}
-            onChange={handleChangeName}
-          />
-          <TextField
-            margin="dense"
-            label="E-Mail"
-            type="email"
-            fullWidth
-            value={email}
-            onChange={handleChangeEmail}
-          />
-          <TextField
-            margin="dense"
-            label="Filiale"
-            type="text"
-            fullWidth
-            value={filiale}
-            onChange={handleChangeFiliale}
-          />
-          <FormControl fullWidth margin="dense">
-            <InputLabel id="role-create-select-label">Rolle</InputLabel>
-            <Select
-              labelId="role-create-select-label"
-              id="role-create-select"
-              value={role}
-              label="Rolle"
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="filialleiter">Filialleiter</MenuItem>
-              <MenuItem value="telefonist">Telefonist</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label="Passwort"
-            type="password"
-            fullWidth
-            onChange={handleChangePassword}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreateDialog}>Abbrechen</Button>
-          <Button onClick={handleCreateUser}>Erstellen</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </Box>
+    <AppLayout title="Benutzerverwaltung" subtitle="Benutzer und Rollen verwalten">
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Benutzer</CardTitle>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Benutzer hinzufügen
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Neuen Benutzer erstellen</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input placeholder="Name" />
+                    <Input type="email" placeholder="E-Mail" />
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Rolle auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrator</SelectItem>
+                        <SelectItem value="filialleiter">Filialleiter</SelectItem>
+                        <SelectItem value="telefonist">Telefonist</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filiale auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filialen.map((filiale: any) => (
+                          <SelectItem key={filiale.id} value={filiale.id.toString()}>
+                            {filiale.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                        Abbrechen
+                      </Button>
+                      <Button>Erstellen</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>E-Mail</TableHead>
+                  <TableHead>Rolle</TableHead>
+                  <TableHead>Filiale</TableHead>
+                  <TableHead>Erstellt am</TableHead>
+                  <TableHead>Aktionen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user: User) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.filiale_name}</TableCell>
+                    <TableCell>{new Date(user.created_at).toLocaleDateString('de-DE')}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setEditUser(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setDeleteUserId(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
   );
 };
 

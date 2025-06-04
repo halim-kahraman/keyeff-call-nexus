@@ -3,24 +3,11 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
-import { Download, RefreshCw, TrendingUp, Phone, Users, Calendar } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatisticsCards } from "@/components/statistics/StatisticsCards";
+import { StatisticsCharts } from "@/components/statistics/StatisticsCharts";
+import { StatisticsFilters } from "@/components/statistics/StatisticsFilters";
+import { TrendingUp } from "lucide-react";
 import { statisticsService, filialeService } from "@/services/api";
 import { exportToPdf } from "@/utils/exportUtils";
 
@@ -63,8 +50,6 @@ const Statistics = () => {
     top_callers: stats?.top_callers || []
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
   // Handlers
   const handleFilialeChange = (filialeId: string) => {
     setSelectedFiliale(filialeId);
@@ -80,163 +65,46 @@ const Statistics = () => {
 
   const handleExport = () => {
     if (stats) {
-      exportToPdf([stats], "statistiken", "Statistiken");
+      exportToPdf([stats], "Statistiken", "statistiken");
     }
   };
+
+  const hasStats = stats && (stats.summary?.total_calls || stats.summary?.total_appointments);
 
   return (
     <AppLayout title="Statistiken" subtitle="Übersicht über Anrufe und Kampagnen-Performance">
       <div className="space-y-6">
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-          {isAdmin && (
-            <Select onValueChange={handleFilialeChange}>
-              <SelectTrigger className="w-full md:w-64">
-                <SelectValue placeholder="Filiale auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                {filialen?.map((filiale: Filiale) => (
-                  <SelectItem key={filiale.id} value={filiale.id}>
-                    {filiale.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+        <StatisticsFilters
+          isAdmin={isAdmin}
+          filialen={filialen}
+          selectedFiliale={selectedFiliale}
+          onFilialeChange={handleFilialeChange}
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+          onRefresh={handleRefresh}
+          onExport={handleExport}
+          isLoading={isLoading}
+          hasStats={!!hasStats}
+        />
 
-          <Select onValueChange={handleDateRangeChange} defaultValue="30">
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Zeitraum auswählen" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Letzte 7 Tage</SelectItem>
-              <SelectItem value="30">Letzte 30 Tage</SelectItem>
-              <SelectItem value="90">Letzte 90 Tage</SelectItem>
-            </SelectContent>
-          </Select>
+        <StatisticsCards
+          stats={stats}
+          isLoading={isLoading}
+          dateRange={dateRange}
+        />
 
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Aktualisieren
-            </Button>
-            <Button onClick={handleExport} disabled={!stats}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportieren
-            </Button>
-          </div>
-        </div>
-
-        {/* Statistics Overview */}
-        <div id="statistics-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Phone className="h-4 w-4" />
-                <span>Anrufe gesamt</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? 'Lädt...' : (stats?.summary?.total_calls || 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isLoading ? '' : `Zeitraum: ${dateRange} Tage`}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>Termine</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? 'Lädt...' : (stats?.summary?.total_appointments || 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isLoading ? '' : `Zeitraum: ${dateRange} Tage`}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-4 w-4" />
-                <span>Kontaktierte Kunden</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? 'Lädt...' : (stats?.summary?.total_customers_contacted || 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {isLoading ? '' : `Zeitraum: ${dateRange} Tage`}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
         {!isLoading && stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Anrufe pro Tag</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData.calls_by_day}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="total_calls" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Anruf-Ergebnisse</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={chartData.calls_by_outcome}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {chartData.calls_by_outcome.map((_entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <StatisticsCharts
+            chartData={chartData}
+            isLoading={isLoading}
+          />
         )}
 
         {/* Top Callers */}
         {!isLoading && stats && chartData.top_callers.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Top Anrufer</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Top Anrufer</h3>
               <div className="space-y-2">
                 {chartData.top_callers.map((caller: any, index: number) => (
                   <div key={caller.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
@@ -255,7 +123,7 @@ const Statistics = () => {
         )}
 
         {/* Empty State */}
-        {!isLoading && (!stats || (!stats.summary?.total_calls && !stats.summary?.total_appointments)) && (
+        {!isLoading && !hasStats && (
           <Card>
             <CardContent className="text-center py-12">
               <div className="text-muted-foreground">
