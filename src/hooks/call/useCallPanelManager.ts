@@ -104,8 +104,43 @@ export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Returning hook data');
 
   return {
-    // All state from useCallState
-    ...callState,
+    // ALL state from useCallState - COMPLETE return
+    filialeId,
+    isCallActive: callState.isCallActive,
+    isPanelReady,
+    activeTab: callState.activeTab,
+    selectedPhoneNumber,
+    selectedContact,
+    selectedContract: callState.selectedContract,
+    callResult,
+    callNotes,
+    callOutcome,
+    callDuration,
+    isFilialSelectionOpen: callState.isFilialSelectionOpen,
+    selectedFiliale: callState.selectedFiliale,
+    selectedCampaign,
+    customerFromNav,
+    contactIdFromNav: callState.contactIdFromNav,
+    isLoading: callState.isLoading,
+    campaigns: callState.campaigns,
+    customers: callState.customers,
+    
+    // ALL setters from useCallState - COMPLETE setters
+    setFilialeId,
+    setIsPanelReady,
+    setActiveTab: callState.setActiveTab,
+    setSelectedPhoneNumber,
+    setSelectedContact,
+    setSelectedContract,
+    setCallResult,
+    setCallNotes,
+    setCallOutcome,
+    setCallDuration,
+    setIsFilialSelectionOpen: callState.setIsFilialSelectionOpen,
+    setSelectedFiliale: callState.setSelectedFiliale,
+    setSelectedCampaign: callState.setSelectedCampaign,
+    setCustomerFromNav,
+    setContactIdFromNav,
     
     // Connection state
     connections,

@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -55,13 +56,15 @@ export const useCallActions = (props: UseCallActionsProps) => {
       console.log('Starting call...', { selectedPhoneNumber, selectedContact });
       setCallDuration(0);
       setCallResult(null);
-      // Start call timer - we need to handle this differently since setCallDuration expects a number
+      
+      // Start call timer with proper implementation
       let currentDuration = 0;
       const timer = setInterval(() => {
         currentDuration += 1;
         setCallDuration(currentDuration);
       }, 1000);
-      setCallResult({ timer });
+      
+      setCallResult({ timer, started: true });
     } else {
       toast.error('Anruf konnte nicht gestartet werden', {
         description: 'Bitte stellen Sie sicher, dass Sie mit einer Filiale verbunden sind.'
@@ -95,7 +98,7 @@ export const useCallActions = (props: UseCallActionsProps) => {
   const handleSaveCallLog = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('/api/calls/log.php', {
+      const response = await fetch('/api/calls/log.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,18 +110,22 @@ export const useCallActions = (props: UseCallActionsProps) => {
           phone_number: selectedPhoneNumber,
           duration: callDuration,
           outcome: callOutcome,
-          notes: callNotes,
+          log_text: callNotes,
           campaign_id: selectedCampaign
         })
       });
       
-      toast.success('Anruf-Log gespeichert');
-      
-      // Reset form
-      setCallNotes("");
-      setCallOutcome("");
-      setCallDuration(0);
-      setCallResult(null);
+      if (response.ok) {
+        toast.success('Anruf-Log gespeichert');
+        
+        // Reset form
+        setCallNotes("");
+        setCallOutcome("");
+        setCallDuration(0);
+        setCallResult(null);
+      } else {
+        throw new Error('Server error');
+      }
       
     } catch (error) {
       toast.error('Fehler beim Speichern des Anruf-Logs');

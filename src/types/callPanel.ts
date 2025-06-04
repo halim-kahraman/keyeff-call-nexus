@@ -30,6 +30,11 @@ export interface CallPanelActions {
   setCallOutcome: (outcome: string) => void;
   setIsFilialSelectionOpen: (open: boolean) => void;
   setSelectedCampaign: (campaign: string | null) => void;
+  setSelectedFiliale: (filiale: string | null) => void;
+  setFilialeId: (id: number) => void;
+  setIsPanelReady: (ready: boolean) => void;
+  setCustomerFromNav: (customer: any) => void;
+  setContactIdFromNav: (id: string | null) => void;
   handleFilialeSelected: (branchId: string) => void;
   clearCustomerSelection: () => void;
   handleCallStart: () => void;
@@ -39,4 +44,10 @@ export interface CallPanelActions {
   handleConnect: () => Promise<void>;
   handleDisconnect: () => Promise<void>;
   fetchConnections: () => Promise<void>;
+}
+
+export interface CallPanelManagerReturn extends CallPanelState, CallPanelActions {
+  connections: any[];
+  isConnecting: boolean;
+  isConnected: boolean;
 }
