@@ -50,7 +50,8 @@ export const useCallPanelManager = () => {
     setFilialeId
   } = callState;
 
-  const callActions = useCallActions({
+  // Initialize call actions with the required props
+  const callActionsProps = {
     filialeId,
     selectedPhoneNumber,
     selectedContact,
@@ -71,7 +72,9 @@ export const useCallPanelManager = () => {
     setContactIdFromNav,
     setFilialeId,
     isConnected
-  });
+  };
+
+  const callActions = useCallActions(callActionsProps);
 
   console.log('useCallPanelManager: Call actions created');
 
