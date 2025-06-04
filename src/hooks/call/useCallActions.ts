@@ -57,7 +57,7 @@ export const useCallActions = ({
       setCallResult(null);
       // Start call timer
       const timer = setInterval(() => {
-        setCallDuration((prev: number) => prev + 1);
+        setCallDuration((prev) => prev + 1);
       }, 1000);
       setCallResult({ timer });
     } else {
