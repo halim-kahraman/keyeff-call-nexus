@@ -84,7 +84,8 @@ export const useCallPanelManager = () => {
 
   const handleConnect = async () => {
     if (filialeId) {
-      const success = await connectToFiliale(filialeId, user?.filiale);
+      const filialeNameForConnection = user?.filiale ? user.filiale.toString() : undefined;
+      const success = await connectToFiliale(filialeId, filialeNameForConnection);
       if (success) {
         setIsPanelReady(true);
       }
