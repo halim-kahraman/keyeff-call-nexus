@@ -21,7 +21,7 @@ interface UseCallActionsProps {
   setSelectedContract: (contract: any) => void;
   setCustomerFromNav: (customer: any) => void;
   setContactIdFromNav: (id: string | null) => void;
-  setFilialeId: (id: number) => void;
+  setFilialeId: (id: number | null) => void;
   isConnected: boolean;
 }
 

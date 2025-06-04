@@ -5,8 +5,9 @@ import { useConnectionManager } from '@/hooks/connection/useConnectionManager';
 import { useCallState } from '@/hooks/call/useCallState';
 import { useCallActions } from '@/hooks/call/useCallActions';
 import { toast } from 'sonner';
+import { CallPanelManagerReturn } from '@/types/callPanel';
 
-export const useCallPanelManager = () => {
+export const useCallPanelManager = (): CallPanelManagerReturn => {
   console.log('useCallPanelManager: Hook starting');
   
   const { user } = useAuth();
@@ -104,42 +105,42 @@ export const useCallPanelManager = () => {
   console.log('useCallPanelManager: Returning hook data');
 
   return {
-    // State properties
-    filialeId,
+    // State properties - ALL FROM CALLSTATE
+    filialeId: callState.filialeId,
     isCallActive: callState.isCallActive,
-    isPanelReady,
+    isPanelReady: callState.isPanelReady,
     activeTab: callState.activeTab,
-    selectedPhoneNumber,
-    selectedContact,
+    selectedPhoneNumber: callState.selectedPhoneNumber,
+    selectedContact: callState.selectedContact,
     selectedContract: callState.selectedContract,
-    callResult,
-    callNotes,
-    callOutcome,
-    callDuration,
+    callResult: callState.callResult,
+    callNotes: callState.callNotes,
+    callOutcome: callState.callOutcome,
+    callDuration: callState.callDuration,
     isFilialSelectionOpen: callState.isFilialSelectionOpen,
     selectedFiliale: callState.selectedFiliale,
-    selectedCampaign,
-    customerFromNav,
+    selectedCampaign: callState.selectedCampaign,
+    customerFromNav: callState.customerFromNav,
     contactIdFromNav: callState.contactIdFromNav,
     isLoading: callState.isLoading,
     campaigns: callState.campaigns,
     customers: callState.customers,
     
     // Setter functions - ALL FROM CALLSTATE
-    setFilialeId,
-    setIsPanelReady,
+    setFilialeId: callState.setFilialeId,
+    setIsPanelReady: callState.setIsPanelReady,
     setActiveTab: callState.setActiveTab,
-    setSelectedPhoneNumber,
-    setSelectedContact,
+    setSelectedPhoneNumber: callState.setSelectedPhoneNumber,
+    setSelectedContact: callState.setSelectedContact,
     setSelectedContract: callState.setSelectedContract,
-    setCallResult,
-    setCallNotes,
-    setCallOutcome,
-    setCallDuration,
+    setCallResult: callState.setCallResult,
+    setCallNotes: callState.setCallNotes,
+    setCallOutcome: callState.setCallOutcome,
+    setCallDuration: callState.setCallDuration,
     setIsFilialSelectionOpen: callState.setIsFilialSelectionOpen,
     setSelectedFiliale: callState.setSelectedFiliale,
     setSelectedCampaign: callState.setSelectedCampaign,
-    setCustomerFromNav,
+    setCustomerFromNav: callState.setCustomerFromNav,
     setContactIdFromNav: callState.setContactIdFromNav,
     setIsLoading: callState.setIsLoading,
     setCampaigns: callState.setCampaigns,

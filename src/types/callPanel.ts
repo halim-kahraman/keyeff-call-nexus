@@ -21,7 +21,7 @@ export interface CallPanelState {
   isPanelReady: boolean;
 }
 
-export interface CallPanelActions {
+export interface CallPanelStateSetters {
   setActiveTab: (tab: string) => void;
   setSelectedPhoneNumber: (number: string) => void;
   setSelectedContact: (contact: any) => void;
@@ -33,13 +33,16 @@ export interface CallPanelActions {
   setIsFilialSelectionOpen: (open: boolean) => void;
   setSelectedCampaign: (campaign: string | null) => void;
   setSelectedFiliale: (filiale: string | null) => void;
-  setFilialeId: (id: number) => void;
+  setFilialeId: (id: number | null) => void;
   setIsPanelReady: (ready: boolean) => void;
   setCustomerFromNav: (customer: any) => void;
   setContactIdFromNav: (id: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setCampaigns: (campaigns: any[]) => void;
   setCustomers: (customers: any[]) => void;
+}
+
+export interface CallPanelActions {
   handleFilialeSelected: (branchId: string) => void;
   clearCustomerSelection: () => void;
   handleCallStart: () => void;
@@ -51,7 +54,7 @@ export interface CallPanelActions {
   fetchConnections: () => Promise<void>;
 }
 
-export interface CallPanelManagerReturn extends CallPanelState, CallPanelActions {
+export interface CallPanelManagerReturn extends CallPanelState, CallPanelStateSetters, CallPanelActions {
   connections: any[];
   isConnecting: boolean;
   isConnected: boolean;
