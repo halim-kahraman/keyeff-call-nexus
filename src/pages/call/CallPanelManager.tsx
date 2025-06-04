@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useConnectionManager } from '@/hooks/useConnectionManager';
+import { useConnectionManager } from '@/hooks/connection/useConnectionManager';
 import { Connection } from '@/types/connection';
 import { toast } from 'sonner';
 
