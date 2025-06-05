@@ -11,7 +11,6 @@ const Login = () => {
   const { isAuthenticated, login, isLoading, needsVerification, verify2FA, resetPassword, confirmResetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const from = location.state?.from?.pathname || "/";
@@ -26,10 +25,10 @@ const Login = () => {
     await login(email, password);
   };
 
-  const handleVerify = async (e: FormEvent) => {
-    e.preventDefault();
-    console.log('Verifying 2FA code:', code);
-    await verify2FA(code);
+  const handleVerificationComplete = async (token: string) => {
+    console.log('Verification completed with token');
+    // The TwoFactorForm handles the verification internally, 
+    // so we don't need to do anything here as the auth context will update
   };
 
   const handleBack = () => {
@@ -61,10 +60,8 @@ const Login = () => {
           />
         ) : (
           <TwoFactorForm
-            code={code}
-            isLoading={isLoading}
-            onCodeChange={setCode}
-            onSubmit={handleVerify}
+            email={email}
+            onVerificationComplete={handleVerificationComplete}
             onBack={handleBack}
           />
         )}
