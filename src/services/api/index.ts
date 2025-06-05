@@ -8,3 +8,4 @@ export { adminService } from './adminService';
 export { logsService } from './logsService';
 export { dashboardService } from './dashboardService';
 export { campaignService } from './campaignService';
+export { notificationService } from './notificationService';

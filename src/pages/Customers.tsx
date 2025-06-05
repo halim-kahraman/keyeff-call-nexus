@@ -14,15 +14,24 @@ import { useAuth } from "@/context/AuthContext";
 import { customerService, filialeService } from "@/services/api";
 import { Phone, Mail, User, Building, Calendar, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
 
 const Customers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
+  const [isBranchSelectionOpen, setIsBranchSelectionOpen] = useState(false);
   
   const isAdmin = user?.role === "admin";
   const effectiveFiliale = isAdmin ? selectedFiliale : user?.filiale_id?.toString();
+  const needsBranchSelection = isAdmin && !selectedFiliale;
+
+  React.useEffect(() => {
+    if (needsBranchSelection) {
+      setIsBranchSelectionOpen(true);
+    }
+  }, [needsBranchSelection]);
 
   const { data: filialen = [] } = useQuery({
     queryKey: ['filialen'],
@@ -38,6 +47,11 @@ const Customers = () => {
     queryFn: () => customerService.getCustomers(effectiveFiliale),
     enabled: !!effectiveFiliale,
   });
+
+  const handleBranchSelected = (branchId: string) => {
+    setSelectedFiliale(branchId);
+    setIsBranchSelectionOpen(false);
+  };
 
   const handleCall = (customer: any, contactId?: string) => {
     navigate('/call', { 
@@ -70,43 +84,16 @@ const Customers = () => {
     }
   };
 
-  if (!effectiveFiliale && isAdmin) {
-    return (
-      <AppLayout title="Kunden" subtitle="Kundenverwaltung">
-        <Card>
-          <CardHeader>
-            <CardTitle>Filiale auswählen</CardTitle>
-            <CardDescription>Bitte wählen Sie eine Filiale aus, um Kunden anzuzeigen.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedFiliale || ""} onValueChange={setSelectedFiliale}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filiale auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                {filialen.map((filiale: any) => (
-                  <SelectItem key={filiale.id} value={filiale.id.toString()}>
-                    {filiale.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-      </AppLayout>
-    );
-  }
-
   return (
     <AppLayout title="Kunden" subtitle="Kundenverwaltung">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          {isAdmin && (
+          {isAdmin && selectedFiliale && (
             <Select value={selectedFiliale || ""} onValueChange={setSelectedFiliale}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Filiale auswählen" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white z-50">
                 {filialen.map((filiale: any) => (
                   <SelectItem key={filiale.id} value={filiale.id.toString()}>
                     {filiale.name}
@@ -116,88 +103,98 @@ const Customers = () => {
             </Select>
           )}
           
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>Neuer Kunde</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Neuen Kunden erstellen</DialogTitle>
-                <DialogDescription>
-                  Geben Sie die Kundendaten ein.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateCustomer}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" name="name" className="col-span-3" required />
+          {effectiveFiliale && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Neuer Kunde</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-white">
+                <DialogHeader>
+                  <DialogTitle>Neuen Kunden erstellen</DialogTitle>
+                  <DialogDescription>
+                    Geben Sie die Kundendaten ein.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateCustomer}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">Name</Label>
+                      <Input id="name" name="name" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">E-Mail</Label>
+                      <Input id="email" name="email" type="email" className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="phone" className="text-right">Telefon</Label>
+                      <Input id="phone" name="phone" className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="address" className="text-right">Adresse</Label>
+                      <Input id="address" name="address" className="col-span-3" />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">E-Mail</Label>
-                    <Input id="email" name="email" type="email" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">Telefon</Label>
-                    <Input id="phone" name="phone" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="address" className="text-right">Adresse</Label>
-                    <Input id="address" name="address" className="col-span-3" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Kunde erstellen</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="submit">Kunde erstellen</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            {isLoading ? (
-              <div className="text-center py-8">Lädt Kunden...</div>
-            ) : customers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Keine Kunden gefunden
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Telefon</TableHead>
-                    <TableHead>E-Mail</TableHead>
-                    <TableHead>Adresse</TableHead>
-                    <TableHead>Aktionen</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer: any) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.phone}</TableCell>
-                      <TableCell>{customer.email}</TableCell>
-                      <TableCell>{customer.address}</TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleCall(customer)}
-                          className="mr-2"
-                        >
-                          <Phone className="h-4 w-4 mr-1" />
-                          Anrufen
-                        </Button>
-                      </TableCell>
+        {effectiveFiliale ? (
+          <Card>
+            <CardContent className="pt-6">
+              {isLoading ? (
+                <div className="text-center py-8">Lädt Kunden...</div>
+              ) : customers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Keine Kunden gefunden
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Telefon</TableHead>
+                      <TableHead>E-Mail</TableHead>
+                      <TableHead>Adresse</TableHead>
+                      <TableHead>Aktionen</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer: any) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{customer.email}</TableCell>
+                        <TableCell>{customer.address}</TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleCall(customer)}
+                            className="mr-2"
+                          >
+                            <Phone className="h-4 w-4 mr-1" />
+                            Anrufen
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
+
+      <BranchSelectionDialog
+        open={isBranchSelectionOpen}
+        onOpenChange={setIsBranchSelectionOpen}
+        onBranchSelected={handleBranchSelected}
+      />
     </AppLayout>
   );
 };

@@ -36,7 +36,7 @@ export const BranchSelectionDialog: React.FC<BranchSelectionDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="sm:max-w-md bg-white z-50">
         <DialogHeader>
           <DialogTitle>Filiale auswählen</DialogTitle>
           <DialogDescription>
@@ -48,7 +48,7 @@ export const BranchSelectionDialog: React.FC<BranchSelectionDialogProps> = ({
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="Filiale auswählen" />
             </SelectTrigger>
-            <SelectContent className="bg-white">
+            <SelectContent className="bg-white z-50">
               {isLoading ? (
                 <SelectItem value="loading" disabled>Lädt...</SelectItem>
               ) : filialen.length === 0 ? (

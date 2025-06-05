@@ -4,7 +4,7 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Notification {
   id: number;
@@ -15,24 +15,51 @@ interface Notification {
   created_at: string;
 }
 
+const notificationService = {
+  getNotifications: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch('/backend/api/notifications/list.php', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      return result.data || [];
+    }
+    return [];
+  },
+
+  markAsRead: async (notificationId: number) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch('/backend/api/notifications/mark-read.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ id: notificationId })
+    });
+    
+    return response.ok;
+  }
+};
+
 export const NotificationsDropdown = () => {
+  const queryClient = useQueryClient();
+
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/notifications/list.php', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        return result.data || [];
-      }
-      return [];
-    },
+    queryFn: notificationService.getNotifications,
     refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: notificationService.markAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
   });
 
   const unreadCount = notifications.filter((n: Notification) => !n.is_read).length;
@@ -43,6 +70,12 @@ export const NotificationsDropdown = () => {
       case 'warning': return 'text-amber-600';
       case 'error': return 'text-red-600';
       default: return 'text-blue-600';
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.is_read) {
+      markAsReadMutation.mutate(notification.id);
     }
   };
 
@@ -61,7 +94,7 @@ export const NotificationsDropdown = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto bg-white">
+      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto bg-white z-50">
         <div className="p-2 font-semibold border-b">
           Benachrichtigungen
         </div>
@@ -75,7 +108,11 @@ export const NotificationsDropdown = () => {
           </div>
         ) : (
           notifications.map((notification: Notification) => (
-            <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-pointer">
+            <DropdownMenuItem 
+              key={notification.id} 
+              className="flex flex-col items-start p-3 cursor-pointer"
+              onClick={() => handleNotificationClick(notification)}
+            >
               <div className="flex items-center justify-between w-full">
                 <span className={`font-medium ${getTypeColor(notification.type)}`}>
                   {notification.title}

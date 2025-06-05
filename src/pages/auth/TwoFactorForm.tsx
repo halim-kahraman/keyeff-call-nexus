@@ -1,68 +1,146 @@
 
-import React, { FormEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { toast } from 'sonner';
 
 interface TwoFactorFormProps {
-  code: string;
-  isLoading: boolean;
-  onCodeChange: (code: string) => void;
-  onSubmit: (e: FormEvent) => void;
+  email: string;
+  onVerificationComplete: (token: string) => void;
   onBack: () => void;
 }
 
-export const TwoFactorForm = ({
-  code,
-  isLoading,
-  onCodeChange,
-  onSubmit,
+export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
+  email,
+  onVerificationComplete,
   onBack
-}: TwoFactorFormProps) => {
+}) => {
+  const [otp, setOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOtpChange = async (value: string) => {
+    setOtp(value);
+    
+    // Auto-submit when 6 digits are entered
+    if (value.length === 6) {
+      await verifyOtp(value);
+    }
+  };
+
+  const verifyOtp = async (otpValue: string = otp) => {
+    if (otpValue.length !== 6) {
+      toast.error('Bitte geben Sie den vollständigen 6-stelligen Code ein');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/backend/api/auth/verify.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          otp: otpValue
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Erfolgreich verifiziert');
+        onVerificationComplete(data.token);
+      } else {
+        toast.error(data.message || 'Ungültiger Code');
+        setOtp(''); // Clear OTP on error
+      }
+    } catch (error) {
+      toast.error('Fehler bei der Verifizierung');
+      setOtp(''); // Clear OTP on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      const response = await fetch('/backend/api/auth/login.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, resend: true }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Neuer Code wurde gesendet');
+      } else {
+        toast.error('Fehler beim Senden des Codes');
+      }
+    } catch (error) {
+      toast.error('Fehler beim Senden des Codes');
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
         <CardTitle>Zwei-Faktor-Authentifizierung</CardTitle>
         <CardDescription>
-          Bitte geben Sie den Code ein, der an Ihre E-Mail gesendet wurde
+          Geben Sie den 6-stelligen Code ein, der an {email} gesendet wurde
         </CardDescription>
       </CardHeader>
-      <form onSubmit={onSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">Bestätigungscode</Label>
-            <Input
-              id="code"
-              type="text"
-              placeholder="123456"
-              value={code}
-              onChange={(e) => onCodeChange(e.target.value)}
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <Button 
-            type="submit" 
-            className="w-full bg-keyeff-500 hover:bg-keyeff-600"
+      <CardContent className="space-y-6">
+        <div className="flex justify-center">
+          <InputOTP
+            maxLength={6}
+            value={otp}
+            onChange={handleOtpChange}
             disabled={isLoading}
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Bestätigen
-          </Button>
-          <Button 
-            type="button"
-            variant="ghost"
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
+
+        <div className="space-y-4">
+          <Button
+            onClick={() => verifyOtp()}
+            disabled={otp.length !== 6 || isLoading}
             className="w-full"
-            disabled={isLoading}
-            onClick={onBack}
           >
-            Zurück
+            {isLoading ? 'Verifiziere...' : 'Verifizieren'}
           </Button>
-        </CardFooter>
-      </form>
+
+          <div className="flex justify-between text-sm">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              disabled={isLoading}
+            >
+              Zurück
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleResendCode}
+              disabled={isLoading}
+            >
+              Code erneut senden
+            </Button>
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 };
