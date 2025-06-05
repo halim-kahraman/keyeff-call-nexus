@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 interface TwoFactorFormProps {
   email: string;
@@ -18,6 +19,7 @@ export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
 }) => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { verify2FA } = useAuth();
 
   const handleOtpChange = async (value: string) => {
     setOtp(value);
@@ -37,28 +39,11 @@ export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/backend/api/auth/verify.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          otp: otpValue
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Erfolgreich verifiziert');
-        onVerificationComplete(data.token);
-      } else {
-        toast.error(data.message || 'Ungültiger Code');
-        setOtp(''); // Clear OTP on error
-      }
+      // Use the auth context verify2FA method
+      await verify2FA(otpValue);
+      onVerificationComplete('verified');
     } catch (error) {
-      toast.error('Fehler bei der Verifizierung');
+      toast.error('Ungültiger Code');
       setOtp(''); // Clear OTP on error
     } finally {
       setIsLoading(false);
