@@ -1,4 +1,3 @@
-
 <?php
 namespace KeyEff\CallPanel\Models;
 
