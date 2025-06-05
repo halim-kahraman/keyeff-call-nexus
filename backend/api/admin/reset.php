@@ -4,12 +4,10 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Log.php';
 
-// Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, 'Invalid request method', null, 405);
 }
 
-// Check authorization
 $headers = apache_request_headers();
 $auth_header = $headers['Authorization'] ?? null;
 
@@ -24,16 +22,13 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-// Only admins can use admin tools
 if ($payload['role'] !== 'admin') {
     jsonResponse(false, 'Access denied', null, 403);
 }
 
-// Get request data
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
 
-// Validate input
 if (!isset($data['operation'])) {
     jsonResponse(false, 'Operation parameter is required', null, 400);
 }
@@ -44,41 +39,50 @@ $user_id = $payload['user_id'];
 $conn = getConnection();
 $success = false;
 $message = '';
+$affected_rows = 0;
 
 try {
+    $conn->autocommit(false);
+    
     switch ($operation) {
         case 'all':
-            // Delete all test data
-            $conn->query("DELETE FROM appointments WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
-            $conn->query("DELETE FROM call_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
-            $conn->query("DELETE FROM customers WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
-            $conn->query("DELETE FROM campaigns WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
-            $message = 'Alle Testdaten wurden erfolgreich gelöscht';
+            $tables = ['appointments', 'call_logs', 'customers', 'campaigns'];
+            foreach ($tables as $table) {
+                $result = $conn->query("DELETE FROM $table");
+                if ($result) {
+                    $affected_rows += $conn->affected_rows;
+                }
+            }
+            $message = "Alle Testdaten wurden erfolgreich gelöscht ($affected_rows Datensätze)";
             $success = true;
             break;
             
         case 'customers':
-            $result = $conn->query("DELETE FROM customers WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
+            $result = $conn->query("DELETE FROM customers");
             $success = $result !== false;
-            $message = $success ? 'Kundendaten wurden erfolgreich gelöscht' : 'Fehler beim Löschen der Kundendaten';
+            $affected_rows = $conn->affected_rows;
+            $message = $success ? "Kundendaten wurden erfolgreich gelöscht ($affected_rows Datensätze)" : 'Fehler beim Löschen der Kundendaten';
             break;
             
         case 'calls':
-            $result = $conn->query("DELETE FROM call_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
+            $result = $conn->query("DELETE FROM call_logs");
             $success = $result !== false;
-            $message = $success ? 'Anrufdaten wurden erfolgreich gelöscht' : 'Fehler beim Löschen der Anrufdaten';
+            $affected_rows = $conn->affected_rows;
+            $message = $success ? "Anrufdaten wurden erfolgreich gelöscht ($affected_rows Datensätze)" : 'Fehler beim Löschen der Anrufdaten';
             break;
             
         case 'appointments':
-            $result = $conn->query("DELETE FROM appointments WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
+            $result = $conn->query("DELETE FROM appointments");
             $success = $result !== false;
-            $message = $success ? 'Termindaten wurden erfolgreich gelöscht' : 'Fehler beim Löschen der Termindaten';
+            $affected_rows = $conn->affected_rows;
+            $message = $success ? "Termindaten wurden erfolgreich gelöscht ($affected_rows Datensätze)" : 'Fehler beim Löschen der Termindaten';
             break;
             
         case 'campaigns':
-            $result = $conn->query("DELETE FROM campaigns WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
+            $result = $conn->query("DELETE FROM campaigns");
             $success = $result !== false;
-            $message = $success ? 'Kampagnendaten wurden erfolgreich gelöscht' : 'Fehler beim Löschen der Kampagnendaten';
+            $affected_rows = $conn->affected_rows;
+            $message = $success ? "Kampagnendaten wurden erfolgreich gelöscht ($affected_rows Datensätze)" : 'Fehler beim Löschen der Kampagnendaten';
             break;
             
         default:
@@ -86,20 +90,28 @@ try {
             break;
     }
     
-    // Log the action
+    if ($success) {
+        $conn->commit();
+    } else {
+        $conn->rollback();
+    }
+    
     $log = new Log();
     $log->create(
         $user_id,
         'admin_reset_data',
         'admin',
         null,
-        "Admin reset operation: $operation - " . ($success ? "Success" : "Failed")
+        "Admin reset operation: $operation - " . ($success ? "Success ($affected_rows rows)" : "Failed")
     );
     
-    jsonResponse($success, $message, null);
+    jsonResponse($success, $message, ['affected_rows' => $affected_rows]);
     
 } catch (Exception $e) {
+    $conn->rollback();
     error_log("Admin reset error: " . $e->getMessage());
     jsonResponse(false, 'Database error occurred: ' . $e->getMessage(), null, 500);
+} finally {
+    $conn->autocommit(true);
 }
 ?>

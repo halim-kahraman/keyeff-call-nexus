@@ -1,9 +1,12 @@
 
 <?php
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../models/Appointment.php';
+require_once __DIR__ . '/../../config/database.php';
 
-// Check authorization
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    jsonResponse(false, 'Invalid request method', null, 405);
+}
+
 $headers = apache_request_headers();
 $auth_header = $headers['Authorization'] ?? null;
 
@@ -18,37 +21,44 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-// Get filter parameters
-$start_date = $_GET['start_date'] ?? date('Y-m-d');
-$end_date = $_GET['end_date'] ?? date('Y-m-d', strtotime('+30 days'));
-$user_id = null;
+$conn = getConnection();
+$user_id = $payload['user_id'];
+$role = $payload['role'];
+$filiale_id = $payload['filiale_id'];
 
-// Filter by user if not admin and not filialleiter
-if ($payload['role'] !== 'admin' && $payload['role'] !== 'filialleiter') {
-    $user_id = $payload['user_id'];
+$where_clause = "";
+$params = [];
+$types = "";
+
+if ($role === 'telefonist') {
+    $where_clause = "WHERE a.user_id = ?";
+    $params[] = $user_id;
+    $types = "i";
+} elseif ($role === 'filialleiter') {
+    $where_clause = "WHERE u.filiale_id = ?";
+    $params[] = $filiale_id;
+    $types = "i";
 }
 
-// Get appointments
-$appointment = new Appointment();
-$appointments = $appointment->getByDateRange($start_date, $end_date, $user_id);
+$sql = "SELECT a.*, c.name as customer_name 
+        FROM appointments a 
+        LEFT JOIN customers c ON a.customer_id = c.id 
+        LEFT JOIN users u ON a.user_id = u.id 
+        $where_clause 
+        ORDER BY a.appointment_date DESC, a.appointment_time DESC";
 
-// Format for calendar display
-$formatted_appointments = [];
-foreach ($appointments as $apt) {
-    $formatted_appointments[] = [
-        'id' => $apt['id'],
-        'title' => $apt['title'],
-        'start' => $apt['appointment_date'] . 'T' . $apt['appointment_time'],
-        'customer' => [
-            'name' => $apt['customer_name'],
-            'company' => $apt['customer_company']
-        ],
-        'type' => $apt['type'],
-        'status' => $apt['status'],
-        'description' => $apt['description'],
-        'user' => $apt['user_name']
-    ];
+$stmt = $conn->prepare($sql);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+
+$result = $stmt->get_result();
+$appointments = [];
+
+while($row = $result->fetch_assoc()) {
+    $appointments[] = $row;
 }
 
-jsonResponse(true, 'Appointments retrieved successfully', $formatted_appointments);
+jsonResponse(true, 'Appointments retrieved successfully', $appointments);
 ?>

@@ -2,32 +2,31 @@
 <?php
 namespace KeyEff\CallPanel\Models;
 
+require_once __DIR__ . '/User.php';
+
 class UserOTP {
-    private $repository;
+    private $user;
     
-    public function __construct($repository) {
-        $this->repository = $repository;
+    public function __construct() {
+        $this->user = new User();
     }
     
-    public function generate($user_id) {
-        $otp = sprintf("%06d", mt_rand(100000, 999999));
+    public function generateOTP($userId) {
+        $otp = sprintf("%06d", mt_rand(1, 999999));
         
-        if($this->repository->updateOTP($user_id, $otp)) {
+        if ($this->user->updateOTP($userId, $otp)) {
             return $otp;
-        } else {
-            debugLog("OTP update failed");
-            return false;
-        }
-    }
-    
-    public function verify($user_id, $otp) {
-        if($this->repository->verifyOTP($user_id, $otp)) {
-            // Clear OTP after successful verification
-            $this->repository->clearOTP($user_id);
-            return true;
         }
         
         return false;
+    }
+    
+    public function verifyOTP($userId, $otp) {
+        return $this->user->verifyOTP($userId, $otp);
+    }
+    
+    public function clearOTP($userId) {
+        $this->user->clearOTP($userId);
     }
 }
 ?>

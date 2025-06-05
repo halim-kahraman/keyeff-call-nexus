@@ -1,64 +1,76 @@
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import React from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { filialeService } from '@/services/api';
 
-export interface BranchSelectionDialogProps {
+interface BranchSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBranchSelected: (branchId: string) => void;
 }
 
-export function BranchSelectionDialog({ 
-  open, 
+export const BranchSelectionDialog: React.FC<BranchSelectionDialogProps> = ({
+  open,
   onOpenChange,
-  onBranchSelected 
-}: BranchSelectionDialogProps) {
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
+  onBranchSelected
+}) => {
+  const [selectedBranch, setSelectedBranch] = React.useState<string>('');
+
+  const { data: filialen = [], isLoading } = useQuery({
+    queryKey: ['filialen'],
+    queryFn: async () => {
+      const response = await filialeService.getFilialen();
+      return response.data || [];
+    },
+    enabled: open,
+  });
 
   const handleConfirm = () => {
-    if (!selectedBranch) {
-      toast.error("Bitte wählen Sie eine Filiale aus.");
-      return;
+    if (selectedBranch) {
+      onBranchSelected(selectedBranch);
     }
-
-    onBranchSelected(selectedBranch);
-    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle>Filiale auswählen</DialogTitle>
           <DialogDescription>
             Bitte wählen Sie eine Filiale aus, um fortzufahren.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="py-4">
+        <div className="space-y-4">
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="bg-white">
               <SelectValue placeholder="Filiale auswählen" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Berlin</SelectItem>
-              <SelectItem value="2">München</SelectItem>
-              <SelectItem value="3">Hamburg</SelectItem>
-              <SelectItem value="4">Köln</SelectItem>
-              <SelectItem value="5">Frankfurt</SelectItem>
+            <SelectContent className="bg-white">
+              {isLoading ? (
+                <SelectItem value="loading" disabled>Lädt...</SelectItem>
+              ) : filialen.length === 0 ? (
+                <SelectItem value="empty" disabled>Keine Filialen verfügbar</SelectItem>
+              ) : (
+                filialen.map((filiale: any) => (
+                  <SelectItem key={filiale.id} value={filiale.id.toString()}>
+                    {filiale.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
-        </div>
-        
-        <DialogFooter>
-          <Button onClick={handleConfirm} className="bg-keyeff-500 hover:bg-keyeff-600">
+          <Button 
+            onClick={handleConfirm} 
+            className="w-full" 
+            disabled={!selectedBranch || isLoading}
+          >
             Bestätigen
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
-}
+};

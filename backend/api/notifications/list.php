@@ -1,7 +1,7 @@
 
 <?php
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../models/Setting.php';
+require_once __DIR__ . '/../../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(false, 'Invalid request method', null, 405);
@@ -21,19 +21,20 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-$category = $_GET['category'] ?? null;
-$filiale_id = $_GET['filiale_id'] ?? null;
+$conn = getConnection();
+$user_id = $payload['user_id'];
 
-if (!$category) {
-    jsonResponse(false, 'Category parameter is required', null, 400);
+$sql = "SELECT * FROM notifications WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC LIMIT 20";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$notifications = [];
+
+while($row = $result->fetch_assoc()) {
+    $notifications[] = $row;
 }
 
-if ($filiale_id === 'global') {
-    $filiale_id = null;
-}
-
-$setting = new Setting();
-$settings = $setting->getAllByCategory($category, $filiale_id);
-
-jsonResponse(true, 'Settings retrieved successfully', $settings);
+jsonResponse(true, 'Notifications retrieved successfully', $notifications);
 ?>

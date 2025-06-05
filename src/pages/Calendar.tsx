@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,78 +10,148 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDays, format, isSameDay } from "date-fns";
+import { isSameDay, format } from "date-fns";
 import { de } from "date-fns/locale";
 import { toast } from "sonner";
-
-// Mock appointment types
-const appointmentTypes = [
-  { id: 1, label: "Erstberatung", color: "bg-blue-500" },
-  { id: 2, label: "Vertragsverlängerung", color: "bg-green-500" },
-  { id: 3, label: "Beschwerde", color: "bg-red-500" },
-  { id: 4, label: "Allgemeine Beratung", color: "bg-amber-500" },
-  { id: 5, label: "Technische Unterstützung", color: "bg-purple-500" },
-];
-
-// Mock customer data
-const customers = [
-  { id: 1, name: "Max Mustermann", phone: "+49123456789", contract: "Standard" },
-  { id: 2, name: "Erika Musterfrau", phone: "+49987654321", contract: "Premium" },
-  { id: 3, name: "John Doe", phone: "+49456123789", contract: "Basic" },
-  { id: 4, name: "Jane Doe", phone: "+49789456123", contract: "Premium Plus" },
-  { id: 5, name: "Hans Schmidt", phone: "+49321654987", contract: "Standard" },
-];
-
-// Mock initial appointments
-const initialAppointments = [
-  {
-    id: 1,
-    title: "Vertragsverlängerung",
-    date: new Date(),
-    time: "10:00",
-    customerId: 1,
-    type: 2,
-    notes: "Kunde möchte über neue Tarifoptionen informiert werden.",
-  },
-  {
-    id: 2,
-    title: "Erstberatung",
-    date: addDays(new Date(), 1),
-    time: "14:30",
-    customerId: 3,
-    type: 1,
-    notes: "Interesse an Premium-Vertrag.",
-  },
-  {
-    id: 3,
-    title: "Beschwerde bearbeiten",
-    date: addDays(new Date(), 2),
-    time: "11:15",
-    customerId: 4,
-    type: 3,
-    notes: "Probleme mit der letzten Abrechnung.",
-  },
-];
 
 interface Appointment {
   id: number;
   title: string;
-  date: Date;
-  time: string;
-  customerId: number;
-  type: number;
+  appointment_date: string;
+  appointment_time: string;
+  customer_id: number;
+  customer_name?: string;
+  type: string;
   notes: string;
 }
 
 const CalendarPage = () => {
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNewAppointment, setIsNewAppointment] = useState(false);
+  const queryClient = useQueryClient();
 
-  const todaysAppointments = appointments.filter(appt => 
-    isSameDay(appt.date, selectedDate)
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: ['appointments'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/appointments/list.php', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.data || [];
+      }
+      return [];
+    },
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers-for-appointments'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/customers/list.php', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.data || [];
+      }
+      return [];
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (appointmentData: any) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/appointments/create.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create appointment');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast.success("Termin erstellt");
+      setIsSheetOpen(false);
+    },
+    onError: () => {
+      toast.error("Fehler beim Erstellen des Termins");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (appointmentData: any) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/appointments/update.php?id=${appointmentData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update appointment');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast.success("Termin aktualisiert");
+      setIsSheetOpen(false);
+    },
+    onError: () => {
+      toast.error("Fehler beim Aktualisieren des Termins");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (appointmentId: number) => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/appointments/delete.php?id=${appointmentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast.success("Termin gelöscht");
+      setIsSheetOpen(false);
+    },
+    onError: () => {
+      toast.error("Fehler beim Löschen des Termins");
+    }
+  });
+
+  const todaysAppointments = appointments.filter((appt: Appointment) => 
+    isSameDay(new Date(appt.appointment_date), selectedDate)
   );
 
   const openAppointmentSheet = (appointment?: Appointment) => {
@@ -88,12 +160,12 @@ const CalendarPage = () => {
       setIsNewAppointment(false);
     } else {
       setCurrentAppointment({
-        id: Date.now(),
+        id: 0,
         title: "",
-        date: selectedDate,
-        time: "09:00",
-        customerId: 0,
-        type: 0,
+        appointment_date: format(selectedDate, "yyyy-MM-dd"),
+        appointment_time: "09:00",
+        customer_id: 0,
+        type: "beratung",
         notes: "",
       });
       setIsNewAppointment(true);
@@ -105,38 +177,15 @@ const CalendarPage = () => {
     if (!currentAppointment) return;
     
     if (isNewAppointment) {
-      setAppointments([...appointments, currentAppointment]);
-      toast.success("Termin erstellt", {
-        description: "Der Termin wurde erfolgreich erstellt und dem Kalender hinzugefügt.",
-      });
+      createMutation.mutate(currentAppointment);
     } else {
-      setAppointments(appointments.map(appt => 
-        appt.id === currentAppointment.id ? currentAppointment : appt
-      ));
-      toast.success("Termin aktualisiert", {
-        description: "Die Änderungen am Termin wurden gespeichert.",
-      });
+      updateMutation.mutate(currentAppointment);
     }
-    
-    setIsSheetOpen(false);
-    
-    // In a real app, you would sync this with KeyEff CRM via API
-    console.log("Syncing appointment with KeyEff CRM...");
   };
 
   const handleDeleteAppointment = () => {
     if (!currentAppointment) return;
-    
-    setAppointments(appointments.filter(appt => appt.id !== currentAppointment.id));
-    setIsSheetOpen(false);
-    
-    toast.error("Termin gelöscht", {
-      description: "Der Termin wurde erfolgreich aus dem Kalender entfernt.",
-    });
-  };
-
-  const getAppointmentTypeColor = (typeId: number) => {
-    return appointmentTypes.find(type => type.id === typeId)?.color || "bg-gray-500";
+    deleteMutation.mutate(currentAppointment.id);
   };
 
   return (
@@ -160,7 +209,7 @@ const CalendarPage = () => {
           </Card>
           
           <Button 
-            className="w-full mt-4 bg-keyeff-500 hover:bg-keyeff-600"
+            className="w-full mt-4"
             onClick={() => openAppointmentSheet()}
           >
             Neuen Termin erstellen
@@ -179,38 +228,34 @@ const CalendarPage = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {todaysAppointments.length > 0 ? (
+              {isLoading ? (
+                <div className="text-center py-8">Lädt Termine...</div>
+              ) : todaysAppointments.length > 0 ? (
                 <div className="space-y-4">
-                  {todaysAppointments.map((appointment) => {
-                    const customer = customers.find(c => c.id === appointment.customerId);
-                    return (
-                      <div 
-                        key={appointment.id} 
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => openAppointmentSheet(appointment)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-full ${getAppointmentTypeColor(appointment.type)}`} />
-                          <div className="flex-grow">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-lg font-medium">{appointment.time} - {appointment.title}</h4>
-                              <span className="text-sm text-muted-foreground">
-                                {appointmentTypes.find(type => type.id === appointment.type)?.label || "Sonstiges"}
-                              </span>
-                            </div>
-                            {customer && (
-                              <p className="text-muted-foreground">
-                                {customer.name} • {customer.phone} • {customer.contract}
-                              </p>
-                            )}
-                            {appointment.notes && (
-                              <p className="mt-2 text-sm">{appointment.notes}</p>
-                            )}
-                          </div>
-                        </div>
+                  {todaysAppointments.map((appointment: Appointment) => (
+                    <div 
+                      key={appointment.id} 
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => openAppointmentSheet(appointment)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-medium">
+                          {appointment.appointment_time} - {appointment.title}
+                        </h4>
+                        <span className="text-sm text-muted-foreground capitalize">
+                          {appointment.type}
+                        </span>
                       </div>
-                    );
-                  })}
+                      {appointment.customer_name && (
+                        <p className="text-muted-foreground">
+                          {appointment.customer_name}
+                        </p>
+                      )}
+                      {appointment.notes && (
+                        <p className="mt-2 text-sm">{appointment.notes}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
@@ -256,12 +301,12 @@ const CalendarPage = () => {
                 <Input 
                   id="date" 
                   type="date" 
-                  value={currentAppointment ? format(currentAppointment.date, "yyyy-MM-dd") : ""} 
+                  value={currentAppointment?.appointment_date || ""} 
                   onChange={(e) => {
                     if (currentAppointment && e.target.value) {
                       setCurrentAppointment({
                         ...currentAppointment,
-                        date: new Date(e.target.value)
+                        appointment_date: e.target.value
                       });
                     }
                   }}
@@ -272,10 +317,10 @@ const CalendarPage = () => {
                 <Input 
                   id="time" 
                   type="time" 
-                  value={currentAppointment?.time || ""} 
+                  value={currentAppointment?.appointment_time || ""} 
                   onChange={(e) => currentAppointment && setCurrentAppointment({
                     ...currentAppointment,
-                    time: e.target.value
+                    appointment_time: e.target.value
                   })}
                 />
               </div>
@@ -284,19 +329,19 @@ const CalendarPage = () => {
             <div>
               <Label htmlFor="customer">Kunde</Label>
               <Select 
-                value={currentAppointment?.customerId.toString() || ""} 
+                value={currentAppointment?.customer_id?.toString() || ""} 
                 onValueChange={(value) => currentAppointment && setCurrentAppointment({
                   ...currentAppointment,
-                  customerId: parseInt(value)
+                  customer_id: parseInt(value)
                 })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wählen Sie einen Kunden" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
+                  {customers.map((customer: any) => (
                     <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.name} ({customer.contract})
+                      {customer.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -306,21 +351,20 @@ const CalendarPage = () => {
             <div>
               <Label htmlFor="type">Termintyp</Label>
               <Select 
-                value={currentAppointment?.type.toString() || ""} 
+                value={currentAppointment?.type || ""} 
                 onValueChange={(value) => currentAppointment && setCurrentAppointment({
                   ...currentAppointment,
-                  type: parseInt(value)
+                  type: value
                 })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wählen Sie einen Termintyp" />
                 </SelectTrigger>
                 <SelectContent>
-                  {appointmentTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id.toString()}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="beratung">Beratung</SelectItem>
+                  <SelectItem value="vertrag">Vertragsverlängerung</SelectItem>
+                  <SelectItem value="beschwerde">Beschwerde</SelectItem>
+                  <SelectItem value="support">Technischer Support</SelectItem>
                 </SelectContent>
               </Select>
             </div>

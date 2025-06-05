@@ -2,22 +2,34 @@
 <?php
 namespace KeyEff\CallPanel\Models;
 
+require_once __DIR__ . '/User.php';
+
 class UserAuth {
+    private $user;
     
-    public static function validatePassword($provided_password, $stored_password, $user_id = null) {
-        debugLog("Validating password", [
-            "user_id" => $user_id,
-            "provided_password_length" => strlen($provided_password)
-        ]);
-        
-        $result = password_verify($provided_password, $stored_password);
-        debugLog("Password verification result", $result);
-        
-        return $result;
+    public function __construct() {
+        $this->user = new User();
     }
     
-    public static function hashPassword($password) {
-        return password_hash($password, PASSWORD_DEFAULT);
+    public function authenticate($email, $password) {
+        $userData = $this->user->findByEmail($email);
+        
+        if (!$userData) {
+            debugLog('User not found during authentication', $email);
+            return false;
+        }
+        
+        if (!password_verify($password, $userData['password'])) {
+            debugLog('Password verification failed', $email);
+            return false;
+        }
+        
+        debugLog('User authenticated successfully', $email);
+        return $userData;
+    }
+    
+    public function register($name, $email, $password, $role, $filiale = null, $filiale_id = null) {
+        return $this->user->create($name, $email, $password, $role, $filiale, $filiale_id);
     }
 }
 ?>
