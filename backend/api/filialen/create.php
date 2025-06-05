@@ -4,6 +4,9 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Filiale.php';
 require_once __DIR__ . '/../../models/Log.php';
 
+use KeyEff\CallPanel\Models\Filiale;
+use KeyEff\CallPanel\Models\Log;
+
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, 'Invalid request method', null, 405);
@@ -24,40 +27,49 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-// Only admins can create filialen
+// Check permissions
 if ($payload['role'] !== 'admin') {
     jsonResponse(false, 'Access denied', null, 403);
 }
 
 // Get request data
-$input = file_get_contents('php://input');
-$data = json_decode($input, true);
+$data = json_decode(file_get_contents('php://input'), true);
 
-// Validate input
-if (!isset($data['name']) || !isset($data['address'])) {
-    jsonResponse(false, 'Name and address are required', null, 400);
+// Validate required fields
+if (empty($data['name']) || empty($data['address'])) {
+    jsonResponse(false, 'Name und Adresse sind erforderlich', null, 400);
 }
 
-$name = $data['name'];
-$address = $data['address'];
+try {
+    $filiale = new Filiale();
+    $filiale_id = $filiale->create(
+        $data['name'],
+        $data['address'],
+        $data['city'] ?? null,
+        $data['postal_code'] ?? null,
+        $data['phone'] ?? null,
+        $data['email'] ?? null,
+        $data['manager_id'] ?? null,
+        $data['status'] ?? 'active'
+    );
 
-// Create filiale
-$filiale = new Filiale();
-$id = $filiale->create($name, $address);
+    if ($filiale_id) {
+        // Log the action
+        $log = new Log();
+        $log->create(
+            $payload['user_id'],
+            'create_filiale',
+            'filiale',
+            $filiale_id,
+            "User created filiale: " . $data['name']
+        );
 
-if (!$id) {
-    jsonResponse(false, 'Failed to create filiale', null, 500);
+        jsonResponse(true, 'Filiale erfolgreich erstellt', ['id' => $filiale_id]);
+    } else {
+        jsonResponse(false, 'Fehler beim Erstellen der Filiale', null, 500);
+    }
+} catch (Exception $e) {
+    debugLog("Error creating filiale", $e->getMessage());
+    jsonResponse(false, 'Error creating filiale: ' . $e->getMessage(), null, 500);
 }
-
-// Log the action
-$log = new Log();
-$log->create(
-    $payload['user_id'],
-    'create_filiale',
-    'filiale',
-    $id,
-    "Admin created new filiale: $name"
-);
-
-jsonResponse(true, 'Filiale created successfully', ['id' => $id]);
 ?>

@@ -43,6 +43,12 @@ const Settings = () => {
     enabled: !!effectiveFiliale,
   });
 
+  const { data: webrtcSettings = {}, isLoading: webrtcLoading } = useQuery({
+    queryKey: ['settings', 'webrtc', effectiveFiliale],
+    queryFn: () => settingsService.getSettings('webrtc', effectiveFiliale),
+    enabled: !!effectiveFiliale,
+  });
+
   const { data: vpnSettings = {}, isLoading: vpnLoading } = useQuery({
     queryKey: ['settings', 'vpn', effectiveFiliale],
     queryFn: () => settingsService.getSettings('vpn', effectiveFiliale),
@@ -55,6 +61,18 @@ const Settings = () => {
     enabled: !!effectiveFiliale,
   });
 
+  const { data: fritzboxSettings = {}, isLoading: fritzboxLoading } = useQuery({
+    queryKey: ['settings', 'fritzbox', effectiveFiliale],
+    queryFn: () => settingsService.getSettings('fritzbox', effectiveFiliale),
+    enabled: !!effectiveFiliale,
+  });
+
+  const { data: keyeffSettings = {}, isLoading: keyeffLoading } = useQuery({
+    queryKey: ['settings', 'keyeff', effectiveFiliale],
+    queryFn: () => settingsService.getSettings('keyeff', effectiveFiliale),
+    enabled: !!effectiveFiliale,
+  });
+
   const saveSettingsMutation = useMutation({
     mutationFn: ({ category, settings }: { category: string; settings: any }) =>
       settingsService.saveSettings({ category, ...settings }, effectiveFiliale),
@@ -64,6 +82,29 @@ const Settings = () => {
     },
     onError: () => {
       toast.error("Fehler beim Speichern der Einstellungen");
+    },
+  });
+
+  const testConnectionMutation = useMutation({
+    mutationFn: ({ type, settings }: { type: string; settings: any }) => {
+      switch(type) {
+        case 'sip': return settingsService.testSipConnection({ settings, filiale_id: effectiveFiliale });
+        case 'vpn': return settingsService.testVpnConnection({ settings, filiale_id: effectiveFiliale });
+        case 'email': return settingsService.testEmailConnection({ settings, filiale_id: effectiveFiliale });
+        case 'fritzbox': return settingsService.testFritzboxConnection({ settings, filiale_id: effectiveFiliale });
+        case 'keyeff': return settingsService.testKeyEffApiConnection({ settings, filiale_id: effectiveFiliale });
+        default: throw new Error('Unknown connection type');
+      }
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success("Verbindung erfolgreich getestet");
+      } else {
+        toast.error("Verbindungstest fehlgeschlagen: " + data.message);
+      }
+    },
+    onError: () => {
+      toast.error("Fehler beim Testen der Verbindung");
     },
   });
 
@@ -153,10 +194,10 @@ const Settings = () => {
   return (
     <AppLayout title="Einstellungen" subtitle="System- und Filialeinstellungen">
       <div className="space-y-6">
-        {isAdmin && selectedFiliale && (
+        {isAdmin && (
           <Card>
             <CardHeader>
-              <CardTitle>Filiale</CardTitle>
+              <CardTitle>Filiale auswählen</CardTitle>
               <CardDescription>
                 Wählen Sie die Filiale aus, deren Einstellungen Sie verwalten möchten.
               </CardDescription>
@@ -182,9 +223,12 @@ const Settings = () => {
         {effectiveFiliale && (
           <Tabs defaultValue="sip" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="sip">SIP-Einstellungen</TabsTrigger>
-              <TabsTrigger value="vpn">VPN-Einstellungen</TabsTrigger>
-              <TabsTrigger value="email">E-Mail-Einstellungen</TabsTrigger>
+              <TabsTrigger value="sip">SIP</TabsTrigger>
+              <TabsTrigger value="webrtc">WebRTC</TabsTrigger>
+              <TabsTrigger value="vpn">VPN</TabsTrigger>
+              <TabsTrigger value="fritzbox">Fritz!Box</TabsTrigger>
+              <TabsTrigger value="email">E-Mail</TabsTrigger>
+              <TabsTrigger value="keyeff">KeyEff API</TabsTrigger>
             </TabsList>
 
             <TabsContent value="sip">
@@ -199,7 +243,7 @@ const Settings = () => {
                   {sipLoading ? (
                     <div>Lädt...</div>
                   ) : (
-                    <form onSubmit={handleSaveSipSettings} className="space-y-4">
+                    <form className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="sip_server">SIP-Server</Label>
@@ -239,9 +283,164 @@ const Settings = () => {
                           />
                         </div>
                       </div>
-                      <Button type="submit">SIP-Einstellungen speichern</Button>
+                      <div className="flex space-x-2">
+                        <Button type="submit">SIP-Einstellungen speichern</Button>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => testConnectionMutation.mutate({ type: 'sip', settings: sipSettings })}
+                        >
+                          Verbindung testen
+                        </Button>
+                      </div>
                     </form>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="webrtc">
+              <Card>
+                <CardHeader>
+                  <CardTitle>WebRTC-Konfiguration</CardTitle>
+                  <CardDescription>
+                    Konfigurieren Sie die WebRTC-Einstellungen für Browser-basierte Anrufe.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="webrtc_stun_server">STUN-Server</Label>
+                        <Input 
+                          id="webrtc_stun_server" 
+                          name="webrtc_stun_server"
+                          defaultValue={webrtcSettings.stun_server || "stun:stun.l.google.com:19302"}
+                          placeholder="stun:stun.l.google.com:19302"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="webrtc_turn_server">TURN-Server</Label>
+                        <Input 
+                          id="webrtc_turn_server" 
+                          name="webrtc_turn_server"
+                          defaultValue={webrtcSettings.turn_server || ""}
+                          placeholder="turn:turn.example.com"
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit">WebRTC-Einstellungen speichern</Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="fritzbox">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Fritz!Box-Konfiguration</CardTitle>
+                  <CardDescription>
+                    Verbinden Sie sich mit Ihrer Fritz!Box für erweiterte Telefonie-Features.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fritzbox_ip">Fritz!Box IP</Label>
+                        <Input 
+                          id="fritzbox_ip" 
+                          name="fritzbox_ip"
+                          defaultValue={fritzboxSettings.ip || ""}
+                          placeholder="192.168.178.1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fritzbox_port">Port</Label>
+                        <Input 
+                          id="fritzbox_port" 
+                          name="fritzbox_port"
+                          defaultValue={fritzboxSettings.port || "80"}
+                          placeholder="80"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fritzbox_username">Benutzername</Label>
+                        <Input 
+                          id="fritzbox_username" 
+                          name="fritzbox_username"
+                          defaultValue={fritzboxSettings.username || ""}
+                          placeholder="admin"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fritzbox_password">Passwort</Label>
+                        <Input 
+                          id="fritzbox_password" 
+                          name="fritzbox_password"
+                          type="password"
+                          defaultValue={fritzboxSettings.password || ""}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit">Fritz!Box-Einstellungen speichern</Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => testConnectionMutation.mutate({ type: 'fritzbox', settings: fritzboxSettings })}
+                      >
+                        Verbindung testen
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="keyeff">
+              <Card>
+                <CardHeader>
+                  <CardTitle>KeyEff API-Konfiguration</CardTitle>
+                  <CardDescription>
+                    Verbinden Sie sich mit der KeyEff API für erweiterte Funktionen.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="keyeff_api_url">API-URL</Label>
+                        <Input 
+                          id="keyeff_api_url" 
+                          name="keyeff_api_url"
+                          defaultValue={keyeffSettings.api_url || ""}
+                          placeholder="https://api.keyeff.com"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="keyeff_api_key">API-Schlüssel</Label>
+                        <Input 
+                          id="keyeff_api_key" 
+                          name="keyeff_api_key"
+                          type="password"
+                          defaultValue={keyeffSettings.api_key || ""}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit">KeyEff API-Einstellungen speichern</Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => testConnectionMutation.mutate({ type: 'keyeff', settings: keyeffSettings })}
+                      >
+                        Verbindung testen
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
             </TabsContent>

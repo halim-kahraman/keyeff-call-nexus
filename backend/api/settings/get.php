@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Setting.php';
 
+use KeyEff\CallPanel\Models\Setting;
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(false, 'Invalid request method', null, 405);
 }
@@ -32,8 +34,13 @@ if ($filiale_id === 'global') {
     $filiale_id = null;
 }
 
-$setting = new Setting();
-$settings = $setting->getAllByCategory($category, $filiale_id);
+try {
+    $setting = new Setting();
+    $settings = $setting->getAllByCategory($category, $filiale_id);
 
-jsonResponse(true, 'Settings retrieved successfully', $settings);
+    jsonResponse(true, 'Settings retrieved successfully', $settings);
+} catch (Exception $e) {
+    debugLog("Error fetching settings", $e->getMessage());
+    jsonResponse(false, 'Error fetching settings: ' . $e->getMessage(), null, 500);
+}
 ?>

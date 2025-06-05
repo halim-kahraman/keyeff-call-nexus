@@ -1,3 +1,4 @@
+
 <?php
 namespace KeyEff\CallPanel\Models;
 
@@ -9,6 +10,12 @@ class Filiale {
     public $id;
     public $name;
     public $address;
+    public $city;
+    public $postal_code;
+    public $phone;
+    public $email;
+    public $manager_id;
+    public $status;
     public $created_at;
     public $updated_at;
     
@@ -17,7 +24,9 @@ class Filiale {
     }
     
     public function getAll() {
-        $sql = "SELECT * FROM filialen ORDER BY name";
+        $sql = "SELECT f.*, u.name as manager_name FROM filialen f 
+                LEFT JOIN users u ON f.manager_id = u.id 
+                ORDER BY f.name";
         $result = $this->conn->query($sql);
         
         $filialen = [];
@@ -30,7 +39,9 @@ class Filiale {
     }
     
     public function getById($id) {
-        $sql = "SELECT * FROM filialen WHERE id = ?";
+        $sql = "SELECT f.*, u.name as manager_name FROM filialen f 
+                LEFT JOIN users u ON f.manager_id = u.id 
+                WHERE f.id = ?";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -44,10 +55,10 @@ class Filiale {
         return null;
     }
     
-    public function create($name, $address) {
-        $sql = "INSERT INTO filialen (name, address) VALUES (?, ?)";
+    public function create($name, $address, $city = null, $postal_code = null, $phone = null, $email = null, $manager_id = null, $status = 'active') {
+        $sql = "INSERT INTO filialen (name, address, city, postal_code, phone, email, manager_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("ss", $name, $address);
+        $stmt->bind_param("sssssiis", $name, $address, $city, $postal_code, $phone, $email, $manager_id, $status);
         
         if($stmt->execute()) {
             return $this->conn->insert_id;
@@ -56,10 +67,10 @@ class Filiale {
         return false;
     }
     
-    public function update($id, $name, $address) {
-        $sql = "UPDATE filialen SET name = ?, address = ?, updated_at = NOW() WHERE id = ?";
+    public function update($id, $name, $address, $city = null, $postal_code = null, $phone = null, $email = null, $manager_id = null, $status = 'active') {
+        $sql = "UPDATE filialen SET name = ?, address = ?, city = ?, postal_code = ?, phone = ?, email = ?, manager_id = ?, status = ?, updated_at = NOW() WHERE id = ?";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("ssi", $name, $address, $id);
+        $stmt->bind_param("sssssiisi", $name, $address, $city, $postal_code, $phone, $email, $manager_id, $status, $id);
         
         return $stmt->execute();
     }

@@ -1,38 +1,34 @@
 
 <?php
-require_once '../../config/database.php';
-require_once '../../models/User.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/User.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+use KeyEff\CallPanel\Models\User;
+
+// CORS is already handled in config.php
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+    jsonResponse(true, 'Options request handled', null);
 }
 
 // Verify authentication
-$headers = getallheaders();
+$headers = apache_request_headers();
 $authHeader = $headers['Authorization'] ?? '';
 
 if (!$authHeader || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+    jsonResponse(false, 'Unauthorized', null, 401);
 }
 
 $token = $matches[1];
-$user = User::verifyToken($token);
+$payload = validateToken($token);
 
-if (!$user) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Invalid token']);
-    exit;
+if (!$payload) {
+    jsonResponse(false, 'Invalid token', null, 401);
 }
 
 try {
-    $pdo = getDBConnection();
+    $conn = getConnection();
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Get current connections
@@ -40,11 +36,17 @@ try {
                 JOIN filialen f ON cs.filiale_id = f.id 
                 WHERE cs.user_id = ? AND cs.status IN ('connecting', 'connected') 
                 ORDER BY cs.started_at DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$user['id']]);
-        $connections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $payload['user_id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
-        echo json_encode($connections);
+        $connections = [];
+        while($row = $result->fetch_assoc()) {
+            $connections[] = $row;
+        }
+        
+        jsonResponse(true, 'Connections retrieved successfully', $connections);
         
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Start new connection
@@ -54,22 +56,17 @@ try {
         $connectionType = $input['connection_type'] ?? null;
         
         if (!$filialeId || !$connectionType) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Filiale ID and connection type required']);
-            exit;
+            jsonResponse(false, 'Filiale ID and connection type required', null, 400);
         }
         
         $sql = "INSERT INTO connection_sessions (user_id, filiale_id, connection_type, connection_data) VALUES (?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $user['id'],
-            $filialeId,
-            $connectionType,
-            json_encode($input['connection_data'] ?? [])
-        ]);
+        $stmt = $conn->prepare($sql);
+        $connectionData = json_encode($input['connection_data'] ?? []);
+        $stmt->bind_param("iiss", $payload['user_id'], $filialeId, $connectionType, $connectionData);
+        $stmt->execute();
         
-        $sessionId = $pdo->lastInsertId();
-        echo json_encode(['success' => true, 'session_id' => $sessionId]);
+        $sessionId = $conn->insert_id;
+        jsonResponse(true, 'Connection started successfully', ['session_id' => $sessionId]);
         
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         // Update connection status
@@ -79,41 +76,35 @@ try {
         $status = $input['status'] ?? null;
         
         if (!$sessionId || !$status) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Session ID and status required']);
-            exit;
+            jsonResponse(false, 'Session ID and status required', null, 400);
         }
         
         $sql = "UPDATE connection_sessions SET status = ?, connection_data = ? WHERE id = ? AND user_id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $status,
-            json_encode($input['connection_data'] ?? []),
-            $sessionId,
-            $user['id']
-        ]);
+        $stmt = $conn->prepare($sql);
+        $connectionData = json_encode($input['connection_data'] ?? []);
+        $stmt->bind_param("ssii", $status, $connectionData, $sessionId, $payload['user_id']);
+        $stmt->execute();
         
-        echo json_encode(['success' => true]);
+        jsonResponse(true, 'Connection updated successfully', null);
         
     } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         // End connection
         $sessionId = $_GET['session_id'] ?? null;
         
         if (!$sessionId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Session ID required']);
-            exit;
+            jsonResponse(false, 'Session ID required', null, 400);
         }
         
         $sql = "UPDATE connection_sessions SET status = 'disconnected', ended_at = NOW() WHERE id = ? AND user_id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$sessionId, $user['id']]);
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $sessionId, $payload['user_id']);
+        $stmt->execute();
         
-        echo json_encode(['success' => true]);
+        jsonResponse(true, 'Connection ended successfully', null);
     }
     
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    debugLog("Error in connections management", $e->getMessage());
+    jsonResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
 }
 ?>
