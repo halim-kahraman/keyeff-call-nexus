@@ -1,9 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Connection, ConnectionData } from '@/types/connection';
 
-export type { Connection, ConnectionData };
+interface Connection {
+  id: string;
+  filiale_id: number;
+  filiale_name: string;
+  connection_type: 'vpn' | 'sip' | 'webrtc';
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  started_at: string;
+}
+
+interface ConnectionData {
+  vpn?: { server: string; username: string; };
+  sip?: { server: string; username: string; password: string; };
+  webrtc?: { iceServers: any[]; };
+}
 
 export const useConnectionService = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
