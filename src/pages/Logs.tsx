@@ -18,13 +18,16 @@ interface Log {
 }
 
 const Logs: React.FC = () => {
-  const { data: logs = [], isLoading } = useQuery({
+  const { data: logsResponse, isLoading } = useQuery({
     queryKey: ['logs'],
     queryFn: async () => {
       const response = await logsService.getLogs();
-      return response.data || [];
+      console.log('Logs API response:', response);
+      return response;
     }
   });
+
+  const logs = logsResponse?.data?.data || [];
 
   const getActionBadgeVariant = (action: string) => {
     switch (action.toLowerCase()) {
@@ -33,6 +36,7 @@ const Logs: React.FC = () => {
         return 'default';
       case 'update':
       case 'edit':
+      case 'update_settings':
         return 'secondary';
       case 'delete':
       case 'logout':
@@ -58,34 +62,40 @@ const Logs: React.FC = () => {
             <CardTitle>Aktivitätsprotokoll</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Zeitstempel</TableHead>
-                  <TableHead>Benutzer</TableHead>
-                  <TableHead>Aktion</TableHead>
-                  <TableHead>Typ</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log: Log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      {new Date(log.created_at).toLocaleString('de-DE')}
-                    </TableCell>
-                    <TableCell className="font-medium">{log.user_name}</TableCell>
-                    <TableCell>
-                      <Badge variant={getActionBadgeVariant(log.action)}>
-                        {log.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{log.entity_type}</TableCell>
-                    <TableCell className="max-w-md truncate">{log.details}</TableCell>
+            {logs.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Keine Logs gefunden
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Zeitstempel</TableHead>
+                    <TableHead>Benutzer</TableHead>
+                    <TableHead>Aktion</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Details</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log: Log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        {new Date(log.created_at).toLocaleString('de-DE')}
+                      </TableCell>
+                      <TableCell className="font-medium">{log.user_name}</TableCell>
+                      <TableCell>
+                        <Badge variant={getActionBadgeVariant(log.action)}>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{log.entity_type}</TableCell>
+                      <TableCell className="max-w-md truncate">{log.details}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
