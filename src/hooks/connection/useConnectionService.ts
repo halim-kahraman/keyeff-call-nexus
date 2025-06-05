@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-interface Connection {
+export interface Connection {
   id: string;
   filiale_id: number;
   filiale_name: string;
