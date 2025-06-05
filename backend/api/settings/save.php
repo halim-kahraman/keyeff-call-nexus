@@ -4,6 +4,9 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Setting.php';
 require_once __DIR__ . '/../../models/Log.php';
 
+use KeyEff\CallPanel\Models\Setting;
+use KeyEff\CallPanel\Models\Log;
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, 'Invalid request method', null, 405);
 }

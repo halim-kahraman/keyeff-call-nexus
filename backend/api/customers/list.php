@@ -20,10 +20,14 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
+// Get parameters
+$filiale_id = $_GET['filiale_id'] ?? null;
+$campaign_id = $_GET['campaign_id'] ?? null;
+
 try {
     // Get customers
     $customer = new Customer();
-    $customers = $customer->getAll();
+    $customers = $customer->getAll($filiale_id, $campaign_id);
 
     // Format the data for frontend
     $formatted_customers = [];
@@ -33,6 +37,8 @@ try {
             'name' => $cust['name'],
             'company' => $cust['company'],
             'phone' => $cust['phone'],
+            'email' => $cust['email'],
+            'address' => $cust['address'],
             'contract' => [
                 'type' => $cust['contract_type'],
                 'status' => $cust['contract_status'],
@@ -40,7 +46,9 @@ try {
             ],
             'lastContact' => $cust['last_contact'],
             'priority' => $cust['priority'],
-            'notes' => $cust['notes']
+            'notes' => $cust['notes'],
+            'filiale_id' => $cust['filiale_id'],
+            'filiale_name' => $cust['filiale_name']
         ];
     }
 
