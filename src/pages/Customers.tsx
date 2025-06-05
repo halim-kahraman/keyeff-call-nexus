@@ -236,6 +236,7 @@ const Customers = () => {
         <CustomerImportDialog 
           open={isImportOpen} 
           onOpenChange={setIsImportOpen}
+          campaignList={[]}
         />
       </div>
     </AppLayout>
