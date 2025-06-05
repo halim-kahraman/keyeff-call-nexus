@@ -1,200 +1,219 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
-import { customerService, filialeService } from "@/services/api";
-import { Phone, Mail, User, Building, Calendar, MessageSquare } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { BranchSelectionDialog } from "@/components/dialogs/BranchSelectionDialog";
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { CustomerTable } from '@/components/customers/CustomerTable';
+import { CustomerFilters } from '@/components/customers/CustomerFilters';
+import { NewCustomerDialog } from '@/components/customers/NewCustomerDialog';
+import { CustomerImportDialog } from '@/components/customers/CustomerImportDialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlusCircle, Upload, FileText, AlertCircle } from 'lucide-react';
+import { customerService } from '@/services/api';
+import { toast } from 'sonner';
 
 const Customers = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState<string | null>(null);
-  const [isBranchSelectionOpen, setIsBranchSelectionOpen] = useState(false);
-  
-  const isAdmin = user?.role === "admin";
-  const effectiveFiliale = isAdmin ? selectedFiliale : user?.filiale_id?.toString();
-  const needsBranchSelection = isAdmin && !selectedFiliale;
+  const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    contractType: '',
+    priority: '',
+    filialeId: ''
+  });
 
-  React.useEffect(() => {
-    if (needsBranchSelection) {
-      setIsBranchSelectionOpen(true);
-    }
-  }, [needsBranchSelection]);
+  const queryClient = useQueryClient();
 
-  const { data: filialen = [] } = useQuery({
-    queryKey: ['filialen'],
+  // Fetch customers with error handling and debugging
+  const { 
+    data: customersData, 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ['customers', filters],
     queryFn: async () => {
-      const response = await filialeService.getFilialen();
-      return response.data || [];
+      console.log('Fetching customers with filters:', filters);
+      try {
+        const response = await customerService.getCustomers(filters);
+        console.log('Customers API response:', response);
+        
+        // Add debug information
+        if (response?.data) {
+          console.log('Customers data received:', response.data);
+          console.log('Number of customers:', response.data.length);
+        }
+        
+        return response;
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        throw error;
+      }
     },
-    enabled: isAdmin,
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: customers = [], isLoading, refetch } = useQuery({
-    queryKey: ['customers', effectiveFiliale],
-    queryFn: () => customerService.getCustomers(effectiveFiliale),
-    enabled: !!effectiveFiliale,
-  });
+  // Handle the data structure more robustly
+  const customers = customersData?.data || [];
+  const hasData = Array.isArray(customers) && customers.length > 0;
+  const isEmpty = Array.isArray(customers) && customers.length === 0;
 
-  const handleBranchSelected = (branchId: string) => {
-    setSelectedFiliale(branchId);
-    setIsBranchSelectionOpen(false);
-  };
-
-  const handleCall = (customer: any, contactId?: string) => {
-    navigate('/call', { 
-      state: { 
-        customer, 
-        contactId 
-      } 
+  useEffect(() => {
+    console.log('Customers component state:', {
+      isLoading,
+      error: error?.message,
+      hasData,
+      isEmpty,
+      customersCount: customers.length,
+      customersData
     });
-  };
+  }, [isLoading, error, hasData, isEmpty, customers.length, customersData]);
 
-  const handleCreateCustomer = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const form = event.target as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    try {
-      await customerService.createCustomer({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        address: formData.get('address'),
-        filiale_id: effectiveFiliale
-      });
-      
-      setIsCreateDialogOpen(false);
-      refetch();
-      toast.success("Kunde erfolgreich erstellt");
-    } catch (error) {
-      toast.error("Fehler beim Erstellen des Kunden");
-    }
-  };
+  // Error state
+  if (error) {
+    console.error('Customer query error:', error);
+    return (
+      <AppLayout title="Kunden" subtitle="Kundenverwaltung und Kontakte">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-8 text-center">
+              <div className="space-y-4">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                <h3 className="text-lg font-semibold text-red-700">Fehler beim Laden der Kunden</h3>
+                <p className="text-sm text-gray-600">
+                  {error?.message || 'Unbekannter Fehler beim Laden der Kundendaten'}
+                </p>
+                <Button onClick={() => refetch()} variant="outline">
+                  Erneut versuchen
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <AppLayout title="Kunden" subtitle="Kundenverwaltung und Kontakte">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center space-y-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-gray-600">Lade Kundendaten...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
 
   return (
-    <AppLayout title="Kunden" subtitle="Kundenverwaltung">
+    <AppLayout title="Kunden" subtitle="Kundenverwaltung und Kontakte">
       <div className="space-y-6">
+        {/* Action Bar */}
         <div className="flex justify-between items-center">
-          {isAdmin && selectedFiliale && (
-            <Select value={selectedFiliale || ""} onValueChange={setSelectedFiliale}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Filiale auswählen" />
-              </SelectTrigger>
-              <SelectContent className="bg-white z-50">
-                {filialen.map((filiale: any) => (
-                  <SelectItem key={filiale.id} value={filiale.id.toString()}>
-                    {filiale.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          {effectiveFiliale && (
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>Neuer Kunde</Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white">
-                <DialogHeader>
-                  <DialogTitle>Neuen Kunden erstellen</DialogTitle>
-                  <DialogDescription>
-                    Geben Sie die Kundendaten ein.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateCustomer}>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">Name</Label>
-                      <Input id="name" name="name" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="email" className="text-right">E-Mail</Label>
-                      <Input id="email" name="email" type="email" className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="phone" className="text-right">Telefon</Label>
-                      <Input id="phone" name="phone" className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="address" className="text-right">Adresse</Label>
-                      <Input id="address" name="address" className="col-span-3" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">Kunde erstellen</Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+          <div className="text-sm text-gray-600">
+            {hasData ? `${customers.length} Kunden gefunden` : 'Keine Kunden vorhanden'}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Upload size={16} />
+              Import
+            </Button>
+            <Button
+              onClick={() => setIsNewCustomerOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircle size={16} />
+              Neuer Kunde
+            </Button>
+          </div>
         </div>
 
-        {effectiveFiliale ? (
+        {/* Filters */}
+        <CustomerFilters filters={filters} onFiltersChange={setFilters} />
+
+        {/* Customer Table or Empty State */}
+        {hasData ? (
+          <CustomerTable customers={customers} />
+        ) : isEmpty ? (
           <Card>
             <CardContent className="pt-6">
-              {isLoading ? (
-                <div className="text-center py-8">Lädt Kunden...</div>
-              ) : customers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Keine Kunden gefunden
+              <div className="flex items-center justify-center py-12 text-center">
+                <div className="space-y-4">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto" />
+                  <h3 className="text-lg font-semibold text-gray-700">Keine Kunden gefunden</h3>
+                  <p className="text-sm text-gray-600 max-w-md">
+                    {filters.search || filters.contractType || filters.priority || filters.filialeId
+                      ? 'Keine Kunden entsprechen den aktuellen Filterkriterien.'
+                      : 'Es wurden noch keine Kunden angelegt. Erstellen Sie Ihren ersten Kunden oder importieren Sie bestehende Daten.'}
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    <Button 
+                      onClick={() => setIsNewCustomerOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <PlusCircle size={16} />
+                      Ersten Kunden erstellen
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setIsImportOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload size={16} />
+                      Kunden importieren
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Telefon</TableHead>
-                      <TableHead>E-Mail</TableHead>
-                      <TableHead>Adresse</TableHead>
-                      <TableHead>Aktionen</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customers.map((customer: any) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
-                        <TableCell>{customer.phone}</TableCell>
-                        <TableCell>{customer.email}</TableCell>
-                        <TableCell>{customer.address}</TableCell>
-                        <TableCell>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleCall(customer)}
-                            className="mr-2"
-                          >
-                            <Phone className="h-4 w-4 mr-1" />
-                            Anrufen
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              </div>
             </CardContent>
           </Card>
-        ) : null}
-      </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center space-y-2">
+                  <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto" />
+                  <p className="text-sm text-gray-600">Unerwarteter Datentyp erhalten</p>
+                  <Button onClick={() => refetch()} variant="outline" size="sm">
+                    Neu laden
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      <BranchSelectionDialog
-        open={isBranchSelectionOpen}
-        onOpenChange={setIsBranchSelectionOpen}
-        onBranchSelected={handleBranchSelected}
-      />
+        {/* Dialogs */}
+        <NewCustomerDialog 
+          open={isNewCustomerOpen} 
+          onOpenChange={setIsNewCustomerOpen}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            toast.success('Kunde erfolgreich erstellt');
+          }}
+        />
+        
+        <CustomerImportDialog 
+          open={isImportOpen} 
+          onOpenChange={setIsImportOpen}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            toast.success('Kunden erfolgreich importiert');
+          }}
+        />
+      </div>
     </AppLayout>
   );
 };

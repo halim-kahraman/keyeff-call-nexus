@@ -16,22 +16,34 @@ const Login = () => {
   const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
-    console.log('Login component - Auth state:', { isAuthenticated, needsVerification, from });
-  }, [isAuthenticated, needsVerification, from]);
+    console.log('Login component - Auth state:', { 
+      isAuthenticated, 
+      needsVerification, 
+      from,
+      email: email ? `${email.substring(0, 3)}***` : 'none'
+    });
+  }, [isAuthenticated, needsVerification, from, email]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log('Login form submitted for:', email);
-    await login(email, password);
+    console.log('Login form submitted for email:', email ? `${email.substring(0, 3)}***` : 'none');
+    
+    try {
+      await login(email, password);
+      console.log('Login attempt completed');
+    } catch (error) {
+      console.error('Login error in component:', error);
+    }
   };
 
   const handleVerificationComplete = async (token: string) => {
-    console.log('Verification completed with token');
+    console.log('Verification completed with token length:', token?.length || 0);
     // The TwoFactorForm handles the verification internally, 
     // so we don't need to do anything here as the auth context will update
   };
 
   const handleBack = () => {
+    console.log('Back button clicked, reloading page');
     window.location.reload();
   };
 

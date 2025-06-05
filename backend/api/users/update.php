@@ -49,39 +49,42 @@ if (!isset($data['name']) || !isset($data['email']) || !isset($data['role'])) {
 
 // Load existing user
 $user = new User();
-if (!$user->findById($user_id)) {
+$existingUserData = $user->findById($user_id);
+
+if (!$existingUserData) {
     jsonResponse(false, 'User not found', null, 404);
 }
 
-// Update user properties
-$user->name = trim($data['name']);
-$user->email = trim($data['email']);
-$user->role = $data['role'];
-$user->filiale = $data['filiale'] ?? null;
-$user->filiale_id = $data['filiale_id'] ?? null;
+// Prepare update data
+$name = trim($data['name']);
+$email = trim($data['email']);
+$role = $data['role'];
+$filiale = $data['filiale'] ?? null;
+$filiale_id = $data['filiale_id'] ?? null;
+$avatar = $existingUserData['avatar'] ?? null; // Keep existing avatar
 
 // Validate data
-if (empty($user->name) || empty($user->email)) {
+if (empty($name) || empty($email)) {
     jsonResponse(false, 'Name and email are required', null, 400);
 }
 
-if (!filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(false, 'Invalid email format', null, 400);
 }
 
-if (!in_array($user->role, ['admin', 'filialleiter', 'telefonist'])) {
+if (!in_array($role, ['admin', 'filialleiter', 'telefonist'])) {
     jsonResponse(false, 'Invalid role', null, 400);
 }
 
 // Update password if provided
 if (!empty($data['password'])) {
-    if (!$user->updatePassword($data['password'])) {
+    if (!$user->updatePassword($user_id, $data['password'])) {
         jsonResponse(false, 'Failed to update password', null, 500);
     }
 }
 
-// Update user
-if ($user->update()) {
+// Update user with all required parameters
+if ($user->update($user_id, $name, $email, $role, $filiale, $filiale_id, $avatar)) {
     // Log the action
     $log = new Log();
     $log->create(
@@ -89,7 +92,7 @@ if ($user->update()) {
         'update_user',
         'user',
         $user_id,
-        "Updated user: {$user->name} ({$user->email})"
+        "Updated user: {$name} ({$email})"
     );
     
     jsonResponse(true, 'User updated successfully', null);
