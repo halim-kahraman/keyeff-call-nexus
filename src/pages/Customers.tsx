@@ -11,16 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle, Upload, FileText, AlertCircle } from 'lucide-react';
 import { customerService } from '@/services/api';
 import { toast } from 'sonner';
+import { Customer } from '@/types/customer';
 
 const Customers = () => {
   const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    search: '',
-    contractType: '',
-    priority: '',
-    filialeId: ''
-  });
+  const [searchValue, setSearchValue] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -31,11 +28,11 @@ const Customers = () => {
     error,
     refetch 
   } = useQuery({
-    queryKey: ['customers', filters],
+    queryKey: ['customers', searchValue, selectedStatus],
     queryFn: async () => {
-      console.log('Fetching customers with filters:', filters);
+      console.log('Fetching customers with filters:', { searchValue, selectedStatus });
       try {
-        const response = await customerService.getCustomers(filters);
+        const response = await customerService.getCustomers();
         console.log('Customers API response:', response);
         
         // Add debug information
@@ -69,6 +66,22 @@ const Customers = () => {
       customersData
     });
   }, [isLoading, error, hasData, isEmpty, customers.length, customersData]);
+
+  // Customer action handlers
+  const handleViewDetails = (customer: Customer) => {
+    console.log('View customer details:', customer.id);
+    // TODO: Implement view details
+  };
+
+  const handleEdit = (customer: Customer) => {
+    console.log('Edit customer:', customer.id);
+    // TODO: Implement edit customer
+  };
+
+  const handleDelete = (customer: Customer) => {
+    console.log('Delete customer:', customer.id);
+    // TODO: Implement delete customer
+  };
 
   // Error state
   if (error) {
@@ -141,11 +154,24 @@ const Customers = () => {
         </div>
 
         {/* Filters */}
-        <CustomerFilters filters={filters} onFiltersChange={setFilters} />
+        <CustomerFilters 
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          onCreateNew={() => setIsNewCustomerOpen(true)}
+          customers={customers}
+        />
 
         {/* Customer Table or Empty State */}
         {hasData ? (
-          <CustomerTable customers={customers} />
+          <CustomerTable 
+            customers={customers}
+            isLoading={isLoading}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ) : isEmpty ? (
           <Card>
             <CardContent className="pt-6">
@@ -154,7 +180,7 @@ const Customers = () => {
                   <FileText className="h-12 w-12 text-gray-400 mx-auto" />
                   <h3 className="text-lg font-semibold text-gray-700">Keine Kunden gefunden</h3>
                   <p className="text-sm text-gray-600 max-w-md">
-                    {filters.search || filters.contractType || filters.priority || filters.filialeId
+                    {searchValue || selectedStatus
                       ? 'Keine Kunden entsprechen den aktuellen Filterkriterien.'
                       : 'Es wurden noch keine Kunden angelegt. Erstellen Sie Ihren ersten Kunden oder importieren Sie bestehende Daten.'}
                   </p>
@@ -203,15 +229,13 @@ const Customers = () => {
             queryClient.invalidateQueries({ queryKey: ['customers'] });
             toast.success('Kunde erfolgreich erstellt');
           }}
+          filialen={[]}
+          campaigns={[]}
         />
         
         <CustomerImportDialog 
           open={isImportOpen} 
           onOpenChange={setIsImportOpen}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['customers'] });
-            toast.success('Kunden erfolgreich importiert');
-          }}
         />
       </div>
     </AppLayout>
