@@ -77,8 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      console.log('Error response status:', error.response?.status);
+      console.log('Error response data:', error.response?.data);
       
-      // Handle different HTTP status codes
+      // Handle different HTTP status codes with more specific error checking
       if (error.response?.status === 401) {
         toast.error("Anmeldung fehlgeschlagen", {
           description: "Ungültige E-Mail-Adresse oder Passwort"
@@ -86,6 +88,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (error.response?.status === 500) {
         toast.error("Server-Fehler", {
           description: "Ein technischer Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
+        });
+      } else if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+        toast.error("Verbindungsfehler", {
+          description: "Keine Verbindung zum Server. Bitte überprüfen Sie Ihre Internetverbindung."
         });
       } else {
         toast.error("Anmeldung fehlgeschlagen", {

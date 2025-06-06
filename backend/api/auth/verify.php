@@ -98,6 +98,11 @@ debugLog('Login successful', [
     'role' => $user->role
 ]);
 
+// Generate avatar URL if not set - fix the undefined property warning
+$avatar_url = isset($user->avatar) && $user->avatar 
+    ? $user->avatar 
+    : 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . $user->role;
+
 // Return user data and token
 jsonResponse(true, 'Login successful', [
     'token' => $token,
@@ -107,7 +112,7 @@ jsonResponse(true, 'Login successful', [
         'email' => $user->email,
         'role' => $user->role,
         'filiale' => $user->filiale,
-        'avatar' => $user->avatar ?: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . $user->role,
+        'avatar' => $avatar_url,
     ]
 ]);
 ?>
