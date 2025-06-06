@@ -11,6 +11,7 @@ export { userService } from './api/userService';
 export { logsService } from './api/logsService';
 export { dashboardService } from './api/dashboardService';
 export { adminService } from './api/adminService';
+export { appointmentService } from './api/appointmentService';
 
 // Export the main API instance as default
 export { default as api } from './api/config';

@@ -95,12 +95,12 @@ if (!empty($params)) {
 $stmt_upcoming->execute();
 $upcoming_appointments = $stmt_upcoming->get_result()->fetch_assoc()['count'];
 
-// Get pending callbacks
+// Get pending callbacks - fix: remove callback_date reference, use call_logs with outcome 'rueckruf'
 $sql_callbacks = "
     SELECT COUNT(*) as count 
     FROM call_logs cl 
     JOIN users u ON cl.user_id = u.id 
-    WHERE cl.outcome = 'rueckruf' AND cl.callback_date >= CURDATE() $where_clause
+    WHERE cl.outcome = 'rueckruf' AND DATE(cl.created_at) >= CURDATE() $where_clause
 ";
 $stmt_callbacks = $conn->prepare($sql_callbacks);
 if (!empty($params)) {

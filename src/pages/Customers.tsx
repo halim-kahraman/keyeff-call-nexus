@@ -23,7 +23,7 @@ const Customers = () => {
 
   // Fetch customers with error handling and debugging
   const { 
-    data: customersData, 
+    data: customersResponse, 
     isLoading, 
     error,
     refetch 
@@ -34,13 +34,6 @@ const Customers = () => {
       try {
         const response = await customerService.getCustomers();
         console.log('Customers API response:', response);
-        
-        // Add debug information
-        if (response?.data) {
-          console.log('Customers data received:', response.data);
-          console.log('Number of customers:', response.data.length);
-        }
-        
         return response;
       } catch (error) {
         console.error('Error fetching customers:', error);
@@ -51,8 +44,8 @@ const Customers = () => {
     retryDelay: 1000,
   });
 
-  // Handle the data structure more robustly
-  const customers = customersData?.data || [];
+  // Handle the data structure correctly - extract data from response
+  const customers = customersResponse?.data || [];
   const hasData = Array.isArray(customers) && customers.length > 0;
   const isEmpty = Array.isArray(customers) && customers.length === 0;
 
@@ -63,9 +56,9 @@ const Customers = () => {
       hasData,
       isEmpty,
       customersCount: customers.length,
-      customersData
+      customersResponse
     });
-  }, [isLoading, error, hasData, isEmpty, customers.length, customersData]);
+  }, [isLoading, error, hasData, isEmpty, customers.length, customersResponse]);
 
   // Customer action handlers
   const handleViewDetails = (customer: Customer) => {
@@ -204,7 +197,7 @@ const Customers = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
+        </Card>
         ) : (
           <Card>
             <CardContent className="pt-6">
