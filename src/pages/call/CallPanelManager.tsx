@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -6,6 +5,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { customerService, campaignService } from "@/services/api";
 import { useConnectionManager } from "@/hooks/useConnectionManager";
+import api from "@/services/api/config";
 
 export const useCallPanelManager = () => {
   const [activeTab, setActiveTab] = useState("dialpad");
@@ -109,16 +109,9 @@ export const useCallPanelManager = () => {
         filiale_id: selectedFiliale
       };
 
-      const response = await fetch('/api/calls/log.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(logData)
-      });
+      const response = await api.post('/calls/log.php', logData);
 
-      if (response.ok) {
+      if (response.data) {
         toast.success("Anruf gespeichert", {
           description: "Der Anruf wurde erfolgreich protokolliert.",
         });
@@ -127,8 +120,6 @@ export const useCallPanelManager = () => {
         setCallNotes("");
         setCallDuration(0);
         setCallOutcome("Erfolgreich");
-      } else {
-        throw new Error('Failed to save call log');
       }
     } catch (error) {
       toast.error("Fehler", {

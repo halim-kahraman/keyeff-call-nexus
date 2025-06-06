@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import api from '@/services/api/config';
 
 interface CampaignSession {
   in_use: boolean;
@@ -13,15 +14,10 @@ export const useCampaignSession = () => {
   // Check if campaign is in use
   const checkCampaignSession = async (campaignId: number): Promise<CampaignSession> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/campaigns/session.php?campaign_id=${campaignId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`/campaigns/session.php?campaign_id=${campaignId}`);
       
-      if (response.ok) {
-        const session = await response.json();
+      if (response.data) {
+        const session = response.data;
         setActiveSessions(prev => ({
           ...prev,
           [campaignId]: session
@@ -38,33 +34,23 @@ export const useCampaignSession = () => {
   // Start campaign session
   const startCampaignSession = async (campaignId: number): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/campaigns/session.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ campaign_id: campaignId })
-      });
+      const response = await api.post('/campaigns/session.php', { campaign_id: campaignId });
       
-      if (response.status === 409) {
-        const error = await response.json();
-        toast.error('Kampagne bereits in Verwendung', {
-          description: error.message
-        });
-        return false;
-      }
-      
-      if (response.ok) {
+      if (response.status === 200) {
         await checkCampaignSession(campaignId);
         toast.success('Kampagne gestartet', {
           description: 'Sie haben die Kampagne erfolgreich übernommen.'
         });
         return true;
       }
-    } catch (error) {
-      toast.error('Fehler beim Starten der Kampagne');
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        toast.error('Kampagne bereits in Verwendung', {
+          description: error.response.data?.message || 'Die Kampagne wird bereits bearbeitet.'
+        });
+      } else {
+        toast.error('Fehler beim Starten der Kampagne');
+      }
     }
     
     return false;
@@ -73,15 +59,9 @@ export const useCampaignSession = () => {
   // End campaign session
   const endCampaignSession = async (campaignId: number): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/campaigns/session.php?campaign_id=${campaignId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.delete(`/campaigns/session.php?campaign_id=${campaignId}`);
       
-      if (response.ok) {
+      if (response.status === 200) {
         setActiveSessions(prev => {
           const updated = { ...prev };
           delete updated[campaignId];
@@ -103,17 +83,9 @@ export const useCampaignSession = () => {
   // Keep session alive
   const keepSessionAlive = async (campaignId: number) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await fetch('/api/campaigns/session.php', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          campaign_id: campaignId,
-          action: 'keep_alive'
-        })
+      await api.put('/campaigns/session.php', { 
+        campaign_id: campaignId,
+        action: 'keep_alive'
       });
     } catch (error) {
       console.error('Error keeping session alive:', error);

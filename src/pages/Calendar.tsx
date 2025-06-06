@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isSameDay, format } from "date-fns";
 import { de } from "date-fns/locale";
 import { toast } from "sonner";
+import { appointmentService, customerService } from "@/services/api";
 
 interface Appointment {
   id: number;
@@ -34,58 +34,16 @@ const CalendarPage = () => {
 
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['appointments'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/appointments/list.php', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        return result.data || [];
-      }
-      return [];
-    },
+    queryFn: () => appointmentService.getAppointments(),
   });
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers-for-appointments'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/customers/list.php', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        return result.data || [];
-      }
-      return [];
-    },
+    queryFn: () => customerService.getCustomers(),
   });
 
   const createMutation = useMutation({
-    mutationFn: async (appointmentData: any) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/appointments/create.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(appointmentData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create appointment');
-      }
-      
-      return response.json();
-    },
+    mutationFn: (appointmentData: any) => appointmentService.createAppointment(appointmentData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast.success("Termin erstellt");
@@ -97,23 +55,7 @@ const CalendarPage = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (appointmentData: any) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/appointments/update.php?id=${appointmentData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(appointmentData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update appointment');
-      }
-      
-      return response.json();
-    },
+    mutationFn: (appointmentData: any) => appointmentService.updateAppointment(appointmentData.id, appointmentData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast.success("Termin aktualisiert");
@@ -125,21 +67,7 @@ const CalendarPage = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (appointmentId: number) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/appointments/delete.php?id=${appointmentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete appointment');
-      }
-      
-      return response.json();
-    },
+    mutationFn: (appointmentId: number) => appointmentService.deleteAppointment(appointmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast.success("Termin gelöscht");
