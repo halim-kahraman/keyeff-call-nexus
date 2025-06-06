@@ -98,10 +98,27 @@ debugLog('Login successful', [
     'role' => $user->role
 ]);
 
-// Generate avatar URL if not set - fix the undefined property warning
-$avatar_url = isset($user->avatar) && $user->avatar 
-    ? $user->avatar 
-    : 'https://api.dicebear.com/7.x/avataaars/svg?seed=' . $user->role;
+// Helper function to generate initials from name
+function generateInitials($name) {
+    $words = explode(' ', trim($name));
+    $initials = '';
+    foreach ($words as $word) {
+        if (!empty($word)) {
+            $initials .= strtoupper(substr($word, 0, 1));
+        }
+    }
+    return substr($initials, 0, 2); // Max 2 initials
+}
+
+// Generate avatar URL - handle avatar property safely
+$avatar_url = '';
+if (property_exists($user, 'avatar') && !empty($user->avatar)) {
+    $avatar_url = $user->avatar;
+} else {
+    // Generate initials-based avatar for users without custom avatar
+    $initials = generateInitials($user->name);
+    $avatar_url = 'https://api.dicebear.com/7.x/initials/svg?seed=' . urlencode($initials) . '&backgroundColor=0369a1&textColor=ffffff';
+}
 
 // Return user data and token
 jsonResponse(true, 'Login successful', [

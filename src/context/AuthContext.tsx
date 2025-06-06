@@ -79,23 +79,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Login error:', error);
       console.log('Error response status:', error.response?.status);
       console.log('Error response data:', error.response?.data);
+      console.log('Error code:', error.code);
+      console.log('Error message:', error.message);
       
-      // Handle different HTTP status codes with more specific error checking
-      if (error.response?.status === 401) {
+      // Handle different error scenarios - be more specific about error detection
+      const status = error.response?.status;
+      const errorMessage = error.response?.data?.message || error.message;
+      
+      if (status === 401) {
+        console.log('401 error detected - showing invalid credentials toast');
         toast.error("Anmeldung fehlgeschlagen", {
           description: "Ungültige E-Mail-Adresse oder Passwort"
         });
-      } else if (error.response?.status === 500) {
+      } else if (status === 500) {
         toast.error("Server-Fehler", {
           description: "Ein technischer Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
         });
-      } else if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error')) {
+      } else if (error.code === 'NETWORK_ERROR' || errorMessage?.includes('Network Error') || !status) {
         toast.error("Verbindungsfehler", {
           description: "Keine Verbindung zum Server. Bitte überprüfen Sie Ihre Internetverbindung."
         });
       } else {
         toast.error("Anmeldung fehlgeschlagen", {
-          description: "Bitte überprüfen Sie Ihre Anmeldedaten und Internetverbindung"
+          description: "Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut."
         });
       }
     } finally {
@@ -148,13 +154,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('2FA error:', error);
+      console.log('2FA Error response status:', error.response?.status);
+      console.log('2FA Error response data:', error.response?.data);
       
       // Handle different HTTP status codes for 2FA verification
-      if (error.response?.status === 401) {
+      const status = error.response?.status;
+      
+      if (status === 401) {
         toast.error("Bestätigung fehlgeschlagen", {
           description: "Der eingegebene Code ist ungültig oder abgelaufen"
         });
-      } else if (error.response?.status === 404) {
+      } else if (status === 404) {
         toast.error("Fehler", {
           description: "Benutzer nicht gefunden. Bitte melden Sie sich erneut an."
         });
