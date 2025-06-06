@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
@@ -79,9 +78,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Login error:', error);
       
-      toast.error("Anmeldung fehlgeschlagen", {
-        description: "Bitte überprüfen Sie Ihre Anmeldedaten"
-      });
+      // Handle different HTTP status codes
+      if (error.response?.status === 401) {
+        toast.error("Anmeldung fehlgeschlagen", {
+          description: "Ungültige E-Mail-Adresse oder Passwort"
+        });
+      } else if (error.response?.status === 500) {
+        toast.error("Server-Fehler", {
+          description: "Ein technischer Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
+        });
+      } else {
+        toast.error("Anmeldung fehlgeschlagen", {
+          description: "Bitte überprüfen Sie Ihre Anmeldedaten und Internetverbindung"
+        });
+      }
     } finally {
       setIsLoading(false);
       setIsProcessingLogin(false);
@@ -130,11 +140,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Redirecting to dashboard after successful 2FA');
         window.location.href = '/';
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('2FA error:', error);
-      toast.error("Bestätigung fehlgeschlagen", {
-        description: "Der eingegebene Code ist ungültig oder abgelaufen"
-      });
+      
+      // Handle different HTTP status codes for 2FA verification
+      if (error.response?.status === 401) {
+        toast.error("Bestätigung fehlgeschlagen", {
+          description: "Der eingegebene Code ist ungültig oder abgelaufen"
+        });
+      } else if (error.response?.status === 404) {
+        toast.error("Fehler", {
+          description: "Benutzer nicht gefunden. Bitte melden Sie sich erneut an."
+        });
+      } else {
+        toast.error("Bestätigung fehlgeschlagen", {
+          description: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+        });
+      }
     } finally {
       setIsLoading(false);
     }

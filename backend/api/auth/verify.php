@@ -43,8 +43,8 @@ if (!$user->findById($user_id)) {
     jsonResponse(false, 'User not found', null, 404);
 }
 
-// Verify OTP
-if (!$user->verifyOTP($otp)) {
+// Verify OTP - fix the function call with proper parameters
+if (!$user->verifyOTP($user_id, $otp)) {
     // Log failed verification
     $log = new Log();
     $log->create(
@@ -62,6 +62,9 @@ if (!$user->verifyOTP($otp)) {
     
     jsonResponse(false, 'Invalid or expired OTP', null, 401);
 }
+
+// Clear OTP after successful verification
+$user->clearOTP($user_id);
 
 // Generate simple JWT token (in production, use a proper JWT library)
 $token_payload = [
