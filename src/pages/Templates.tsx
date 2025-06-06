@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -12,86 +13,92 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { templateService } from "@/services/api/templateService";
 
 // Define interfaces for template types
-interface EmailTemplate {
+interface Template {
   id: string;
   name: string;
-  subject: string;
-  content?: string;
-  createdAt: string;
-}
-
-interface SmsTemplate {
-  id: string;
-  name: string;
-  content: string;
-  createdAt: string;
-}
-
-interface WhatsAppTemplate {
-  id: string;
-  name: string;
-  content: string;
-  createdAt: string;
-}
-
-interface CallScript {
-  id: string;
-  name: string;
+  type: string;
   category: string;
+  subject?: string;
   content?: string;
   createdAt: string;
 }
-
-interface ReportTemplate {
-  id: string;
-  name: string;
-  format: string;
-  createdAt: string;
-}
-
-// Union type for all template types
-type Template = EmailTemplate | SmsTemplate | WhatsAppTemplate | CallScript | ReportTemplate;
 
 const Templates = () => {
+  const queryClient = useQueryClient();
+  
   // State for managing open dialogs
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [templateType, setTemplateType] = useState<string>('email');
   const [isAdding, setIsAdding] = useState(false);
 
-  // Mock data for templates in each category
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([
-    { id: "1", name: "Terminbestätigung", subject: "Bestätigung Ihres Termins", content: "Sehr geehrte/r {{name}},\n\nhiermit bestätigen wir Ihren Termin am {{date}} um {{time}} Uhr.\n\nMit freundlichen Grüßen,\nIhr KeyEff Team", createdAt: "2023-05-10" },
-    { id: "2", name: "Erinnerung", subject: "Erinnerung an Ihren Termin", content: "Sehr geehrte/r {{name}},\n\nwir möchten Sie an Ihren Termin morgen um {{time}} Uhr erinnern.\n\nMit freundlichen Grüßen,\nIhr KeyEff Team", createdAt: "2023-05-12" },
-    { id: "3", name: "Nachfassaktion", subject: "Wie war unser Gespräch?", content: "Sehr geehrte/r {{name}},\n\nvielen Dank für das angenehme Gespräch am {{date}}. Wie hat Ihnen unsere Beratung gefallen?\n\nMit freundlichen Grüßen,\nIhr KeyEff Team", createdAt: "2023-06-01" },
-    { id: "4", name: "Vertragsverlängerung", subject: "Ihr Vertrag läuft bald aus", content: "Sehr geehrte/r {{name}},\n\nIhr Vertrag läuft am {{date}} aus. Wir würden Sie gerne zu einem persönlichen Gespräch einladen.\n\nMit freundlichen Grüßen,\nIhr KeyEff Team", createdAt: "2023-06-15" }
-  ]);
+  // Fetch templates from database
+  const { data: emailTemplates = [], isLoading: emailLoading } = useQuery({
+    queryKey: ['templates', 'email'],
+    queryFn: () => templateService.getTemplates('email'),
+  });
 
-  const [smsTemplates, setSmsTemplates] = useState<SmsTemplate[]>([
-    { id: "1", name: "Terminerinnerung kurz", content: "Erinnerung: Termin morgen um {{time}} Uhr bei KeyEff", createdAt: "2023-05-18" },
-    { id: "2", name: "Bestätigung", content: "Ihr Termin am {{date}} wurde bestätigt. Ihr KeyEff Team", createdAt: "2023-05-19" },
-    { id: "3", name: "Serviceinfo", content: "Wartungsarbeiten am {{date}}, Ihr KeyEff Team", createdAt: "2023-06-22" }
-  ]);
+  const { data: smsTemplates = [], isLoading: smsLoading } = useQuery({
+    queryKey: ['templates', 'sms'],
+    queryFn: () => templateService.getTemplates('sms'),
+  });
 
-  const [whatsappTemplates, setWhatsappTemplates] = useState<WhatsAppTemplate[]>([
-    { id: "1", name: "Willkommensnachricht", content: "Willkommen {{name}}! Wir freuen uns, dass Sie sich für unsere Dienste interessieren. Bei Fragen stehen wir gerne zur Verfügung.", createdAt: "2023-04-05" },
-    { id: "2", name: "Support-Anfrage", content: "Hallo {{name}}, danke für Ihre Anfrage. Ein Mitarbeiter wird sich in Kürze bei Ihnen melden. Ihr KeyEff Team", createdAt: "2023-04-15" }
-  ]);
+  const { data: whatsappTemplates = [], isLoading: whatsappLoading } = useQuery({
+    queryKey: ['templates', 'whatsapp'],
+    queryFn: () => templateService.getTemplates('whatsapp'),
+  });
 
-  const [callScripts, setCallScripts] = useState<CallScript[]>([
-    { id: "1", name: "Erstgespräch", category: "Neukunden", content: "1. Begrüßung: Guten Tag Herr/Frau {{name}}\n2. Vorstellung: Mein Name ist {{mitarbeiter}} von KeyEff\n3. Anliegen: Ich rufe an wegen...\n4. Fragen: Haben Sie schon Erfahrungen mit...?\n5. Abschluss: Vielen Dank für das Gespräch", createdAt: "2023-03-10" },
-    { id: "2", name: "Bestandskundenanruf", category: "Bestandskunden", content: "1. Begrüßung: Guten Tag Herr/Frau {{name}}\n2. Identifikation: Sie sind Kunde bei uns seit...\n3. Zweck des Anrufs: Ich möchte mich erkundigen...\n4. Angebot: Wir haben ein neues Angebot...\n5. Abschluss: Vielen Dank für Ihre Zeit", createdAt: "2023-03-15" },
-    { id: "3", name: "Beschwerdebehandlung", category: "Support", content: "1. Begrüßung: Guten Tag Herr/Frau {{name}}\n2. Entschuldigung: Es tut uns leid...\n3. Problem verstehen: Können Sie mir genauer schildern...?\n4. Lösung anbieten: Wir können...\n5. Abschluss: Vielen Dank für Ihr Verständnis", createdAt: "2023-04-20" },
-    { id: "4", name: "Vertragsabschluss", category: "Vertrieb", content: "1. Begrüßung und Zusammenfassung\n2. Tarifdetails erklären\n3. Vertragsbedingungen\n4. Zahlungsmodalitäten\n5. Nächste Schritte", createdAt: "2023-05-05" }
-  ]);
+  const { data: callScripts = [], isLoading: callsLoading } = useQuery({
+    queryKey: ['templates', 'calls'],
+    queryFn: () => templateService.getTemplates('calls'),
+  });
 
-  const [reportTemplates, setReportTemplates] = useState<ReportTemplate[]>([
-    { id: "1", name: "Monatliche Übersicht", format: "Excel", createdAt: "2023-02-10" },
-    { id: "2", name: "Kundenübersicht", format: "PDF", createdAt: "2023-02-15" },
-    { id: "3", name: "Vertriebsreport", format: "Excel", createdAt: "2023-03-20" }
-  ]);
+  const { data: reportTemplates = [], isLoading: reportsLoading } = useQuery({
+    queryKey: ['templates', 'reports'],
+    queryFn: () => templateService.getTemplates('reports'),
+  });
+
+  // Mutations for create, update, delete
+  const createMutation = useMutation({
+    mutationFn: templateService.saveTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      toast.success("Vorlage erfolgreich erstellt");
+      setEditDialogOpen(false);
+      setEditingTemplate(null);
+    },
+    onError: () => {
+      toast.error("Fehler beim Erstellen der Vorlage");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => templateService.updateTemplate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      toast.success("Vorlage erfolgreich aktualisiert");
+      setEditDialogOpen(false);
+      setEditingTemplate(null);
+    },
+    onError: () => {
+      toast.error("Fehler beim Aktualisieren der Vorlage");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: templateService.deleteTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      toast.success("Vorlage erfolgreich gelöscht");
+    },
+    onError: () => {
+      toast.error("Fehler beim Löschen der Vorlage");
+    }
+  });
 
   // List of available placeholders
   const placeholders = [
@@ -120,25 +127,15 @@ const Templates = () => {
     setIsAdding(true);
     
     // Create empty template based on type
-    let newTemplate: Template;
-    
-    switch(type) {
-      case 'email':
-        newTemplate = { id: "", name: "", subject: "", content: "", createdAt: new Date().toISOString().split('T')[0] };
-        break;
-      case 'sms':
-      case 'whatsapp':
-        newTemplate = { id: "", name: "", content: "", createdAt: new Date().toISOString().split('T')[0] };
-        break;
-      case 'calls':
-        newTemplate = { id: "", name: "", category: "Allgemein", content: "", createdAt: new Date().toISOString().split('T')[0] };
-        break;
-      case 'reports':
-        newTemplate = { id: "", name: "", format: "PDF", createdAt: new Date().toISOString().split('T')[0] };
-        break;
-      default:
-        newTemplate = { id: "", name: "", content: "", createdAt: new Date().toISOString().split('T')[0] };
-    }
+    const newTemplate: Template = {
+      id: "",
+      name: "",
+      type: type,
+      category: type === 'calls' ? 'Allgemein' : 'general',
+      subject: type === 'email' ? '' : undefined,
+      content: "",
+      createdAt: new Date().toISOString().split('T')[0]
+    };
     
     setEditingTemplate(newTemplate);
     setEditDialogOpen(true);
@@ -148,79 +145,32 @@ const Templates = () => {
   const handleSaveTemplate = () => {
     if (!editingTemplate) return;
     
-    const newId = isAdding ? Date.now().toString() : editingTemplate.id;
-    const templateWithId = { ...editingTemplate, id: newId };
+    const templateData = {
+      name: editingTemplate.name,
+      type: editingTemplate.type,
+      category: editingTemplate.category,
+      subject: editingTemplate.subject || null,
+      content: editingTemplate.content || '',
+      placeholders: placeholders.map(p => p.key)
+    };
     
-    switch(templateType) {
-      case 'email':
-        if (isAdding) {
-          setEmailTemplates([...emailTemplates, templateWithId as EmailTemplate]);
-        } else {
-          setEmailTemplates(emailTemplates.map(t => t.id === editingTemplate.id ? templateWithId as EmailTemplate : t));
-        }
-        break;
-      case 'sms':
-        if (isAdding) {
-          setSmsTemplates([...smsTemplates, templateWithId as SmsTemplate]);
-        } else {
-          setSmsTemplates(smsTemplates.map(t => t.id === editingTemplate.id ? templateWithId as SmsTemplate : t));
-        }
-        break;
-      case 'whatsapp':
-        if (isAdding) {
-          setWhatsappTemplates([...whatsappTemplates, templateWithId as WhatsAppTemplate]);
-        } else {
-          setWhatsappTemplates(whatsappTemplates.map(t => t.id === editingTemplate.id ? templateWithId as WhatsAppTemplate : t));
-        }
-        break;
-      case 'calls':
-        if (isAdding) {
-          setCallScripts([...callScripts, templateWithId as CallScript]);
-        } else {
-          setCallScripts(callScripts.map(t => t.id === editingTemplate.id ? templateWithId as CallScript : t));
-        }
-        break;
-      case 'reports':
-        if (isAdding) {
-          setReportTemplates([...reportTemplates, templateWithId as ReportTemplate]);
-        } else {
-          setReportTemplates(reportTemplates.map(t => t.id === editingTemplate.id ? templateWithId as ReportTemplate : t));
-        }
-        break;
+    if (isAdding) {
+      createMutation.mutate(templateData);
+    } else {
+      updateMutation.mutate({ id: editingTemplate.id, data: templateData });
     }
-    
-    toast.success(isAdding ? "Vorlage erfolgreich erstellt" : "Vorlage erfolgreich aktualisiert");
-    setEditDialogOpen(false);
-    setEditingTemplate(null);
   };
 
   // Function to delete template
-  const handleDeleteTemplate = (id: string, type: string) => {
+  const handleDeleteTemplate = (id: string) => {
     if (confirm("Möchten Sie diese Vorlage wirklich löschen?")) {
-      switch(type) {
-        case 'email':
-          setEmailTemplates(emailTemplates.filter(t => t.id !== id));
-          break;
-        case 'sms':
-          setSmsTemplates(smsTemplates.filter(t => t.id !== id));
-          break;
-        case 'whatsapp':
-          setWhatsappTemplates(whatsappTemplates.filter(t => t.id !== id));
-          break;
-        case 'calls':
-          setCallScripts(callScripts.filter(t => t.id !== id));
-          break;
-        case 'reports':
-          setReportTemplates(reportTemplates.filter(t => t.id !== id));
-          break;
-      }
-      toast.success("Vorlage erfolgreich gelöscht");
+      deleteMutation.mutate(id);
     }
   };
 
   // Insert placeholder at cursor position
   const insertPlaceholder = (placeholder: string) => {
-    if (!editingTemplate || !('content' in editingTemplate)) return;
+    if (!editingTemplate || !editingTemplate.content) return;
     
     const textarea = document.getElementById('template-content') as HTMLTextAreaElement;
     if (!textarea) return;
@@ -228,8 +178,8 @@ const Templates = () => {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     
-    const contentBefore = editingTemplate.content!.substring(0, start);
-    const contentAfter = editingTemplate.content!.substring(end);
+    const contentBefore = editingTemplate.content.substring(0, start);
+    const contentAfter = editingTemplate.content.substring(end);
     
     const newContent = contentBefore + placeholder + contentAfter;
     
@@ -246,49 +196,55 @@ const Templates = () => {
   };
 
   // Render template tables
-  const renderTemplateTable = (templates: any[], columns: { key: string, label: string }[], type: string) => (
+  const renderTemplateTable = (templates: any[], columns: { key: string, label: string }[], type: string, isLoading: boolean) => (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead key={col.key}>{col.label}</TableHead>
-            ))}
-            <TableHead className="w-[100px]">Aktionen</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {templates.length > 0 ? templates.map((template) => (
-            <TableRow key={template.id}>
-              {columns.map((col) => (
-                <TableCell key={`${template.id}-${col.key}`}>
-                  {col.key === 'content' && template[col.key] ? (
-                    <span className="line-clamp-2">{template[col.key]}</span>
-                  ) : (
-                    template[col.key]
-                  )}
-                </TableCell>
-              ))}
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="icon" title="Bearbeiten" onClick={() => handleEditTemplate(template, type)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" title="Löschen" onClick={() => handleDeleteTemplate(template.id, type)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          )) : (
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={columns.length + 1} className="text-center py-4">
-                Keine Vorlagen vorhanden
-              </TableCell>
+              {columns.map((col) => (
+                <TableHead key={col.key}>{col.label}</TableHead>
+              ))}
+              <TableHead className="w-[100px]">Aktionen</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {templates.length > 0 ? templates.map((template) => (
+              <TableRow key={template.id}>
+                {columns.map((col) => (
+                  <TableCell key={`${template.id}-${col.key}`}>
+                    {col.key === 'content' && template[col.key] ? (
+                      <span className="line-clamp-2">{template[col.key]}</span>
+                    ) : (
+                      template[col.key]
+                    )}
+                  </TableCell>
+                ))}
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="icon" title="Bearbeiten" onClick={() => handleEditTemplate(template, type)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" title="Löschen" onClick={() => handleDeleteTemplate(template.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={columns.length + 1} className="text-center py-4">
+                  Keine Vorlagen vorhanden
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 
@@ -318,8 +274,8 @@ const Templates = () => {
               {renderTemplateTable(emailTemplates, [
                 { key: 'name', label: 'Name' },
                 { key: 'subject', label: 'Betreff' },
-                { key: 'createdAt', label: 'Erstellt am' }
-              ], 'email')}
+                { key: 'created_at', label: 'Erstellt am' }
+              ], 'email', emailLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -339,8 +295,8 @@ const Templates = () => {
               {renderTemplateTable(smsTemplates, [
                 { key: 'name', label: 'Name' },
                 { key: 'content', label: 'Inhalt' },
-                { key: 'createdAt', label: 'Erstellt am' }
-              ], 'sms')}
+                { key: 'created_at', label: 'Erstellt am' }
+              ], 'sms', smsLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -360,8 +316,8 @@ const Templates = () => {
               {renderTemplateTable(whatsappTemplates, [
                 { key: 'name', label: 'Name' },
                 { key: 'content', label: 'Inhalt' },
-                { key: 'createdAt', label: 'Erstellt am' }
-              ], 'whatsapp')}
+                { key: 'created_at', label: 'Erstellt am' }
+              ], 'whatsapp', whatsappLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -381,8 +337,8 @@ const Templates = () => {
               {renderTemplateTable(callScripts, [
                 { key: 'name', label: 'Name' },
                 { key: 'category', label: 'Kategorie' },
-                { key: 'createdAt', label: 'Erstellt am' }
-              ], 'calls')}
+                { key: 'created_at', label: 'Erstellt am' }
+              ], 'calls', callsLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -401,9 +357,9 @@ const Templates = () => {
             <CardContent>
               {renderTemplateTable(reportTemplates, [
                 { key: 'name', label: 'Name' },
-                { key: 'format', label: 'Format' },
-                { key: 'createdAt', label: 'Erstellt am' }
-              ], 'reports')}
+                { key: 'category', label: 'Kategorie' },
+                { key: 'created_at', label: 'Erstellt am' }
+              ], 'reports', reportsLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -437,19 +393,19 @@ const Templates = () => {
               </div>
 
               {/* Fields specific to email templates */}
-              {templateType === 'email' && 'subject' in editingTemplate && (
+              {templateType === 'email' && (
                 <div>
                   <Label htmlFor="subject">Betreff</Label>
                   <Input 
                     id="subject" 
-                    value={editingTemplate.subject} 
+                    value={editingTemplate.subject || ''} 
                     onChange={(e) => setEditingTemplate({ ...editingTemplate, subject: e.target.value })} 
                   />
                 </div>
               )}
 
               {/* Fields specific to call scripts */}
-              {templateType === 'calls' && 'category' in editingTemplate && (
+              {templateType === 'calls' && (
                 <div>
                   <Label htmlFor="category">Kategorie</Label>
                   <Select 
@@ -470,57 +426,32 @@ const Templates = () => {
                 </div>
               )}
 
-              {/* Fields specific to report templates */}
-              {templateType === 'reports' && 'format' in editingTemplate && (
-                <div>
-                  <Label htmlFor="format">Format</Label>
-                  <Select 
-                    value={editingTemplate.format}
-                    onValueChange={(value) => setEditingTemplate({ ...editingTemplate, format: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Format auswählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PDF">PDF</SelectItem>
-                      <SelectItem value="Excel">Excel</SelectItem>
-                      <SelectItem value="CSV">CSV</SelectItem>
-                      <SelectItem value="Word">Word</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               {/* Content field for templates with content */}
-              {'content' in editingTemplate && (
-                <>
-                  <div>
-                    <Label htmlFor="template-content">Inhalt</Label>
-                    <Textarea 
-                      id="template-content" 
-                      value={editingTemplate.content || ''} 
-                      onChange={(e) => setEditingTemplate({ ...editingTemplate, content: e.target.value })} 
-                      rows={8}
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="template-content">Inhalt</Label>
+                <Textarea 
+                  id="template-content" 
+                  value={editingTemplate.content || ''} 
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, content: e.target.value })} 
+                  rows={8}
+                />
+              </div>
 
-                  <div>
-                    <Label>Verfügbare Platzhalter</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {placeholders.map((ph) => (
-                        <Badge 
-                          key={ph.key} 
-                          variant="outline" 
-                          className="cursor-pointer hover:bg-slate-100"
-                          onClick={() => insertPlaceholder(ph.key)}
-                        >
-                          {ph.key} - {ph.description}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+              <div>
+                <Label>Verfügbare Platzhalter</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {placeholders.map((ph) => (
+                    <Badge 
+                      key={ph.key} 
+                      variant="outline" 
+                      className="cursor-pointer hover:bg-slate-100"
+                      onClick={() => insertPlaceholder(ph.key)}
+                    >
+                      {ph.key} - {ph.description}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -528,9 +459,9 @@ const Templates = () => {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Abbrechen
             </Button>
-            <Button onClick={handleSaveTemplate}>
+            <Button onClick={handleSaveTemplate} disabled={createMutation.isPending || updateMutation.isPending}>
               <Save className="mr-2 h-4 w-4" />
-              Speichern
+              {createMutation.isPending || updateMutation.isPending ? 'Speichert...' : 'Speichern'}
             </Button>
           </DialogFooter>
         </DialogContent>

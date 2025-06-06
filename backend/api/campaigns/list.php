@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Campaign.php';
 
+use KeyEff\CallPanel\Models\Campaign;
+
 // Check authorization
 $headers = apache_request_headers();
 $auth_header = $headers['Authorization'] ?? null;

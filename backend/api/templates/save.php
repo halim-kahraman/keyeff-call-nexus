@@ -1,92 +1,52 @@
 
 <?php
-require_once '../../config/database.php';
-require_once '../../models/User.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../models/Template.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, PUT, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+use KeyEff\CallPanel\Models\Template;
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    jsonResponse(false, 'Invalid request method', null, 405);
 }
 
-// Verify authentication and admin role
-$headers = getallheaders();
-$authHeader = $headers['Authorization'] ?? '';
+$headers = apache_request_headers();
+$auth_header = $headers['Authorization'] ?? null;
 
-if (!$authHeader || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+if (!$auth_header || !preg_match('/Bearer\s(\S+)/', $auth_header, $matches)) {
+    jsonResponse(false, 'Unauthorized', null, 401);
 }
 
 $token = $matches[1];
-$user = User::verifyToken($token);
+$payload = validateToken($token);
 
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['error' => 'Admin access required']);
-    exit;
+if (!$payload) {
+    jsonResponse(false, 'Invalid token', null, 401);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$data = json_decode(file_get_contents('php://input'), true);
 
-if (!$input) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON input']);
-    exit;
-}
-
-$required = ['name', 'type', 'category', 'content'];
-foreach ($required as $field) {
-    if (!isset($input[$field]) || empty($input[$field])) {
-        http_response_code(400);
-        echo json_encode(['error' => "Field '$field' is required"]);
-        exit;
-    }
+if (empty($data['name']) || empty($data['type'])) {
+    jsonResponse(false, 'Name and type are required', null, 400);
 }
 
 try {
-    $pdo = getDBConnection();
-    
-    $placeholders = json_encode($input['placeholders'] ?? []);
-    
-    if (isset($input['id']) && $input['id']) {
-        // Update existing template
-        $sql = "UPDATE templates SET name = ?, type = ?, category = ?, subject = ?, content = ?, placeholders = ? WHERE id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $input['name'],
-            $input['type'],
-            $input['category'],
-            $input['subject'] ?? null,
-            $input['content'],
-            $placeholders,
-            $input['id']
-        ]);
-        
-        echo json_encode(['success' => true, 'message' => 'Template updated successfully']);
+    $template = new Template();
+    $templateId = $template->create(
+        $data['name'],
+        $data['type'],
+        $data['category'] ?? 'general',
+        $data['subject'] ?? null,
+        $data['content'] ?? '',
+        $data['placeholders'] ?? null
+    );
+
+    if ($templateId) {
+        jsonResponse(true, 'Template created successfully', ['id' => $templateId]);
     } else {
-        // Create new template
-        $sql = "INSERT INTO templates (name, type, category, subject, content, placeholders) VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            $input['name'],
-            $input['type'],
-            $input['category'],
-            $input['subject'] ?? null,
-            $input['content'],
-            $placeholders
-        ]);
-        
-        $templateId = $pdo->lastInsertId();
-        echo json_encode(['success' => true, 'id' => $templateId, 'message' => 'Template created successfully']);
+        jsonResponse(false, 'Failed to create template', null, 500);
     }
-    
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    debugLog("Error creating template", $e->getMessage());
+    jsonResponse(false, 'Error creating template: ' . $e->getMessage(), null, 500);
 }
 ?>

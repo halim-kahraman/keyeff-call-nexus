@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../models/Template.php';
 
 use KeyEff\CallPanel\Models\Template;
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
     jsonResponse(false, 'Invalid request method', null, 405);
 }
 
@@ -23,15 +23,23 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-$type = $_GET['type'] ?? null;
+$template_id = $_GET['id'] ?? null;
+
+if (!$template_id) {
+    jsonResponse(false, 'Template ID is required', null, 400);
+}
 
 try {
     $template = new Template();
-    $templates = $template->getAll($type);
+    $success = $template->delete($template_id);
 
-    jsonResponse(true, 'Templates retrieved successfully', $templates);
+    if ($success) {
+        jsonResponse(true, 'Template deleted successfully', null);
+    } else {
+        jsonResponse(false, 'Failed to delete template', null, 500);
+    }
 } catch (Exception $e) {
-    debugLog("Error fetching templates", $e->getMessage());
-    jsonResponse(false, 'Error fetching templates: ' . $e->getMessage(), null, 500);
+    debugLog("Error deleting template", $e->getMessage());
+    jsonResponse(false, 'Error deleting template: ' . $e->getMessage(), null, 500);
 }
 ?>

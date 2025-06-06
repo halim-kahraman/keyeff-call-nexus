@@ -27,7 +27,7 @@ try {
     $conn = getConnection();
     $user_id = $payload['user_id'];
     $role = $payload['role'];
-    $filiale_id = $payload['filiale_id'];
+    $filiale_id = $payload['filiale_id'] ?? null;
 
     $where_clause = "";
     $params = [];
@@ -37,7 +37,7 @@ try {
         $where_clause = "WHERE a.user_id = ?";
         $params[] = $user_id;
         $types = "i";
-    } elseif ($role === 'filialleiter') {
+    } elseif ($role === 'filialleiter' && $filiale_id) {
         $where_clause = "WHERE u.filiale_id = ?";
         $params[] = $filiale_id;
         $types = "i";
