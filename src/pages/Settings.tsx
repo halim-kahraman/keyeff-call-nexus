@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -67,7 +68,7 @@ const Settings = () => {
     
     setConfirmedFiliale(selectedFiliale);
     setHasUnsavedChanges(false);
-    toast.success(`Filiale gewechselt zu: ${selectedFiliale === 'global' ? 'Global' : filialen.find(f => f.id.toString() === selectedFiliale)?.name || selectedFiliale}`);
+    toast.success(`Filiale gewechselt zu: ${selectedFiliale === 'global' ? 'Global' : filialen.find((f: any) => f.id.toString() === selectedFiliale)?.name || selectedFiliale}`);
   };
 
   // Save settings mutation
