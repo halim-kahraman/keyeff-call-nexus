@@ -95,7 +95,7 @@ if (!empty($params)) {
 $stmt_upcoming->execute();
 $upcoming_appointments = $stmt_upcoming->get_result()->fetch_assoc()['count'];
 
-// Get pending callbacks - fix: remove callback_date reference, use call_logs with outcome 'rueckruf'
+// Get pending callbacks - use call_logs with outcome 'rueckruf'
 $sql_callbacks = "
     SELECT COUNT(*) as count 
     FROM call_logs cl 
@@ -126,13 +126,16 @@ if ($role === 'admin') {
     $active_users = $stmt_active_users->get_result()->fetch_assoc()['count'];
 }
 
-// Get expiring contracts from database
+// Get expiring contracts from customer_contracts table - FIXED
+$expiring_contracts = 0;
 $sql_expiring = "
     SELECT COUNT(*) as count 
-    FROM customers c
-    WHERE c.contract_end_date IS NOT NULL 
-    AND c.contract_end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    FROM customer_contracts cc
+    JOIN customers c ON cc.customer_id = c.id
+    WHERE cc.contract_expiry IS NOT NULL 
+    AND cc.contract_expiry BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
 ";
+
 if ($role === 'filialleiter') {
     $sql_expiring .= " AND c.filiale_id = ?";
     $stmt_expiring = $conn->prepare($sql_expiring);
@@ -140,8 +143,13 @@ if ($role === 'filialleiter') {
 } else {
     $stmt_expiring = $conn->prepare($sql_expiring);
 }
-$stmt_expiring->execute();
-$expiring_contracts = $stmt_expiring->get_result()->fetch_assoc()['count'];
+
+// Check if customer_contracts table exists, if not use fallback
+$result = $conn->query("SHOW TABLES LIKE 'customer_contracts'");
+if ($result->num_rows > 0) {
+    $stmt_expiring->execute();
+    $expiring_contracts = $stmt_expiring->get_result()->fetch_assoc()['count'];
+}
 
 jsonResponse(true, 'Dashboard statistics retrieved successfully', [
     'daily_calls' => (int)$today_calls,

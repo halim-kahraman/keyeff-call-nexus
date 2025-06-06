@@ -2,8 +2,8 @@
 import axios from 'axios';
 
 // API-Konfiguration für keyeff.local Setup
-// Verwende immer /backend/api für alle API calls
-const API_BASE_URL = '/backend/api';
+// Verwende die korrekte Basis-URL ohne /backend prefix
+const API_BASE_URL = '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

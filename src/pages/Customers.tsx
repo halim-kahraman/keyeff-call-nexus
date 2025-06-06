@@ -197,7 +197,7 @@ const Customers = () => {
                 </div>
               </div>
             </CardContent>
-        </Card>
+          </Card>
         ) : (
           <Card>
             <CardContent className="pt-6">

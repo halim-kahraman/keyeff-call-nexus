@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -17,8 +16,10 @@ import { Separator } from '@/components/ui/separator';
 const Settings = () => {
   const { user } = useAuth();
   const [selectedFiliale, setSelectedFiliale] = useState<string>('global');
+  const [confirmedFiliale, setConfirmedFiliale] = useState<string>('global');
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
@@ -36,15 +37,17 @@ const Settings = () => {
   // Set default filiale for non-admin users
   useEffect(() => {
     if (!isAdmin && user?.filiale_id) {
-      setSelectedFiliale(user.filiale_id.toString());
+      const filialeId = user.filiale_id.toString();
+      setSelectedFiliale(filialeId);
+      setConfirmedFiliale(filialeId);
     }
   }, [isAdmin, user]);
 
-  // Fetch settings for the selected category and filiale
+  // Fetch settings for the confirmed category and filiale
   const fetchSettings = async (category: string) => {
     try {
       setIsLoading(true);
-      const filialeId = selectedFiliale === 'global' ? null : selectedFiliale;
+      const filialeId = confirmedFiliale === 'global' ? null : confirmedFiliale;
       const response = await settingsService.getSettings(category, filialeId);
       return response.data || {};
     } catch (error) {
@@ -55,14 +58,27 @@ const Settings = () => {
     }
   };
 
+  // Confirm filiale selection and load settings
+  const handleConfirmFiliale = async () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm('Sie haben ungespeicherte Änderungen. Möchten Sie die Filiale wirklich wechseln?');
+      if (!confirmed) return;
+    }
+    
+    setConfirmedFiliale(selectedFiliale);
+    setHasUnsavedChanges(false);
+    toast.success(`Filiale gewechselt zu: ${selectedFiliale === 'global' ? 'Global' : filialen.find(f => f.id.toString() === selectedFiliale)?.name || selectedFiliale}`);
+  };
+
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ category, data }: { category: string; data: any }) => {
-      const filialeId = selectedFiliale === 'global' ? null : selectedFiliale;
+      const filialeId = confirmedFiliale === 'global' ? null : confirmedFiliale;
       return settingsService.saveSettings({ category, ...data }, filialeId);
     },
     onSuccess: () => {
       toast.success('Einstellungen erfolgreich gespeichert');
+      setHasUnsavedChanges(false);
     },
     onError: () => {
       toast.error('Fehler beim Speichern der Einstellungen');
@@ -126,12 +142,14 @@ const Settings = () => {
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
   };
 
-  // Load settings when category or filiale changes
+  // Load settings when category or confirmed filiale changes
   const loadCategorySettings = async (category: string) => {
     const categorySettings = await fetchSettings(category);
     setSettings(categorySettings);
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -147,19 +165,38 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Select value={selectedFiliale} onValueChange={setSelectedFiliale}>
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Filiale auswählen" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="global">Globale Einstellungen</SelectItem>
-                  {filialen.map((filiale: any) => (
-                    <SelectItem key={filiale.id} value={filiale.id.toString()}>
-                      {filiale.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-4">
+                <Select value={selectedFiliale} onValueChange={setSelectedFiliale}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Filiale auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="global">Globale Einstellungen</SelectItem>
+                    {filialen.map((filiale: any) => (
+                      <SelectItem key={filiale.id} value={filiale.id.toString()}>
+                        {filiale.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={handleConfirmFiliale}
+                  disabled={selectedFiliale === confirmedFiliale}
+                  variant={selectedFiliale !== confirmedFiliale ? "default" : "outline"}
+                >
+                  {selectedFiliale !== confirmedFiliale ? "Filiale bestätigen" : "Aktiv"}
+                </Button>
+              </div>
+              {selectedFiliale !== confirmedFiliale && (
+                <p className="text-sm text-amber-600 mt-2">
+                  Klicken Sie "Filiale bestätigen" um die Einstellungen für diese Filiale zu laden.
+                </p>
+              )}
+              {hasUnsavedChanges && (
+                <p className="text-sm text-red-600 mt-2">
+                  Sie haben ungespeicherte Änderungen.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -230,6 +267,8 @@ const Settings = () => {
                   </div>
                 </div>
               </TabsContent>
+
+              {/* ... keep existing code (other tab contents) the same ... */}
 
               {/* WebRTC Settings */}
               <TabsContent value="webrtc" className="space-y-4">
