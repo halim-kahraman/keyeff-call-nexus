@@ -1,5 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useCallPanelAuth } from '@/hooks/useCallPanelAuth';
+import { toast } from 'sonner';
 
 interface Filiale {
   id: string;
@@ -26,13 +28,20 @@ export const useCallPanelManager = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Data state - mock data only
+  // Data state
   const [campaigns, setCampaigns] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock user
-  const user = { id: '1', name: 'Test User' };
+  const { user } = useCallPanelAuth();
+
+  // Data loading
+  useEffect(() => {
+    // Mock data to prevent API issues during debugging
+    setCampaigns([]);
+    setCustomers([]);
+    setIsLoading(false);
+  }, []);
 
   // Handlers
   const handleFilialeSelected = (filiale: any) => {
@@ -51,22 +60,22 @@ export const useCallPanelManager = () => {
   const handleCallStart = () => {
     const startTime = Date.now();
     setCallResult({ startTime, status: 'active' });
-    console.log('Anruf gestartet');
+    toast.success('Anruf gestartet');
   };
 
   const handleCallEnd = (duration: number) => {
     setCallDuration(duration);
     setCallResult(prev => prev ? { ...prev, endTime: Date.now(), status: 'ended' } : null);
-    console.log('Anruf beendet');
+    toast.success('Anruf beendet');
   };
 
   const handleSaveCallLog = () => {
     if (!callResult || !callOutcome) {
-      console.error('Bitte wählen Sie ein Anrufergebnis aus');
+      toast.error('Bitte wählen Sie ein Anrufergebnis aus');
       return;
     }
 
-    console.log('Anrufprotokoll gespeichert');
+    toast.success('Anrufprotokoll gespeichert');
     
     // Reset form
     setCallNotes('');
@@ -91,9 +100,9 @@ export const useCallPanelManager = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       setIsConnected(true);
-      console.log('Erfolgreich mit Filiale verbunden');
+      toast.success('Erfolgreich mit Filiale verbunden');
     } catch (error) {
-      console.error('Verbindung fehlgeschlagen');
+      toast.error('Verbindung fehlgeschlagen');
     } finally {
       setIsConnecting(false);
     }
@@ -101,7 +110,7 @@ export const useCallPanelManager = () => {
 
   const handleDisconnect = () => {
     setIsConnected(false);
-    console.log('Verbindung getrennt');
+    toast.info('Verbindung getrennt');
   };
 
   return {
