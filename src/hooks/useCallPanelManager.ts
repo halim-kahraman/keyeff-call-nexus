@@ -5,6 +5,12 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { campaignService, customerService } from '@/services/api';
 import { toast } from 'sonner';
 
+interface Filiale {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
 export const useCallPanelManager = () => {
   // State
   const [activeTab, setActiveTab] = useState('manual');
@@ -16,7 +22,7 @@ export const useCallPanelManager = () => {
   const [callOutcome, setCallOutcome] = useState('');
   const [callDuration, setCallDuration] = useState(0);
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
-  const [selectedFiliale, setSelectedFiliale] = useState(null);
+  const [selectedFiliale, setSelectedFiliale] = useState<Filiale | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [customerFromNav, setCustomerFromNav] = useState(null);
   const [contactIdFromNav, setContactIdFromNav] = useState(null);
