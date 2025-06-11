@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery, useMutation } from '@tanstack/react-query';
 import { campaignService, customerService } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -30,21 +29,52 @@ export const useCallPanelManager = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
+  // Data state
+  const [campaigns, setCampaigns] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const { user } = useAuth();
 
-  // Queries - properly implemented with correct parameters
-  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
-    queryKey: ['campaigns'],
-    queryFn: campaignService.getCampaigns,
-  });
+  // Fetch campaigns
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        setIsLoading(true);
+        const data = await campaignService.getCampaigns();
+        setCampaigns(data || []);
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+        setCampaigns([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const { data: customers = [], isLoading: customersLoading } = useQuery({
-    queryKey: ['customers', selectedFiliale?.id, selectedCampaign],
-    queryFn: () => customerService.getCustomers(selectedFiliale?.id || null, selectedCampaign),
-    enabled: !!(selectedFiliale?.id || selectedCampaign), // Only run when we have filters
-  });
+    fetchCampaigns();
+  }, []);
 
-  const isLoading = campaignsLoading || customersLoading;
+  // Fetch customers when filters change
+  useEffect(() => {
+    if (selectedFiliale?.id || selectedCampaign) {
+      const fetchCustomers = async () => {
+        try {
+          setIsLoading(true);
+          const data = await customerService.getCustomers(selectedFiliale?.id || null, selectedCampaign);
+          setCustomers(data || []);
+        } catch (error) {
+          console.error('Error fetching customers:', error);
+          setCustomers([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchCustomers();
+    } else {
+      setCustomers([]);
+    }
+  }, [selectedFiliale?.id, selectedCampaign]);
 
   // Handlers
   const handleFilialeSelected = (filiale: any) => {
