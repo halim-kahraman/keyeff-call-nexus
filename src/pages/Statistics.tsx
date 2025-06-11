@@ -24,8 +24,13 @@ const Statistics = () => {
     // Handle date range change
   };
 
-  const handleExport = (format: string) => {
-    // Handle export
+  const handleRefresh = () => {
+    // Handle refresh
+  };
+
+  const handleExport = () => {
+    // Handle export without format parameter
+    console.log('Exporting statistics...');
   };
 
   return (
@@ -40,11 +45,12 @@ const Statistics = () => {
           filialen={filialen}
           selectedFiliale=""
           onFilialeChange={handleFilialeChange}
-          selectedDateRange="30d"
+          dateRange="30"
           onDateRangeChange={handleDateRangeChange}
-          isLoading={false}
+          onRefresh={handleRefresh}
           onExport={handleExport}
-          stats={{}}
+          isLoading={false}
+          hasStats={false}
         />
       </div>
     </div>
