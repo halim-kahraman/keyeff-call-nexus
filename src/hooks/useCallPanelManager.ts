@@ -41,6 +41,7 @@ export const useCallPanelManager = () => {
   const { data: customers = [], isLoading: customersLoading } = useQuery({
     queryKey: ['customers', selectedFiliale?.id, selectedCampaign],
     queryFn: () => customerService.getCustomers(selectedFiliale?.id || null, selectedCampaign),
+    enabled: !!(selectedFiliale?.id || selectedCampaign), // Only run when we have filters
   });
 
   const isLoading = campaignsLoading || customersLoading;
