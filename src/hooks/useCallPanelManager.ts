@@ -28,20 +28,12 @@ export const useCallPanelManager = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Data state
-  const [campaigns, setCampaigns] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Data state - Temporär hardcoded für Build-Test
+  const [campaigns] = useState([]);
+  const [customers] = useState([]);
+  const [isLoading] = useState(false);
 
   const { user } = useAuth();
-
-  // Data loading
-  useEffect(() => {
-    // Mock data to prevent API issues during debugging
-    setCampaigns([]);
-    setCustomers([]);
-    setIsLoading(false);
-  }, []);
 
   // Handlers
   const handleFilialeSelected = (filiale: any) => {
