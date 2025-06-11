@@ -1,19 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authService } from "@/services/api";
 import { User, AuthContextType, PasswordResetResponse, UserRole } from "./types/auth.types";
 
 // Create context with undefined initial value
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// useAuth hook - directly implemented here to avoid circular imports
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
