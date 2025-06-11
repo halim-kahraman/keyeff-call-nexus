@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -26,7 +25,7 @@ export const useCallPanelManager = () => {
 
   const { user } = useAuth();
 
-  // Queries
+  // Queries - only keep the working ones
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
     queryKey: ['campaigns'],
     queryFn: campaignService.getCampaigns,
@@ -37,9 +36,6 @@ export const useCallPanelManager = () => {
     queryFn: customerService.getCustomers,
   });
 
-  // Remove the problematic connections query for now since it's causing the error
-  // and isn't being used in the component
-  
   const isLoading = campaignsLoading || customersLoading;
 
   // Handlers
