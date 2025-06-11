@@ -36,7 +36,7 @@ export const useCustomers = () => {
   // Handle the data structure correctly - extract data from response
   const customers = customersResponse?.data || [];
   const hasData = Array.isArray(customers) && customers.length > 0;
-  const isEmpty = Array.isArray(customers) && customers.length === 0;
+  const isEmpty = !isLoading && Array.isArray(customers) && customers.length === 0;
 
   useEffect(() => {
     console.log('Customers hook state:', {

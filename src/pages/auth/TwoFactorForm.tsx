@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { authService } from '@/services/api';
 
 interface TwoFactorFormProps {
   email: string;
@@ -39,12 +40,11 @@ export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
     setIsLoading(true);
 
     try {
-      // Use the auth context verify2FA method
       await verify2FA(otpValue);
       onVerificationComplete('verified');
     } catch (error) {
       toast.error('Ungültiger Code');
-      setOtp(''); // Clear OTP on error
+      setOtp('');
     } finally {
       setIsLoading(false);
     }
@@ -52,23 +52,14 @@ export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
 
   const handleResendCode = async () => {
     try {
-      const response = await fetch('/backend/api/auth/login.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, resend: true }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Neuer Code wurde gesendet');
-      } else {
-        toast.error('Fehler beim Senden des Codes');
-      }
+      setIsLoading(true);
+      // Use the centralized authService to resend 2FA code
+      await authService.login(email, ''); // This will trigger resend with existing session
+      toast.success('Neuer Code wurde gesendet');
     } catch (error) {
       toast.error('Fehler beim Senden des Codes');
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -32,15 +33,18 @@ const CalendarPage = () => {
   const [isNewAppointment, setIsNewAppointment] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: appointmentsResponse = { data: [] }, isLoading } = useQuery({
     queryKey: ['appointments'],
     queryFn: () => appointmentService.getAppointments(),
   });
 
-  const { data: customers = [] } = useQuery({
+  const { data: customersResponse = { data: [] } } = useQuery({
     queryKey: ['customers-for-appointments'],
     queryFn: () => customerService.getCustomers(),
   });
+
+  const appointments = appointmentsResponse?.data || [];
+  const customers = customersResponse?.data || [];
 
   const createMutation = useMutation({
     mutationFn: (appointmentData: any) => appointmentService.createAppointment(appointmentData),

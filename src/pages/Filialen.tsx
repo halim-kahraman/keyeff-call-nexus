@@ -27,11 +27,23 @@ const Filialen = () => {
     handleDelete
   } = useFilialen();
 
+  if (isLoading) {
+    return (
+      <AppLayout title="Filialen" subtitle="Filialen und Standorte verwalten">
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p>Lade Filialen...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Filialen" subtitle="Filialen und Standorte verwalten">
       <div className="admin-controls flex justify-between items-center">
         <div>
-          <span className="text-sm font-medium">Filialen gesamt: {filialen.length}</span>
+          <span className="text-sm font-medium">Filialen gesamt: {filialen?.length || 0}</span>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -52,7 +64,7 @@ const Filialen = () => {
                 <FilialeFormFields
                   formData={formData}
                   setFormData={setFormData}
-                  users={users}
+                  users={users || []}
                 />
               </div>
               <DialogFooter>
@@ -66,7 +78,7 @@ const Filialen = () => {
       <Card className="mt-6">
         <CardContent className="pt-6">
           <FilialeTable
-            filialen={filialen}
+            filialen={filialen || []}
             isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -88,7 +100,7 @@ const Filialen = () => {
               <FilialeFormFields
                 formData={formData}
                 setFormData={setFormData}
-                users={users}
+                users={users || []}
               />
             </div>
             <DialogFooter>
