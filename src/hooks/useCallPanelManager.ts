@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -25,15 +26,15 @@ export const useCallPanelManager = () => {
 
   const { user } = useAuth();
 
-  // Queries - only keep the working ones
+  // Queries - properly implemented with correct parameters
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
     queryKey: ['campaigns'],
     queryFn: campaignService.getCampaigns,
   });
 
   const { data: customers = [], isLoading: customersLoading } = useQuery({
-    queryKey: ['customers'],
-    queryFn: customerService.getCustomers,
+    queryKey: ['customers', selectedFiliale?.id, selectedCampaign],
+    queryFn: () => customerService.getCustomers(selectedFiliale?.id || null, selectedCampaign),
   });
 
   const isLoading = campaignsLoading || customersLoading;
