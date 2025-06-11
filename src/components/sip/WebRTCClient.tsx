@@ -64,8 +64,9 @@ export const WebRTCClient: React.FC<WebRTCClientProps> = ({
     customer?.contacts?.[0]
   );
 
-  // Get connection status
-  const { isConnected } = useConnectionManager();
+  // Get connection status - fix the destructuring
+  const { connectionStatus } = useConnectionManager();
+  const isConnected = connectionStatus.isConnected;
 
   // Find active contract
   const activeContract = customer?.contracts?.find(c => c.contract_status === "Aktiv") || customer?.contracts?.[0];

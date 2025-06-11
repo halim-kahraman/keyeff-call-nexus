@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from '@/components/layout/Header';
 import { useAuth } from '@/hooks/useAuth';
+import { useCallPanelManager } from '@/hooks/useCallPanelManager';
 
 const CallPanelManager = () => {
   const { user } = useAuth();
@@ -25,3 +26,6 @@ const CallPanelManager = () => {
 };
 
 export default CallPanelManager;
+
+// Export the hook that CallPanel.tsx expects
+export { useCallPanelManager } from '@/hooks/useCallPanelManager';
