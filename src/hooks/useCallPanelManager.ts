@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useCallPanelAuth } from '@/hooks/useCallPanelAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 interface Filiale {
@@ -33,7 +33,7 @@ export const useCallPanelManager = () => {
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { user } = useCallPanelAuth();
+  const { user } = useAuth();
 
   // Data loading
   useEffect(() => {
