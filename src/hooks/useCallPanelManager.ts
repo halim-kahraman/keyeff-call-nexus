@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ export const useCallPanelManager = () => {
 
   const { data: customers = [], isLoading: customersLoading } = useQuery({
     queryKey: ['customers', selectedCampaign],
-    queryFn: () => customerService.getCustomers({ campaign_id: selectedCampaign }),
+    queryFn: () => customerService.getCustomers(null, selectedCampaign),
     enabled: !!selectedCampaign
   });
 
@@ -160,3 +161,4 @@ export const useCallPanelManager = () => {
     handleDisconnect,
   };
 };
+
