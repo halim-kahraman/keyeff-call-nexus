@@ -26,6 +26,7 @@ export const connectionService = {
   },
   startConnection: async (filialeId: string, connectionType: string, connectionData: any = {}) => {
     const response = await api.post('/connections/manage.php', {
+      action: 'start',
       filiale_id: filialeId,
       connection_type: connectionType,
       connection_data: connectionData

@@ -1,14 +1,26 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { filialeService, userService } from '@/services/api';
+import { toast } from 'sonner';
+
+interface FilialeFormData {
+  name: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  phone: string;
+  email: string;
+  manager_id: string;
+  status: string;
+}
 
 export const useFilialen = () => {
+  const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeFiliale, setActiveFiliale] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FilialeFormData>({
     name: '',
     address: '',
     city: '',
@@ -18,79 +30,100 @@ export const useFilialen = () => {
     manager_id: '',
     status: 'active'
   });
-  
-  const queryClient = useQueryClient();
 
-  // Fetch branches from database
-  const { data: filialen = [], isLoading } = useQuery({
+  // Fetch filialen
+  const { 
+    data: filialen = [], 
+    isLoading: filialenLoading 
+  } = useQuery({
     queryKey: ['filialen'],
     queryFn: async () => {
       const response = await filialeService.getFilialen();
-      return response.data || [];
-    },
+      return response?.data || [];
+    }
   });
 
   // Fetch users for manager selection
-  const { data: users = [] } = useQuery({
+  const { 
+    data: users = [] 
+  } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await userService.getUsers();
-      return response.data || [];
-    },
+      return response?.data || [];
+    }
   });
 
-  // Add branch mutation
-  const { mutate: addFiliale } = useMutation({
-    mutationFn: (filialeData: any) => filialeService.createFiliale(filialeData),
+  // Create filiale mutation
+  const createMutation = useMutation({
+    mutationFn: (data: FilialeFormData) => filialeService.createFiliale(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['filialen'] });
+      toast.success('Filiale erfolgreich erstellt');
       setIsAddDialogOpen(false);
-      setFormData({ name: '', address: '', city: '', postal_code: '', phone: '', email: '', manager_id: '', status: 'active' });
-      queryClient.invalidateQueries({ queryKey: ['filialen'] });
-      toast.success("Filiale erfolgreich erstellt");
+      resetForm();
     },
-    onError: () => {
-      toast.error("Fehler beim Erstellen der Filiale");
+    onError: (error: any) => {
+      toast.error('Fehler beim Erstellen der Filiale: ' + (error.response?.data?.message || error.message));
     }
   });
 
-  // Edit branch mutation
-  const { mutate: updateFiliale } = useMutation({
-    mutationFn: (filialeData: any) => filialeService.updateFiliale(filialeData.id, filialeData),
+  // Update filiale mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: FilialeFormData }) => 
+      filialeService.updateFiliale(id, data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['filialen'] });
+      toast.success('Filiale erfolgreich aktualisiert');
       setIsEditDialogOpen(false);
-      setActiveFiliale(null);
-      setFormData({ name: '', address: '', city: '', postal_code: '', phone: '', email: '', manager_id: '', status: 'active' });
-      queryClient.invalidateQueries({ queryKey: ['filialen'] });
-      toast.success("Filiale erfolgreich aktualisiert");
+      resetForm();
     },
-    onError: () => {
-      toast.error("Fehler beim Aktualisieren der Filiale");
+    onError: (error: any) => {
+      toast.error('Fehler beim Aktualisieren der Filiale: ' + (error.response?.data?.message || error.message));
     }
   });
 
-  // Delete branch mutation
-  const { mutate: deleteFiliale } = useMutation({
-    mutationFn: (filialeId: string) => filialeService.deleteFiliale(filialeId),
+  // Delete filiale mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => filialeService.deleteFiliale(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['filialen'] });
-      toast.success("Filiale erfolgreich gelöscht");
+      toast.success('Filiale erfolgreich gelöscht');
     },
-    onError: () => {
-      toast.error("Fehler beim Löschen der Filiale");
+    onError: (error: any) => {
+      toast.error('Fehler beim Löschen der Filiale: ' + (error.response?.data?.message || error.message));
     }
   });
 
-  const handleAddFiliale = (event: React.FormEvent) => {
-    event.preventDefault();
-    addFiliale(formData);
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      address: '',
+      city: '',
+      postal_code: '',
+      phone: '',
+      email: '',
+      manager_id: '',
+      status: 'active'
+    });
+    setActiveFiliale(null);
   };
 
-  const handleUpdateFiliale = (event: React.FormEvent) => {
-    event.preventDefault();
-    updateFiliale({ ...formData, id: activeFiliale.id });
+  const handleAddFiliale = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Creating filiale with data:', formData);
+    createMutation.mutate(formData);
+  };
+
+  const handleUpdateFiliale = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeFiliale) return;
+    console.log('Updating filiale with data:', formData, 'ID:', activeFiliale.id);
+    updateMutation.mutate({ id: activeFiliale.id, data: formData });
   };
 
   const handleEdit = (filiale: any) => {
+    console.log('Editing filiale:', filiale);
     setActiveFiliale(filiale);
     setFormData({
       name: filiale.name || '',
@@ -105,11 +138,14 @@ export const useFilialen = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (filialeId: string) => {
-    if (window.confirm("Sind Sie sicher, dass Sie diese Filiale löschen möchten?")) {
-      deleteFiliale(filialeId);
+  const handleDelete = (filiale: any) => {
+    if (window.confirm(`Möchten Sie die Filiale "${filiale.name}" wirklich löschen?`)) {
+      console.log('Deleting filiale:', filiale.id);
+      deleteMutation.mutate(filiale.id);
     }
   };
+
+  const isLoading = filialenLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return {
     filialen,

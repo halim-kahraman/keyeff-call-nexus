@@ -1,9 +1,11 @@
-
 <?php
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Setting.php';
 require_once __DIR__ . '/../../models/Log.php';
 require_once __DIR__ . '/../../utils/mailer.php';
+
+use KeyEff\CallPanel\Models\Setting;
+use KeyEff\CallPanel\Models\Log;
 
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

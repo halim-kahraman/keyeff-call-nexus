@@ -2,9 +2,11 @@
 <?php
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Setting.php';
+require_once __DIR__ . '/../../models/FilialeSetting.php';
 require_once __DIR__ . '/../../models/Log.php';
 
 use KeyEff\CallPanel\Models\Setting;
+use KeyEff\CallPanel\Models\FilialeSetting;
 use KeyEff\CallPanel\Models\Log;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -39,17 +41,36 @@ if ($filiale_id === 'global') {
     $filiale_id = null;
 }
 
-$setting = new Setting();
 $success = true;
 
-foreach ($data as $key => $value) {
-    if ($key === 'category' || $key === 'filiale_id') {
-        continue;
+// Use appropriate model based on whether it's global or filiale-specific
+if ($filiale_id === null) {
+    // Global settings - use Setting model
+    $setting = new Setting();
+    foreach ($data as $key => $value) {
+        if ($key === 'category' || $key === 'filiale_id') {
+            continue;
+        }
+        
+        if (!$setting->save($category, $key, $value, null)) {
+            $success = false;
+            break;
+        }
     }
-    
-    if (!$setting->save($category, $key, $value, $filiale_id)) {
-        $success = false;
-        break;
+} else {
+    // Filiale-specific settings - use FilialeSetting model
+    $filialeSetting = new FilialeSetting();
+    foreach ($data as $key => $value) {
+        if ($key === 'category' || $key === 'filiale_id') {
+            continue;
+        }
+        
+        // Prefix the key with category for better organization
+        $setting_key = $category . '_' . $key;
+        if (!$filialeSetting->save($filiale_id, $setting_key, $value)) {
+            $success = false;
+            break;
+        }
     }
 }
 

@@ -1,10 +1,14 @@
+
 <?php
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Campaign.php';
 
 use KeyEff\CallPanel\Models\Campaign;
 
-// Check authorization
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    jsonResponse(false, 'Invalid request method', null, 405);
+}
+
 $headers = apache_request_headers();
 $auth_header = $headers['Authorization'] ?? null;
 
@@ -19,24 +23,13 @@ if (!$payload) {
     jsonResponse(false, 'Invalid token', null, 401);
 }
 
-// Get filiale_id from query string
-$filiale_id = isset($_GET['filiale_id']) ? (int)$_GET['filiale_id'] : null;
-
-// Get campaigns
-$campaign = new Campaign();
-
-// If user is admin, they can see all campaigns or filter by filiale
-// Otherwise, users can only see campaigns for their filiale
-if ($payload['role'] === 'admin') {
-    $campaigns = $filiale_id ? $campaign->getByFiliale($filiale_id) : $campaign->getAll();
-} else {
-    // For non-admin users, use their assigned filiale
-    $filiale_id = $payload['filiale_id'] ?? null;
-    if (!$filiale_id) {
-        jsonResponse(false, 'User is not assigned to a filiale', null, 400);
-    }
-    $campaigns = $campaign->getByFiliale($filiale_id);
+try {
+    $campaign = new Campaign();
+    $campaigns = $campaign->getAll();
+    
+    jsonResponse(true, 'Campaigns retrieved successfully', $campaigns);
+} catch (Exception $e) {
+    debugLog("Error fetching campaigns", $e->getMessage());
+    jsonResponse(false, 'Error fetching campaigns: ' . $e->getMessage(), null, 500);
 }
-
-jsonResponse(true, 'Campaigns retrieved successfully', $campaigns);
 ?>

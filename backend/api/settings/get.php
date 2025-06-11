@@ -2,8 +2,10 @@
 <?php
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../models/Setting.php';
+require_once __DIR__ . '/../../models/FilialeSetting.php';
 
 use KeyEff\CallPanel\Models\Setting;
+use KeyEff\CallPanel\Models\FilialeSetting;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(false, 'Invalid request method', null, 405);
@@ -35,8 +37,17 @@ if ($filiale_id === 'global') {
 }
 
 try {
-    $setting = new Setting();
-    $settings = $setting->getAllByCategory($category, $filiale_id);
+    $settings = [];
+    
+    if ($filiale_id === null) {
+        // Global settings
+        $setting = new Setting();
+        $settings = $setting->getAllByCategory($category, null);
+    } else {
+        // Filiale-specific settings
+        $filialeSetting = new FilialeSetting();
+        $settings = $filialeSetting->getAllByCategory($filiale_id, $category);
+    }
 
     jsonResponse(true, 'Settings retrieved successfully', $settings);
 } catch (Exception $e) {

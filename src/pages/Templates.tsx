@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, Phone, FileSpreadsheet, Plus, Edit, Trash2, Save } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Edit, Trash2, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { templateService } from "@/services/api/templateService";
+import { templateService } from "@/services/api";
 
 // Define interfaces for template types
 interface Template {
@@ -24,7 +23,7 @@ interface Template {
   category: string;
   subject?: string;
   content?: string;
-  createdAt: string;
+  created_at: string;
 }
 
 const Templates = () => {
@@ -36,31 +35,49 @@ const Templates = () => {
   const [templateType, setTemplateType] = useState<string>('email');
   const [isAdding, setIsAdding] = useState(false);
 
-  // Fetch templates from database
-  const { data: emailTemplates = [], isLoading: emailLoading } = useQuery({
+  // Fetch templates from database with proper error handling
+  const { data: emailTemplatesResponse, isLoading: emailLoading } = useQuery({
     queryKey: ['templates', 'email'],
     queryFn: () => templateService.getTemplates('email'),
   });
 
-  const { data: smsTemplates = [], isLoading: smsLoading } = useQuery({
+  const { data: smsTemplatesResponse, isLoading: smsLoading } = useQuery({
     queryKey: ['templates', 'sms'],
     queryFn: () => templateService.getTemplates('sms'),
   });
 
-  const { data: whatsappTemplates = [], isLoading: whatsappLoading } = useQuery({
+  const { data: whatsappTemplatesResponse, isLoading: whatsappLoading } = useQuery({
     queryKey: ['templates', 'whatsapp'],
     queryFn: () => templateService.getTemplates('whatsapp'),
   });
 
-  const { data: callScripts = [], isLoading: callsLoading } = useQuery({
+  const { data: callScriptsResponse, isLoading: callsLoading } = useQuery({
     queryKey: ['templates', 'calls'],
     queryFn: () => templateService.getTemplates('calls'),
   });
 
-  const { data: reportTemplates = [], isLoading: reportsLoading } = useQuery({
+  const { data: reportTemplatesResponse, isLoading: reportsLoading } = useQuery({
     queryKey: ['templates', 'reports'],
     queryFn: () => templateService.getTemplates('reports'),
   });
+
+  // Extract data arrays from responses
+  const emailTemplates = emailTemplatesResponse?.data || [];
+  const smsTemplates = smsTemplatesResponse?.data || [];
+  const whatsappTemplates = whatsappTemplatesResponse?.data || [];
+  const callScripts = callScriptsResponse?.data || [];
+  const reportTemplates = reportTemplatesResponse?.data || [];
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Templates data loaded:', {
+      email: { response: emailTemplatesResponse, templates: emailTemplates },
+      sms: { response: smsTemplatesResponse, templates: smsTemplates },
+      whatsapp: { response: whatsappTemplatesResponse, templates: whatsappTemplates },
+      calls: { response: callScriptsResponse, templates: callScripts },
+      reports: { response: reportTemplatesResponse, templates: reportTemplates }
+    });
+  }, [emailTemplatesResponse, smsTemplatesResponse, whatsappTemplatesResponse, callScriptsResponse, reportTemplatesResponse]);
 
   // Mutations for create, update, delete
   const createMutation = useMutation({
@@ -134,7 +151,7 @@ const Templates = () => {
       category: type === 'calls' ? 'Allgemein' : 'general',
       subject: type === 'email' ? '' : undefined,
       content: "",
-      createdAt: new Date().toISOString().split('T')[0]
+      created_at: new Date().toISOString().split('T')[0]
     };
     
     setEditingTemplate(newTemplate);

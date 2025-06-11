@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PlusCircle } from "lucide-react";
 import { FilialeFormFields } from "@/components/filialen/FilialeFormFields";
 import { FilialeTable } from "@/components/filialen/FilialeTable";
+import { FilialeActions } from "@/components/filialen/FilialeActions";
 import { useFilialen } from "@/hooks/useFilialen";
 
 const Filialen = () => {
@@ -41,50 +42,45 @@ const Filialen = () => {
 
   return (
     <AppLayout title="Filialen" subtitle="Filialen und Standorte verwalten">
-      <div className="admin-controls flex justify-between items-center">
-        <div>
-          <span className="text-sm font-medium">Filialen gesamt: {filialen?.length || 0}</span>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <PlusCircle size={16} />
-              <span>Neue Filiale</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] bg-white">
-            <DialogHeader>
-              <DialogTitle>Neue Filiale erstellen</DialogTitle>
-              <DialogDescription>
-                Geben Sie die Informationen für die neue Filiale ein.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddFiliale}>
-              <div className="grid gap-4 py-4">
-                <FilialeFormFields
-                  formData={formData}
-                  setFormData={setFormData}
-                  users={users || []}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit">Filiale erstellen</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <FilialeActions 
+        filialeCount={Array.isArray(filialen) ? filialen.length : 0}
+        onAddFiliale={() => setIsAddDialogOpen(true)}
+      />
 
       <Card className="mt-6">
         <CardContent className="pt-6">
           <FilialeTable
-            filialen={filialen || []}
+            filialen={Array.isArray(filialen) ? filialen : []}
             isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
         </CardContent>
       </Card>
+
+      {/* Add Filiale Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-white">
+          <DialogHeader>
+            <DialogTitle>Neue Filiale erstellen</DialogTitle>
+            <DialogDescription>
+              Geben Sie die Informationen für die neue Filiale ein.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddFiliale}>
+            <div className="grid gap-4 py-4">
+              <FilialeFormFields
+                formData={formData}
+                setFormData={setFormData}
+                users={Array.isArray(users) ? users : []}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit">Filiale erstellen</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Filiale Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -100,7 +96,7 @@ const Filialen = () => {
               <FilialeFormFields
                 formData={formData}
                 setFormData={setFormData}
-                users={users || []}
+                users={Array.isArray(users) ? users : []}
               />
             </div>
             <DialogFooter>
