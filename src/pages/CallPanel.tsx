@@ -6,7 +6,7 @@ import { CallControlPanel } from "@/components/call/CallControlPanel";
 import { CallResultPanel } from "@/components/call/CallResultPanel";
 import { PhoneInterface } from "@/components/call/PhoneInterface";
 import { WarningCard } from "@/components/call/WarningCard";
-import { useCallPanelManager } from "./call/CallPanelManager";
+import { useCallPanelManager } from "@/hooks/useCallPanelManager";
 
 const CallPanel = () => {
   const {
@@ -69,7 +69,7 @@ const CallPanel = () => {
         <ConnectionStatusCard
           isConnected={isConnected}
           isConnecting={isConnecting}
-          selectedFiliale={selectedFiliale}
+          selectedFiliale={selectedFiliale?.name || null}
           onConnect={handleConnect}
           onDisconnect={handleDisconnect}
         />
@@ -97,7 +97,7 @@ const CallPanel = () => {
             customerFromNav={customerFromNav}
             customers={customers}
             campaigns={campaigns}
-            selectedFiliale={selectedFiliale}
+            selectedFiliale={selectedFiliale?.name || null}
             isConnected={isConnected}
             clearCustomerSelection={clearCustomerSelection}
           />
