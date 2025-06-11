@@ -1,219 +1,291 @@
-
-import React from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuery } from '@tanstack/react-query';
-import { campaignService } from '@/services/api';
-import { Phone, Users, Calendar, TrendingUp, PlayCircle, PauseCircle } from 'lucide-react';
-import { useCampaignSession } from '@/hooks/useCampaignSession';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import React, { useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Play, Pause, BarChart3, Users, Calendar, Phone } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { campaignService } from "@/services/api";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Campaign {
-  id: number;
+  id: string;
   name: string;
   description: string;
-  status: string;
-  customer_count?: number;
-  completed_count?: number;
-  completion?: number;
-  filiale_name?: string;
+  status: 'active' | 'paused' | 'completed';
+  customers_count: number;
+  calls_made: number;
+  success_rate: number;
+  created_at: string;
+  template_id?: string;
 }
 
 const Campaigns = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { 
-    activeSessions, 
-    startCampaignSession, 
-    endCampaignSession 
-  } = useCampaignSession();
-
-  const { data: campaignsResponse, isLoading } = useQuery({
-    queryKey: ['campaigns'],
-    queryFn: () => campaignService.getCampaigns(),
+  const queryClient = useQueryClient();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({
+    name: '',
+    description: '',
+    template_id: ''
   });
 
-  const campaigns = campaignsResponse?.data || [];
+  const { data: campaigns = [], isLoading } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: campaignService.getCampaigns
+  });
 
-  const handleStartCampaign = async (campaign: Campaign) => {
-    const success = await startCampaignSession(campaign.id);
-    if (success) {
-      navigate('/call', { 
-        state: { 
-          campaignId: campaign.id,
-          campaignName: campaign.name 
-        } 
-      });
+  const { mutate: createCampaign, isPending: isCreating } = useMutation({
+    mutationFn: campaignService.createCampaign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      setIsCreateDialogOpen(false);
+      setNewCampaign({ name: '', description: '', template_id: '' });
+      toast.success('Kampagne erfolgreich erstellt');
+    },
+    onError: () => {
+      toast.error('Fehler beim Erstellen der Kampagne');
     }
+  });
+
+  const { mutate: updateCampaignStatus } = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => 
+      campaignService.updateCampaignStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      toast.success('Kampagnenstatus aktualisiert');
+    },
+    onError: () => {
+      toast.error('Fehler beim Aktualisieren des Status');
+    }
+  });
+
+  const handleCreateCampaign = () => {
+    if (!newCampaign.name.trim()) {
+      toast.error('Bitte geben Sie einen Kampagnennamen ein');
+      return;
+    }
+    createCampaign(newCampaign);
   };
 
-  const handleEndCampaign = async (campaignId: number) => {
-    await endCampaignSession(campaignId);
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      active: 'default',
+      paused: 'secondary',
+      completed: 'outline'
+    } as const;
+    
+    const labels = {
+      active: 'Aktiv',
+      paused: 'Pausiert',
+      completed: 'Abgeschlossen'
+    };
+    
+    return (
+      <Badge variant={variants[status as keyof typeof variants]}>
+        {labels[status as keyof typeof labels]}
+      </Badge>
+    );
   };
 
   if (isLoading) {
     return (
-      <AppLayout title="Kampagnen" subtitle="Übersicht und Verwaltung">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Kampagnen" subtitle="Verwalten Sie Ihre Anrufkampagnen" />
+        <div className="p-6">
+          <div className="text-center">Laden...</div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout title="Kampagnen" subtitle="Übersicht und Verwaltung">
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Übersicht</TabsTrigger>
-          <TabsTrigger value="statistics">Statistiken</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6">
-            {campaigns.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center text-muted-foreground">
-                    Keine Kampagnen gefunden. Erstellen Sie eine neue Kampagne, um zu beginnen.
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              campaigns.map((campaign: Campaign) => {
-                const session = activeSessions[campaign.id];
-                const isActive = session?.in_use;
-                
-                return (
-                  <Card key={campaign.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                          <p className="text-muted-foreground mt-2">{campaign.description}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge 
-                            variant={campaign.status === 'Active' ? 'default' : 'secondary'}
-                            className={campaign.status === 'Active' ? 'bg-green-100 text-green-800' : ''}
-                          >
-                            {campaign.status}
-                          </Badge>
-                          {isActive && (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                              In Bearbeitung: {session.user_name}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Gesamt Kunden</p>
-                            <p className="text-lg font-semibold">{campaign.customer_count || 0}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Abgeschlossen</p>
-                            <p className="text-lg font-semibold">{campaign.completed_count || 0}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Fortschritt</p>
-                            <p className="text-lg font-semibold">{campaign.completion || 0}%</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Filiale</p>
-                            <p className="text-lg font-semibold">{campaign.filiale_name || 'Global'}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 mb-4">
-                        <div className="flex justify-between text-sm">
-                          <span>Fortschritt</span>
-                          <span>{campaign.completion || 0}%</span>
-                        </div>
-                        <Progress value={campaign.completion || 0} className="h-2" />
-                      </div>
-
-                      <div className="flex gap-2">
-                        {!isActive ? (
-                          <Button 
-                            onClick={() => handleStartCampaign(campaign)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <PlayCircle className="h-4 w-4 mr-2" />
-                            Kampagne starten
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="outline"
-                            onClick={() => handleEndCampaign(campaign.id)}
-                            disabled={session?.user_name !== user?.name}
-                          >
-                            <PauseCircle className="h-4 w-4 mr-2" />
-                            Kampagne beenden
-                          </Button>
-                        )}
-                        
-                        <Button variant="outline">
-                          Details anzeigen
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Kampagnen" subtitle="Verwalten Sie Ihre Anrufkampagnen" />
+      
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Aktive Kampagnen</h2>
+            <p className="text-muted-foreground">
+              {campaigns.length} Kampagnen gefunden
+            </p>
           </div>
-        </TabsContent>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Neue Kampagne
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Neue Kampagne erstellen</DialogTitle>
+                <DialogDescription>
+                  Erstellen Sie eine neue Anrufkampagne
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Kampagnenname</Label>
+                  <Input
+                    id="name"
+                    value={newCampaign.name}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="z.B. Neukunden-Akquise Q1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="description">Beschreibung</Label>
+                  <Textarea
+                    id="description"
+                    value={newCampaign.description}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Beschreibung der Kampagne..."
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="template">Vorlage</Label>
+                  <Select 
+                    value={newCampaign.template_id} 
+                    onValueChange={(value) => setNewCampaign(prev => ({ ...prev, template_id: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wählen Sie eine Vorlage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Standard Verkaufsgespräch</SelectItem>
+                      <SelectItem value="2">Kundenrückgewinnung</SelectItem>
+                      <SelectItem value="3">Terminvereinbarung</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsCreateDialogOpen(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button 
+                    onClick={handleCreateCampaign}
+                    disabled={isCreating}
+                  >
+                    Erstellen
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        <TabsContent value="statistics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {campaigns.map((campaign: Campaign) => (
+            <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-lg">Gesamtstatistiken</CardTitle>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{campaign.name}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {campaign.description}
+                    </CardDescription>
+                  </div>
+                  {getStatusBadge(campaign.status)}
+                </div>
               </CardHeader>
+              
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Aktive Kampagnen</p>
-                    <p className="text-2xl font-bold">{campaigns.filter((c: Campaign) => c.status === 'Active').length || 0}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      Kunden
+                    </span>
+                    <span className="font-medium">{campaign.customers_count}</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Gesamte Kunden</p>
-                    <p className="text-2xl font-bold">{campaigns.reduce((sum: number, c: Campaign) => sum + (c.customer_count || 0), 0) || 0}</p>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      Anrufe
+                    </span>
+                    <span className="font-medium">{campaign.calls_made}</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Abgeschlossene Anrufe</p>
-                    <p className="text-2xl font-bold">{campaigns.reduce((sum: number, c: Campaign) => sum + (c.completed_count || 0), 0) || 0}</p>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1">
+                      <BarChart3 className="h-4 w-4" />
+                      Erfolgsrate
+                    </span>
+                    <span className="font-medium">{campaign.success_rate}%</span>
                   </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Erstellt
+                    </span>
+                    <span className="font-medium">
+                      {new Date(campaign.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  {campaign.status === 'active' ? (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => updateCampaignStatus({ id: campaign.id, status: 'paused' })}
+                      className="flex items-center gap-1"
+                    >
+                      <Pause className="h-3 w-3" />
+                      Pausieren
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="sm"
+                      onClick={() => updateCampaignStatus({ id: campaign.id, status: 'active' })}
+                      className="flex items-center gap-1"
+                    >
+                      <Play className="h-3 w-3" />
+                      Starten
+                    </Button>
+                  )}
+                  
+                  <Button size="sm" variant="outline">
+                    Details
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </AppLayout>
+          ))}
+        </div>
+        
+        {campaigns.length === 0 && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="text-muted-foreground">
+                <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Keine Kampagnen gefunden</h3>
+                <p>Erstellen Sie Ihre erste Kampagne, um zu beginnen.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 };
 
