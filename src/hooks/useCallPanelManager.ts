@@ -37,6 +37,9 @@ export const useCallPanelManager = () => {
     queryFn: customerService.getCustomers,
   });
 
+  // Remove the problematic connections query for now since it's causing the error
+  // and isn't being used in the component
+  
   const isLoading = campaignsLoading || customersLoading;
 
   // Handlers
