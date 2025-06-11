@@ -11,13 +11,13 @@ export const useCallPanelManager = () => {
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('');
   const [selectedContact, setSelectedContact] = useState(null);
   const [selectedContract, setSelectedContract] = useState(null);
-  const [callResult, setCallResult] = useState(null);
+  const [callResult, setCallResult] = useState<{ startTime: number; status: string; endTime?: number } | null>(null);
   const [callNotes, setCallNotes] = useState('');
   const [callOutcome, setCallOutcome] = useState('');
   const [callDuration, setCallDuration] = useState(0);
   const [isFilialSelectionOpen, setIsFilialSelectionOpen] = useState(false);
   const [selectedFiliale, setSelectedFiliale] = useState(null);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [customerFromNav, setCustomerFromNav] = useState(null);
   const [contactIdFromNav, setContactIdFromNav] = useState(null);
   const [connections, setConnections] = useState([]);
