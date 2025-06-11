@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { campaignService, customerService, connectionService } from '@/services/api';
+import { campaignService, customerService } from '@/services/api';
 import { toast } from 'sonner';
 
 export const useCallPanelManager = () => {
