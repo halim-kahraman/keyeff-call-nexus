@@ -1,7 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { campaignService, customerService } from '@/services/api';
 
 interface Filiale {
   id: string;
@@ -28,12 +30,22 @@ export const useCallPanelManager = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Data state - Temporär hardcoded für Build-Test
-  const [campaigns] = useState([]);
-  const [customers] = useState([]);
-  const [isLoading] = useState(false);
-
   const { user } = useAuth();
+
+  // Data fetching with useQuery
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: campaignService.getCampaigns,
+    enabled: !!user
+  });
+
+  const { data: customers = [], isLoading: customersLoading } = useQuery({
+    queryKey: ['customers', selectedCampaign],
+    queryFn: () => customerService.getCustomers({ campaign_id: selectedCampaign }),
+    enabled: !!selectedCampaign
+  });
+
+  const isLoading = campaignsLoading || customersLoading;
 
   // Handlers
   const handleFilialeSelected = (filiale: any) => {
