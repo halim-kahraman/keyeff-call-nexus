@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Header } from "@/components/layout/Header";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { StatisticsCards } from "@/components/statistics/StatisticsCards";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -15,19 +15,16 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header 
-        title="Dashboard" 
-        subtitle={`Willkommen zurück, ${user?.name || 'Benutzer'}!`}
+    <AppLayout 
+      title="Dashboard" 
+      subtitle={`Willkommen zurück, ${user?.name || 'Benutzer'}!`}
+    >
+      <StatisticsCards 
+        stats={stats}
+        isLoading={isLoading}
+        dateRange="30d"
       />
-      <div className="p-6">
-        <StatisticsCards 
-          stats={stats}
-          isLoading={isLoading}
-          dateRange="30d"
-        />
-      </div>
-    </div>
+    </AppLayout>
   );
 };
 
